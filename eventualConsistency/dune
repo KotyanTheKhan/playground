@@ -1,0 +1,12 @@
+(coq.theory
+ (name EventualConsistency)
+ (package playground)
+ (theories Posets Stdlib)
+ (modules
+  StateModel
+  ReplicatedStructure
+  MergeOperations
+  ConvergenceProof
+  Examples
+  EventualConsistencyClass
+  EventualConsistency))

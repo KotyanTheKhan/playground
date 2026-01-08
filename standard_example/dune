@@ -1,0 +1,5 @@
+(coq.theory
+ (name StandardExample)
+ (package playground)
+ (theories Posets Hammer)
+ (modules Structure Proofs SemilatticeInvestigation))

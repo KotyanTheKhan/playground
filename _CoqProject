@@ -1,0 +1,67 @@
+-R posets Posets
+-R list List
+-R tree Tree
+-R happenedBefore HappenedBefore
+-R eventualConsistency EventualConsistency
+-R standard_example StandardExample
+-R abhishek Abhishek
+-R chipala_book CpdtTactics
+
+posets/Posets.v
+posets/PosetClasses.v
+posets/NatInstances.v
+posets/PosetWidth.v
+
+list/List.v
+list/Structure.v
+list/Operations.v
+list/Helpers.v
+list/PosetInstance.v
+list/JoinSemilatticeInstance.v
+list/MeetSemilatticeInstance.v
+list/LatticeInstance.v
+list/DistributiveLatticeInstance.v
+list/Examples.v
+
+tree/Tree.v
+tree/Structure.v
+tree/Operations.v
+tree/Instances.v
+tree/Examples.v
+
+happenedBefore/HappenedBefore.v
+happenedBefore/EventStructure.v
+happenedBefore/CausalRelation.v
+happenedBefore/CausalRelationProps.v
+happenedBefore/PosetInstance.v
+happenedBefore/LatticeOperations.v
+happenedBefore/LatticeInstances.v
+happenedBefore/MeetSemilatticeAttempt.v
+happenedBefore/SemilatticeContradiction.v
+
+eventualConsistency/EventualConsistency.v
+eventualConsistency/StateModel.v
+eventualConsistency/ReplicatedStructure.v
+eventualConsistency/EventualConsistencyClass.v
+eventualConsistency/MergeOperations.v
+eventualConsistency/ConvergenceProof.v
+eventualConsistency/Examples.v
+
+standard_example/Structure.v
+standard_example/SemilatticeInvestigation.v
+standard_example/Proofs.v
+
+abhishek/PigeonHole.v
+abhishek/BasicFacts.v
+abhishek/FPO_Facts.v
+abhishek/FPO_Facts2.v
+abhishek/FiniteDilworth_AB.v
+abhishek/FiniteDilworth.v
+abhishek/Combi_1.v
+abhishek/BasicFacts2.v
+abhishek/FPO_Facts3.v
+abhishek/Dual_Dilworth.v
+abhishek/Graph.v
+abhishek/Halls_Thm.v
+abhishek/Marriage_Thm.v
+abhishek/Erdos_Szeker.v

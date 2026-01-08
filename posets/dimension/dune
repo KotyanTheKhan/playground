@@ -1,0 +1,4 @@
+(coq.theory
+ (name Dimension)
+ (package playground)
+ (theories Stdlib Posets Dilworth))
