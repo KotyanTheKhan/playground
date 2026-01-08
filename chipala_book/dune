@@ -1,7 +1,7 @@
 (coq.theory
  (name ChipalaBook)
  (package playground)
- (theories Stdlib Hammer)
+ (theories Stdlib)
  (modules
   ex1
   CpdtTactics

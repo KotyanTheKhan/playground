@@ -1,7 +1,6 @@
 From Stdlib Require Import Arith.Arith.
 From Stdlib Require Import Classes.RelationClasses.
 From Posets Require Import PosetClasses.
-From Hammer Require Import Hammer.
 Require Import Structure.
 Require Import Proofs.
 

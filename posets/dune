@@ -1,4 +1,4 @@
 (coq.theory
  (name Posets)
  (package playground)
- (theories Stdlib Hammer))
+ (theories Stdlib))

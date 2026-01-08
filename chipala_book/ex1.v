@@ -2,10 +2,10 @@ From Stdlib Require Import List Bool Arith.
 From ChipalaBook Require Import CpdtTactics.
 Require Extraction.
 
-From Hammer Require Import Hammer.
+(* From Hammer Require Import Hammer.
 
 Set Hammer Print.
-Set Hammer Debug.
+Set Hammer Debug. *)
 (* Set Hammer ATPLimit 120. *)
 
 Set Implicit Arguments.
