@@ -5,23 +5,14 @@ From HappenedBefore Require Import LatticeOperations.
 (* ========== Basic Examples ========== *)
 
 (* Example: Create some events using notation *)
-Definition e0 : Event := ⟨0, 0⟩.
-Definition e1 : Event := ⟨0, 1⟩.
-Definition e2 : Event := ⟨1, 2⟩.
-Definition e3 : Event := ⟨1, 3⟩.
-
-(* Example: Events on same process *)
-Example same_process_ordering :
-  forall h, e0 ≺[h] e1.
-Proof.
-  intro h.
-  apply hb_local.
-  unfold same_process_before; simpl.
-  split; [reflexivity | repeat constructor].
-Qed.
+(* Example: Create some events using notation *)
+Definition e0 : Event := ⟨0⟩.
+Definition e1 : Event := ⟨0⟩.
+Definition e2 : Event := ⟨1⟩.
+Definition e3 : Event := ⟨1⟩.
 
 (* Example: Create a message from e1 to e2 using notation *)
-Definition m12 : Message := (e1 →ₘ e2) ltac:(repeat constructor).
+Definition m12 : Message := e1 →ₘ e2.
 Definition example_history : History := cons m12 nil.
 
 (* Example: Message causality *)
@@ -36,23 +27,14 @@ Proof.
   - split; reflexivity.
 Qed.
 
-(* Example: Transitivity through message *)
-Example transitive_causality :
-  e0 ≺[example_history] e2.
-Proof.
-  apply hb_trans with e1.
-  - apply same_process_ordering.
-  - apply message_causality.
-Qed.
-
-(* Helper: In an empty history, causality implies same process *)
+(* Helper: In an empty history, causality implies same process equality 
+   (since only refl is possible) *)
 Lemma happened_before_nil_same_process : forall e1 e2,
   happened_before nil e1 e2 -> process e1 = process e2.
 Proof.
   intros e1 e2 H.
   induction H.
   - (* hb_refl *) reflexivity.
-  - (* hb_local *) destruct H as [Hproc _]. assumption.
   - (* hb_message *) destruct H as [m [Hin _]]. inversion Hin.
   - (* hb_trans *) rewrite IHhappened_before1. assumption.
 Qed.

@@ -5,10 +5,10 @@ From HappenedBeforeExamples Require Import ExBasic.
 (* ========== Complex Examples ========== *)
 
 (* Example: Complex message chain *)
-Definition e4 : Event := ⟨0, 4⟩.
-Definition e5 : Event := ⟨1, 4⟩.
-Definition m23 : Message := (e2 →ₘ e3) ltac:(repeat constructor).
-Definition m34 : Message := (e3 →ₘ e4) ltac:(repeat constructor).
+Definition e4 : Event := ⟨0⟩.
+Definition e5 : Event := ⟨1⟩.
+Definition m23 : Message := e2 →ₘ e3.
+Definition m34 : Message := e3 →ₘ e4.
 Definition complex_history : History := cons m12 (cons m23 (cons m34 nil)).
 
 (* Example: Transitive causality through multiple messages *)
@@ -33,16 +33,4 @@ Example reflexivity_notation :
   forall e h, e ≺[h] e.
 Proof.
   intros. apply hb_refl.
-Qed.
-
-(* Example: Same process ordering is transitive *)
-Example same_process_transitive :
-  forall h, e0 ≺[h] e4.
-Proof.
-  intro h.
-  apply hb_trans with e1.
-  - apply hb_local. unfold same_process_before; simpl.
-    split; [reflexivity | repeat constructor].
-  - apply hb_local. unfold same_process_before; simpl.
-    split; [reflexivity | repeat constructor].
 Qed.

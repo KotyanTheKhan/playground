@@ -2,8 +2,4 @@
  (name ChipalaBook)
  (package playground)
  (theories Stdlib)
- (modules
-  ex1
-  CpdtTactics
-  TacticsReference
-  ))
+ (modules ex1 CpdtTactics TacticsReference))

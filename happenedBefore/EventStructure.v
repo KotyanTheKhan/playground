@@ -6,27 +6,21 @@ Require Import Arith.
 (* Process identifier *)
 Definition ProcessId := nat.
 
-(* Logical clock (Lamport timestamp) *)
-Definition LogicalClock := nat.
-
 (* Event in a distributed system *)
 Record Event := {
-  process : ProcessId;
-  clock : LogicalClock
+  process : ProcessId
 }.
 
 (* Notation for event construction *)
-Notation "'⟨' p ',' c '⟩'" := {| process := p; clock := c |} (at level 0).
+Notation "'⟨' p '⟩'" := {| process := p |} (at level 0).
 
 (* Message: sender event and receiver event *)
 Record Message := {
   send_event : Event;
-  recv_event : Event;
-  clock_lt : clock send_event < clock recv_event
+  recv_event : Event
 }.
 
 (* Notation for message construction *)
-(* Note: This notation now requires a proof term, so it's less convenient to use directly without automation or explicit proofs *)
 Notation "e1 '→ₘ' e2" := (Build_Message e1 e2) (at level 80).
 
 (* A history is a list of messages representing the communication pattern *)
@@ -59,19 +53,4 @@ Fixpoint nat_leb (n m : nat) : bool :=
 
 (* ========== Lemmas ========== *)
 
-(* Messages connect distinct events - an event cannot send a message to itself.
-   This is a fundamental property of causality in distributed systems. *)
-Lemma message_connects_distinct_events : forall m,
-  send_event m <> recv_event m.
-Proof.
-  intros m H.
-  (* If send_event m = recv_event m, then their clocks must be equal *)
-  assert (Hclk: clock (send_event m) = clock (recv_event m)).
-  { rewrite H. reflexivity. }
-  (* But we know clock (send_event m) < clock (recv_event m) *)
-  pose proof (clock_lt m) as Hlt.
-  (* This is a contradiction *)
-  rewrite Hclk in Hlt.
-  apply Nat.lt_irrefl in Hlt.
-  assumption.
-Qed.
+

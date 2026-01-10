@@ -8,24 +8,16 @@ From Stdlib Require Import Arith.
   We define a sequence of events where processes 0 and 1 alternate.
   Event n is on process (n mod 2) with clock n.
 *)
-Definition alternating_event (n : nat) : Event :=
-  ⟨n mod 2, n⟩.
-
 (* 
-  We define a sequence of messages where event n sends to event n+1.
-  Since clock n < clock (n+1) is always true (n < n+1), this is valid.
+  We define a sequence of events where processes 0 and 1 alternate.
+  Event n is on process (n mod 2).
 *)
-Lemma alt_clock_lt : forall n, clock (alternating_event n) < clock (alternating_event (S n)).
-Proof.
-  intro n.
-  unfold alternating_event; simpl.
-  constructor.
-Qed.
+Definition alternating_event (n : nat) : Event :=
+  ⟨n mod 2⟩.
 
 Definition alternating_message (n : nat) : Message :=
   {| send_event := alternating_event n;
-     recv_event := alternating_event (S n);
-     clock_lt := alt_clock_lt n |}.
+     recv_event := alternating_event (S n) |}.
 
 (*
   Recursive definition of history containing messages from 0 to n-1.
@@ -62,7 +54,6 @@ Proof.
         intros h e_start e_end m_new H_hb.
         induction H_hb.
         - apply hb_refl.
-        - apply hb_local. assumption.
         - apply hb_message. destruct H as [m' [Hin Hlink]].
           exists m'. split. right. assumption. assumption.
         - eapply hb_trans. 
