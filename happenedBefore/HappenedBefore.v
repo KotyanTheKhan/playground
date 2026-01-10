@@ -24,6 +24,31 @@ From HappenedBefore Require Import PosetInstance.
 Export EventStructure.
 Export CausalRelation.
 Export CausalRelationProps.
+Require Import LamportClock.
+Export LamportClock.
+
+(* ========== Happened-Before Class ========== *)
+
+Require Import Posets.PosetClasses.
+
+Class IsHappenedBefore (h : History) (R : Event -> Event -> Prop) := {
+  hb_is_poset :> IsPoset Event R
+}.
+
+(* Instance for the standard happened_before relation 
+   Requires the history to be acyclic for antisymmetry to hold. *)
+Instance is_happened_before_inst (h : History) (H_acyclic : IsAcyclic h) : IsHappenedBefore h (happened_before h).
+Proof.
+  constructor.
+  apply happened_before_poset; assumption.
+Defined.
+
+(* Instance for Lamport Clock Total Order *)
+Instance lamport_hb_inst (h : History) (c : Clock) : IsHappenedBefore h (lamport_le c).
+Proof.
+  constructor.
+  apply lamport_le_poset.
+Defined.
 
 (* ========== Summary ========== *)
 
@@ -40,6 +65,10 @@ Export CausalRelationProps.
       - For an empty history, events on different processes have no common predecessor (no GLB)
         and no common successor (no LUB).
       - See `SemilatticeContradiction.v` for formal proofs of these impossibilities.
+   
+   3. LAMPORT CLOCK:
+      - We can define a total ordering consistent with the happened-before relation
+        using Lamport timestamps and process IDs.
    
    This structure is fundamental to understanding causality in distributed systems,
    vector clocks, and eventual consistency. *)

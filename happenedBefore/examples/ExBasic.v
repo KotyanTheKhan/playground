@@ -1,6 +1,9 @@
 From HappenedBefore Require Import EventStructure.
 From HappenedBefore Require Import CausalRelation.
 From HappenedBefore Require Import LatticeOperations.
+From Stdlib Require Import Lia.
+From HappenedBefore Require Import HappenedBefore.
+From HappenedBefore Require Import PosetInstance.
 
 (* ========== Basic Examples ========== *)
 
@@ -54,3 +57,47 @@ Proof.
     unfold e0, e2 in H; simpl in H.
     discriminate.
 Qed.
+
+(* ========== Happened-Before Instance ========== *)
+
+(* To make this an instance of IsHappenedBefore, we need to prove it is a Poset.
+   For happened_before, this requires IsAcyclic. *)
+
+(* To make this an instance of IsHappenedBefore, we need to prove it is a Poset.
+   For happened_before, this requires IsAcyclic. *)
+
+Lemma example_history_acyclic : IsAcyclic example_history.
+Proof.
+  unfold IsAcyclic.
+  intros e H_cycle.
+  (* Cycle means e <+ e. In our history [0->1], this is impossible. *)
+  
+  (* We define a measure to show events proceed forward *)
+  pose (ProcessNum := fun e => process e).
+  assert (H_forward: forall a b, strict_happened_before example_history a b -> ProcessNum a < ProcessNum b).
+  {
+    intros a b H_sb.
+    induction H_sb.
+    - (* Direct *)
+      destruct H as [m [Hin [Hs Hr]]].
+      unfold example_history in Hin.
+      destruct Hin as [Heq | Hnil]; [|contradiction].
+      subst m. 
+      (* m12 is 0->1 *)
+      rewrite <- Hs, <- Hr.
+      unfold ProcessNum, m12, e1, e2. simpl. auto.
+    - (* Transitive *)
+      lia.
+  }
+  
+  (* Apply the measure to the cycle e <+ e *)
+  apply H_forward in H_cycle.
+  lia.
+Qed.
+
+Instance example_hb : IsHappenedBefore example_history (happened_before example_history).
+Proof.
+  constructor.
+  apply happened_before_poset.
+  apply example_history_acyclic.
+Defined.

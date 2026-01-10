@@ -10,4 +10,5 @@
   LatticeOperations
   LatticeInstances
   SemilatticeContradiction
+  LamportClock
   HappenedBefore))
