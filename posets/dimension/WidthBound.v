@@ -16,6 +16,20 @@ From Dilworth Require Import DilworthTheorem WidthUpperBound CardinalLemmas.
     5. Apply minimality of dimension to conclude dim(R) ≤ w
 *)
 
+(** ** Reusable Tactics *)
+
+(** Solve goal using transitivity with automatic witness finding *)
+Ltac solve_trans :=
+  eapply poset_trans; eauto.
+
+(** Case split on ensemble membership with named hypotheses *)
+Ltac chain_case C x Hyes Hno :=
+  destruct (classic (In _ C x)) as [Hyes | Hno].
+
+(** Solve path invariant goals with explicit witness *)
+Ltac path_inv_witness c w :=
+  right; exists c, w; repeat split; auto; solve_trans.
+
 Section WidthBound.
   Context {A : Type}.
   Context (R : A -> A -> Prop) `{IsPoset A R}.
@@ -52,26 +66,23 @@ Section WidthBound.
       destruct IH1 as [IH1_in IH1_out], IH2 as [IH2_in IH2_out]; split; intros Hv.
       + (* v in C *)
         assert (Rmv: R m v) by auto.
-        destruct (classic (In A C m)) as [Hm | Hnm]; [eapply poset_trans; eauto |].
-        destruct (IH1_out Hnm) as [Rum | [c [w [Hc [Nw [Ruc [Hcw Rwm]]]]]]];
-          [eapply poset_trans; eauto |].
-        assert (Rwv: R w v) by (eapply poset_trans; eauto).
-        destruct (@chain_comparable A R C Hchain c v Hc Hv); [eapply poset_trans; eauto |].
-        exfalso; apply Hcw; right; eapply poset_trans; eauto.
+        chain_case C m Hm Hnm; [solve_trans |].
+        destruct (IH1_out Hnm) as [Rum | [c [w [Hc [Nw [Ruc [Hcw Rwm]]]]]]]; [solve_trans |].
+        assert (Rwv: R w v) by solve_trans.
+        destruct (@chain_comparable A R C Hchain c v Hc Hv); [solve_trans |].
+        exfalso; apply Hcw; right; solve_trans.
       + (* v not in C *)
         destruct (IH2_out Hv) as [Rmv | [c' [w' [Hc' [Nw' [Rmc' [Hc'w' Rw'v]]]]]]].
-        * destruct (classic (In A C m)) as [Hm | Hnm]; [left; eapply poset_trans; eauto |].
+        * chain_case C m Hm Hnm; [left; solve_trans |].
           destruct (IH1_out Hnm) as [Rum | [c [w [Hc [Nw [Ruc [Hcw Rwm]]]]]]];
-            [left; eapply poset_trans; eauto |
-             right; exists c, w; repeat split; auto; eapply poset_trans; eauto].
-        * destruct (classic (In A C m)) as [Hm | Hnm];
-            [right; exists c', w'; repeat split; auto; eapply poset_trans; eauto |].
+            [left; solve_trans | path_inv_witness c w].
+        * chain_case C m Hm Hnm; [path_inv_witness c' w' |].
           destruct (IH1_out Hnm) as [Rum | [c [w [Hc [Nw [Ruc [Hcw Rwm]]]]]]];
-            [right; exists c', w'; repeat split; auto; eapply poset_trans; eauto |].
-          assert (Rwc': R w c') by (eapply poset_trans; eauto).
-          destruct (@chain_comparable A R C Hchain c c' Hc Hc'); 
-            [right; exists c', w'; repeat split; auto; eapply poset_trans; eauto |].
-          exfalso; apply Hcw; right; eapply poset_trans; eauto.
+            [path_inv_witness c' w' |].
+          assert (Rwc': R w c') by solve_trans.
+          destruct (@chain_comparable A R C Hchain c c' Hc Hc');
+            [path_inv_witness c' w' |].
+          exfalso; apply Hcw; right; solve_trans.
   Qed.
 
   (** TC(AugmentedRelation C) is a poset.
@@ -98,29 +109,31 @@ Section WidthBound.
       + (* x in C, y not in C *)
         assert (Ryx: R y x) by auto.
         destruct (Hxy_out Hny) as [Rxy | [c [w [Hc [Nw [Rxc [Hcw Rwy]]]]]]];
-          [apply Hneq; eapply poset_antisym; eauto |
-           assert (Rwc: R w c) by (eapply poset_trans; [eapply poset_trans; eauto |]; eauto); 
-           apply Hcw; right; assumption].
+          [apply Hneq; eapply poset_antisym; eauto |].
+        assert (Rwc: R w c) by (eapply poset_trans; [eapply poset_trans; eauto |]; eauto).
+        exfalso; apply Hcw; right; assumption.
       + (* x not in C, y in C *)
         assert (Rxy: R x y) by auto.
         destruct (Hyx_out Hnx) as [Ryx | [c [w [Hc [Nw [Ryc [Hcw Rwx]]]]]]];
-          [apply Hneq; eapply poset_antisym; eauto |
-           assert (Rwc: R w c) by (eapply poset_trans; [| eapply poset_trans]; eauto);
-           apply Hcw; right; assumption].
+          [apply Hneq; eapply poset_antisym; eauto |].
+        assert (Rwc: R w c) by (eapply poset_trans; [| eapply poset_trans]; eauto).
+        exfalso; apply Hcw; right; assumption.
       + (* Neither in C: compare jump structures *)
         destruct (Hyx_out Hnx) as [Ryx | [c [w [Hc [Nw [Ryc [Hcw Rwx]]]]]]].
         * destruct (Hxy_out Hny) as [Rxy | [c [w [Hc [Nw [Rxc [Hcw Rwy]]]]]]];
-            [apply Hneq; eapply poset_antisym; eauto |
-             assert (Rwc: R w c) by (eapply poset_trans; [eapply poset_trans; eauto |]; eauto);
-             apply Hcw; right; assumption].
+            [apply Hneq; eapply poset_antisym; eauto |].
+          assert (Rwc: R w c) by (eapply poset_trans; [eapply poset_trans; eauto |]; eauto).
+          exfalso; apply Hcw; right; assumption.
         * destruct (Hxy_out Hny) as [Rxy | [c' [w' [Hc' [Nw' [Rxc' [Hc'w' Rw'y]]]]]]].
-          -- assert (Rwc: R w c) by (eapply poset_trans; [| eapply poset_trans]; eauto);
-             apply Hcw; right; assumption.
-          -- assert (Rwc': R w c') by (eapply poset_trans; eauto).
-             assert (Rw'c: R w' c) by (eapply poset_trans; eauto).
-             destruct (@chain_comparable A R C Hchain c c' Hc Hc') as [Rcc' | Rc'c];
-               [assert (Rw'c': R w' c') by (eapply poset_trans; eauto); apply Hc'w'; right; assumption |
-                assert (Rwc: R w c) by (eapply poset_trans; eauto); apply Hcw; right; assumption].
+          -- assert (Rwc: R w c) by (eapply poset_trans; [| eapply poset_trans]; eauto).
+             exfalso; apply Hcw; right; assumption.
+          -- assert (Rwc': R w c') by solve_trans.
+             assert (Rw'c: R w' c) by solve_trans.
+             destruct (@chain_comparable A R C Hchain c c' Hc Hc') as [Rcc' | Rc'c].
+             ++ assert (Rw'c': R w' c') by solve_trans.
+                exfalso; apply Hc'w'; right; assumption.
+             ++ assert (Rwc: R w c) by solve_trans.
+                exfalso; apply Hcw; right; assumption.
     - (* Transitivity *)
       intros x y z Hxy Hyz; apply tc_trans with y; auto.
   Qed.
