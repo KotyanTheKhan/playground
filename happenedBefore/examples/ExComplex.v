@@ -9,9 +9,9 @@ From Stdlib Require Import Lia.
 
 (* Example: Complex message chain across distinct processes *)
 (* To ensure acyclicity without indices, we must use distinct processes *)
-Definition ep1 : Event := ⟨1⟩.
-Definition ep2 : Event := ⟨2⟩.
-Definition ep3 : Event := ⟨3⟩.
+Definition ep1 : Event := ⟨1, 0⟩.
+Definition ep2 : Event := ⟨2, 0⟩.
+Definition ep3 : Event := ⟨3, 0⟩.
 
 Definition m12_complex : Message := ep1 →ₘ ep2.
 Definition m23_complex : Message := ep2 →ₘ ep3.

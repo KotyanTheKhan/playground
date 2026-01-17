@@ -9,10 +9,10 @@ From HappenedBefore Require Import PosetInstance.
 
 (* Example: Create some events using notation *)
 (* Example: Create some events using notation *)
-Definition e0 : Event := ⟨0⟩.
-Definition e1 : Event := ⟨0⟩.
-Definition e2 : Event := ⟨1⟩.
-Definition e3 : Event := ⟨1⟩.
+Definition e0 : Event := ⟨0, 0⟩.
+Definition e1 : Event := ⟨0, 0⟩.
+Definition e2 : Event := ⟨1, 0⟩.
+Definition e3 : Event := ⟨1, 0⟩.
 
 (* Example: Create a message from e1 to e2 using notation *)
 Definition m12 : Message := e1 →ₘ e2.

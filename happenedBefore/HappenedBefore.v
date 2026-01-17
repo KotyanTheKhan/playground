@@ -3,7 +3,7 @@
 (* ========== Notation Summary ========== *)
 (*
    Events and Messages:
-   - ⟨p, c⟩         : Event with process p and clock c
+   - ⟨p, i⟩         : Event with process p and index i
    - e1 →ₘ e2       : Message from event e1 to event e2
    
    Relations:

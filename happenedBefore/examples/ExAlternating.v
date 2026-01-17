@@ -12,7 +12,7 @@ From Stdlib Require Import Lia.
   Event n is on process n. This ensures acyclicity.
 *)
 Definition alternating_event (n : nat) : Event :=
-  ⟨n⟩.
+  ⟨n, 0⟩.
 
 Definition alternating_message (n : nat) : Message :=
   {| send_event := alternating_event n;

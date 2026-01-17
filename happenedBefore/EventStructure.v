@@ -8,11 +8,12 @@ Definition ProcessId := nat.
 
 (* Event in a distributed system *)
 Record Event := {
-  process : ProcessId
+  process : ProcessId;
+  index : nat
 }.
 
 (* Notation for event construction *)
-Notation "'⟨' p '⟩'" := {| process := p |} (at level 0).
+Notation "'⟨' p ',' i '⟩'" := {| process := p; index := i |} (at level 0).
 
 (* Message: sender event and receiver event *)
 Record Message := {

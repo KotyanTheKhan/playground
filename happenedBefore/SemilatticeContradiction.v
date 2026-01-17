@@ -48,8 +48,8 @@ Proof.
   intro H.
   unfold is_meet_semilattice_poset in H.
   (* Take e1=<0> and e2=<1> *)
-  let e1 := constr:(⟨0⟩) in
-  let e2 := constr:(⟨1⟩) in
+  let e1 := constr:(⟨0, 0⟩) in
+  let e2 := constr:(⟨1, 0⟩) in
   destruct (H e1 e2) as [m [Hm1 [Hm2 Hgreatest]]].
   
   (* m must be <= e1 and m <= e2 *)
@@ -83,8 +83,8 @@ Theorem lex_meet_not_causal_glb :
 Proof.
   intro H.
   (* Use the same counterexample *)
-  let e1 := constr:(⟨0⟩) in
-  let e2 := constr:(⟨1⟩) in
+  let e1 := constr:(⟨0, 0⟩) in
+  let e2 := constr:(⟨1, 0⟩) in
   specialize (H e1 e2).
   destruct H as [H1 [H2 _]].
   (* lex_meet nil e1 e2 = e1 because 0 < 1 *)
@@ -109,8 +109,8 @@ Proof.
   intro H.
   unfold is_join_semilattice_poset in H.
   (* Take e1=<0> and e2=<1> *)
-  let e1 := constr:(⟨0⟩) in
-  let e2 := constr:(⟨1⟩) in
+  let e1 := constr:(⟨0, 0⟩) in
+  let e2 := constr:(⟨1, 0⟩) in
   destruct (H e1 e2) as [j [Hj1 [Hj2 Hleast]]].
   
   (* e1 <= j and e2 <= j *)
@@ -144,8 +144,8 @@ Theorem lex_join_not_causal_lub :
 Proof.
   intro H.
   (* Use the same counterexample *)
-  let e1 := constr:(⟨0⟩) in
-  let e2 := constr:(⟨1⟩) in
+  let e1 := constr:(⟨0, 0⟩) in
+  let e2 := constr:(⟨1, 0⟩) in
   specialize (H e1 e2).
   destruct H as [H1 [H2 _]].
   (* lex_join nil e1 e2 = e2 because 0 < 1 *)

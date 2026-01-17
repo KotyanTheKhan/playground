@@ -9,11 +9,11 @@ The module is divided into the following files:
 ### Core Files
 
 1. **EventStructure.v** - Basic types and helper functions
-   - `Event` record (process ID)
+   - `Event` record (process ID, index)
    - `Message` record (send_event, recv_event)
    - `History` type (list of messages)
    - Helper functions: `In`, `nat_eqb`, `nat_leb`
-   - Notation: `⟨p⟩` for events, `e1 →ₘ e2` for messages
+   - Notation: `⟨p, i⟩` for events, `e1 →ₘ e2` for messages
 
 2. **CausalRelation.v** - Happened-before and concurrency definitions
    - `message_link` - Direct message causality
@@ -64,8 +64,8 @@ The module is divided into the following files:
 Require HappenedBefore.HappenedBefore.
 
 (* Create events *)
-Definition e1 := ⟨0⟩.  (* Process 0 *)
-Definition e2 := ⟨1⟩.  (* Process 1 *)
+Definition e1 := ⟨0, 0⟩.  (* Process 0, Index 0 *)
+Definition e2 := ⟨1, 0⟩.  (* Process 1, Index 0 *)
 
 (* Create a message *)
 Definition m := e1 →ₘ e2.
@@ -81,7 +81,7 @@ Example causality : e1 ≺[h] e2.
 
 | Notation | Meaning |
 |----------|---------|
-| `⟨p⟩` | Event with process `p` |
+| `⟨p, i⟩` | Event with process `p` and index `i` |
 | `e1 →ₘ e2` | Message from `e1` to `e2` |
 | `e1 ≺[h] e2` | `e1` happened-before `e2` in history `h` |
 | `e1 ≺+[h] e2` | `e1` strictly happened-before `e2` in history `h` |

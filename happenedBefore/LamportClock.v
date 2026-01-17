@@ -82,40 +82,41 @@ Require Import Posets.PosetClasses.
 
 (* Total ordering of events using Lamport timestamps and Process IDs *)
 Definition lamport_le (c : Clock) (e1 e2 : Event) : Prop :=
-  c e1 < c e2 \/ (c e1 = c e2 /\ process e1 <= process e2).
+  c e1 < c e2 \/
+  (c e1 = c e2 /\ (process e1 < process e2 \/ (process e1 = process e2 /\ index e1 <= index e2))).
 
 (* Instance: lamport_le is a Poset *)
 Instance lamport_le_poset (c : Clock) : IsPoset Event (lamport_le c).
 Proof.
   constructor.
   - (* Reflexivity *)
-    intros e. right. split. reflexivity. apply Nat.le_refl.
+    intros e. right. split. reflexivity. right. split. reflexivity. apply Nat.le_refl.
   - (* Antisymmetry *)
     intros e1 e2 H1 H2.
-    destruct e1 as [p1], e2 as [p2].
+    destruct e1 as [p1 i1], e2 as [p2 i2].
     unfold lamport_le in *. simpl in *.
-    destruct H1 as [H1 | [H1_c H1_p]]; destruct H2 as [H2 | [H2_c H2_p]].
-    + (* c1 < c2 and c2 < c1 *)
-      lia.
-    + (* c1 < c2 and c2 = c1 *)
-      rewrite H2_c in H1. lia.
-    + (* c1 = c2 and c2 < c1 *)
-      rewrite H1_c in H2. lia.
-    + (* c1 = c2, p1 <= p2 and c2 = c1, p2 <= p1 *)
-      assert (p1 = p2) by lia.
-      subst. reflexivity.
+    destruct H1 as [H1 | [H1_c [H1_p | [H1_p H1_i]]]];
+    destruct H2 as [H2 | [H2_c [H2_p | [H2_p H2_i]]]].
+    + (* c1 < c2 and c2 < c1 *) lia.
+    + (* c1 < c2 and c2 = c1 *) rewrite H2_c in H1. lia.
+    + (* c1 < c2 and c2 = c1 *) rewrite H2_c in H1. lia.
+    + (* c1 = c2 and c2 < c1 *) rewrite H1_c in H2. lia.
+    + (* c1 = c2, p1 < p2 and c2 = c1, p2 < p1 *) lia.
+    + (* c1 = c2, p1 < p2 and c2 = c1, p2 = p1 *) lia.
+    + (* c1 = c2 and c2 < c1 *) rewrite H1_c in H2. lia.
+    + (* c1 = c2, p1 = p2 and c2 = c1, p2 < p1 *) lia.
+    + (* c1 = c2, p1 = p2, i1 <= i2 ... *)
+      assert (p1 = p2) by lia. subst.
+      assert (i1 = i2) by lia. subst.
+      reflexivity.
   - (* Transitivity *)
     intros e1 e2 e3 H1 H2.
     unfold lamport_le in *.
-    destruct H1 as [H1 | [H1_c H1_p]]; destruct H2 as [H2 | [H2_c H2_p]].
-    + (* c1 < c2 and c2 < c3 -> c1 < c3 *)
-      left. lia.
-    + (* c1 < c2 and c2 = c3 -> c1 < c3 *)
-      rewrite <- H2_c. left. assumption.
-    + (* c1 = c2 and c2 < c3 -> c1 < c3 *)
-      rewrite H1_c. left. assumption.
-    + (* c1 = c2, p1 <= p2 and c2 = c3, p2 <= p3 *)
-      right. split.
-      * rewrite H1_c. assumption.
-      * lia.
+    destruct H1 as [H1 | [H1_c [H1_p | [H1_p H1_i]]]];
+    destruct H2 as [H2 | [H2_c [H2_p | [H2_p H2_i]]]].
+    (* Provide a generic tactic for transitivity *)
+    all: try (left; lia).
+    all: right; split; [lia | ].
+    all: try (left; lia).
+    all: try (right; split; [lia | lia]).
 Defined.
