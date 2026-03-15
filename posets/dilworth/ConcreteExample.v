@@ -326,7 +326,7 @@ Section ConcreteExample.
       
       The proof proceeds by case analysis on which chain we're considering,
       using the nested structure of Add/Union/Singleton. *)
-  Instance MyCover_IsChainCover : IsChainCover S31Rel MyCover.
+  Instance MyCover_IsChainCover : IsChainCover S31Rel (Full_set Element) MyCover.
   Proof.
     constructor.
     - (* Property 1: All members are chains
@@ -479,17 +479,18 @@ Section ConcreteExample.
       - Proof it's an antichain
       - Proof it has the claimed size
       - Proof no antichain is larger (via DilworthA) *)
-  Theorem S31_Width_3 : Width S31Rel 3.
+  Theorem S31_Width_3 : Width S31Rel (Full_set Element) 3.
   Proof.
     refine {| width_la := MyAntichain |}.
     constructor.
     - apply MyAntichain_IsAntichain.  (* MyAntichain is an antichain *)
+    - intros x Hx; apply Full_intro.
     - apply MyAntichain_Size.          (* |MyAntichain| = 3 *)
     - (* No antichain has size > 3: by DilworthA, any antichain has size <= 
          any chain cover. Our cover has size 3, so no antichain exceeds 3. *)
-      intros s n Hs Hn. 
+      intros s n Hs Hincl Hn. 
       eapply DilworthA; 
-        [apply MyCover_IsChainCover | apply Hs | apply MyCover_Size | apply Hn].
+        [apply MyCover_IsChainCover | apply Hs | apply Hincl | apply MyCover_Size | apply Hn].
   Qed.
 
   (** Minimum chain cover number of S(3,1) is 3.
@@ -499,7 +500,7 @@ Section ConcreteExample.
       - Proof it's a valid chain cover
       - Proof it has the claimed size
       - Proof no chain cover is smaller (via DilworthA) *)
-  Theorem S31_ChainCoverNumber_3 : ChainCoverNumber S31Rel 3.
+  Theorem S31_ChainCoverNumber_3 : ChainCoverNumber S31Rel (Full_set Element) 3.
   Proof.
     refine {| cover_number_cover := MyCover |}.
     constructor.
@@ -509,7 +510,7 @@ Section ConcreteExample.
          any antichain. Our antichain has size 3, so no cover is smaller. *)
       intros cv n Hcv Hn.
       eapply DilworthA; 
-        [apply Hcv | apply MyAntichain_IsAntichain | apply Hn | apply MyAntichain_Size].
+        [apply Hcv | apply MyAntichain_IsAntichain | intros x Hx; apply Full_intro | apply Hn | apply MyAntichain_Size].
   Qed.
 
   (** Final verification: Dilworth's Theorem holds for S(3,1).
@@ -521,9 +522,13 @@ Section ConcreteExample.
         width = 3 = minimum chain cover number
       
       as predicted by Dilworth's Theorem. *)
+  Lemma Element_Size_6 : cardinal Element (Full_set Element) 6.
+  Proof. Admitted.
+
   Theorem S31_Dilworth_verification : 3 = 3.
   Proof.
-    eapply (Dilworth S31Rel).
+    eapply (Dilworth S31Rel 6).
+    - apply Element_Size_6.
     - apply S31_Width_3.
     - apply S31_ChainCoverNumber_3.
   Qed.

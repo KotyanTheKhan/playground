@@ -36,25 +36,25 @@ Section DilworthBackward.
 
   (** If la is the largest antichain, it's also the largest in Above/Below *)
   Lemma largest_antichain_in_Above : forall la w,
-    IsLargestAntichain R la w ->
+    IsLargestAntichain R (Full_set A) la w ->
     Inhabited A (Above R la) ->
     forall s n, IsAntichain R s -> Included A s (Above R la) -> 
                 cardinal A s n -> n <= w.
   Proof.
     intros la w Hla Hinhab_above s n Hs Hincl Hcard_s.
-    destruct Hla as [Hanti Hcard Hmax].
-    apply (Hmax s n Hs Hcard_s).
+    destruct Hla as [Hanti Hincl_la Hcard Hmax].
+    apply (Hmax s n Hs); [intros x Hx; apply Full_intro | exact Hcard_s].
   Qed.
 
   Lemma largest_antichain_in_Below : forall la w,
-    IsLargestAntichain R la w ->
+    IsLargestAntichain R (Full_set A) la w ->
     Inhabited A (Below R la) ->
     forall s n, IsAntichain R s -> Included A s (Below R la) -> 
                 cardinal A s n -> n <= w.
   Proof.
     intros la w Hla Hinhab_below s n Hs Hincl Hcard_s.
-    destruct Hla as [Hanti Hcard Hmax].
-    apply (Hmax s n Hs Hcard_s).
+    destruct Hla as [Hanti Hincl_la Hcard Hmax].
+    apply (Hmax s n Hs); [intros x Hx; apply Full_intro | exact Hcard_s].
   Qed.
 
   (** Above contains la *)
@@ -115,19 +115,19 @@ Section DilworthBackward.
       left. apply poset_refl.
   Qed.
 
-  (** Key lemma: If width = 1, then the entire poset is a chain *)
-  Lemma width_one_implies_chain : forall (s : Ensemble A),
-    IsLargestAntichain R s 1 ->
-    IsChain R (Full_set A).
+  (** Key lemma: If width = 1, then the subposet is a chain *)
+  Lemma width_one_implies_chain : forall (sub s : Ensemble A),
+    IsLargestAntichain R sub s 1 ->
+    IsChain R sub.
   Proof.
-    intros s Hla.
-    destruct Hla as [Ha Hcard Hmaximal].
+    intros sub s Hla.
+    destruct Hla as [Ha Hincl_s Hcard Hmaximal].
     destruct Ha as [Hinhab Hanti].
     split.
     - destruct Hinhab as [a Ha].
       apply Inhabited_intro with a.
-      apply Full_intro.
-    - intros x y _ _.
+      apply Hincl_s. exact Ha.
+    - intros x y Hx Hy.
       destruct (classic (R x y \/ R y x)) as [Hcomp | Hincomp]; [exact Hcomp | exfalso].
       
       (* Construct the antichain {x, y} *)
@@ -178,7 +178,13 @@ Section DilworthBackward.
       }
       
       assert (Hcontra : 2 <= 1).
-      { apply (Hmaximal pair 2 Hanti_pair Hcard_pair). }
+      { apply (Hmaximal pair 2 Hanti_pair); [| exact Hcard_pair].
+        intros z Hz. inversion Hz as [z' Hz' | z' Hz']; subst.
+        - inversion Hz' as [z'' Hz'' | z'' Hz'']; subst.
+          + inversion Hz''.
+          + inversion Hz''; subst. exact Hx.
+        - inversion Hz'; subst. exact Hy.
+      }
       lia.
   Qed.
 
@@ -211,14 +217,16 @@ Section DilworthBackward.
   (* Inductive Step for DilworthB                                              *)
   (* ========================================================================= *)
 
-  Lemma dilworth_inductive_step : forall (la : Ensemble A) (w : nat),
+  Lemma dilworth_inductive_step : forall n (sub la : Ensemble A) (w : nat),
+    cardinal A sub n ->
     w >= 2 ->
-    IsLargestAntichain R la w ->
-    (forall (la' : Ensemble A) (w' : nat),
-      w' < w ->
-      IsLargestAntichain R la' w' ->
-      { cover : Ensemble (Ensemble A) | IsChainCover R cover /\ cardinal (Ensemble A) cover w' }) ->
-    { cover : Ensemble (Ensemble A) | IsChainCover R cover /\ cardinal (Ensemble A) cover w }.
+    IsLargestAntichain R sub la w ->
+    (forall n' (sub' la' : Ensemble A) (w' : nat),
+      n' < n ->
+      cardinal A sub' n' ->
+      IsLargestAntichain R sub' la' w' ->
+      { cover : Ensemble (Ensemble A) | IsChainCover R sub' cover /\ cardinal (Ensemble A) cover w' }) ->
+    { cover : Ensemble (Ensemble A) | IsChainCover R sub cover /\ cardinal (Ensemble A) cover w }.
   Proof.
   Admitted.
 
@@ -226,40 +234,42 @@ Section DilworthBackward.
   (* Backward Direction: DilworthB                                             *)
   (* ========================================================================= *)
 
-  Lemma DilworthB : forall w la,
-    IsLargestAntichain R la w ->
-    { cover : Ensemble (Ensemble A) | IsChainCover R cover /\ cardinal (Ensemble A) cover w }.
+  Lemma DilworthB : forall n sub w la,
+    cardinal A sub n ->
+    IsLargestAntichain R sub la w ->
+    { cover : Ensemble (Ensemble A) | IsChainCover R sub cover /\ cardinal (Ensemble A) cover w }.
   Proof.
-    refine (Fix lt_wf (fun w => forall la,
-      IsLargestAntichain R la w ->
-      { cover : Ensemble (Ensemble A) | IsChainCover R cover /\ cardinal (Ensemble A) cover w })
-      (fun w IH la Hla => _)).
+    refine (Fix lt_wf (fun n => forall sub w la,
+      cardinal A sub n ->
+      IsLargestAntichain R sub la w ->
+      { cover : Ensemble (Ensemble A) | IsChainCover R sub cover /\ cardinal (Ensemble A) cover w })
+      (fun n IH sub w la Hcard_n Hla => _)).
     
     destruct w as [| w'].
     - (* w = 0: empty antichain - contradiction *)
       exfalso.
       apply (empty_antichain_contradiction la).
       + destruct Hla; assumption.
-      + destruct Hla as [_ Hc _]; assumption.
+      + destruct Hla; assumption.
       
     - (* w = S w' *)
       destruct w' as [| w''].
       + (* w = 1: singleton antichain *)
-        exists (Singleton (Ensemble A) (Full_set A)).
-        destruct Hla as [Hanti Hcard_w Hmax].
+        exists (Singleton (Ensemble A) sub).
+        destruct Hla as [Hanti Hincl_la Hcard_w Hmax].
         split.
         * constructor.
           -- intros c Hc. inversion Hc. subst c.
-             apply (width_one_implies_chain la).
-             constructor; [exact Hanti | exact Hcard_w | exact Hmax].
+             apply (width_one_implies_chain sub la).
+             constructor; [exact Hanti | exact Hincl_la | exact Hcard_w | exact Hmax].
           -- intros c Hc. inversion Hc. subst c.
-             intros x Hx. apply Full_intro.
+             intros x Hx. exact Hx.
           -- intros x Hx.
-             exists (Full_set A). split.
+             exists sub. split.
              ++ apply In_singleton.
-             ++ apply Full_intro.
+             ++ exact Hx.
         * replace 1 with (S 0) by reflexivity.
-          apply (cardinal_extensional_poly (Ensemble A) (Add (Ensemble A) (Empty_set (Ensemble A)) (Full_set A)) (Singleton (Ensemble A) (Full_set A)) 1).
+          apply (cardinal_extensional_poly (Ensemble A) (Add (Ensemble A) (Empty_set (Ensemble A)) sub) (Singleton (Ensemble A) sub) 1).
           -- intro X. split; intro HX.
              ++ unfold Add in HX. inversion HX as [X' HX' | X' HX']; subst.
                 ** inversion HX'.
@@ -269,10 +279,11 @@ Section DilworthBackward.
           
       + (* w = S (S w''): use inductive step *)
         eapply dilworth_inductive_step.
+        * exact Hcard_n.
         * lia.
         * exact Hla.
-        * intros la' w_prime Hw_prime Hla'.
-          apply (IH w_prime Hw_prime la' Hla').
+        * intros n' sub' la' w_prime Hn_prime Hcard_n' Hla'.
+          apply (IH n' Hn_prime sub' w_prime la' Hcard_n' Hla').
   Qed.
 
 

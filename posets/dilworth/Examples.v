@@ -57,8 +57,8 @@ Section ApplyingDilworth.
      then Dilworth tells us w = k *)
   Theorem my_poset_dilworth_application : 
     forall w k,
-      Width R w ->
-      ChainCoverNumber R k ->
+      Width R (Full_set A) w ->
+      ChainCoverNumber R (Full_set A) k ->
       w = k.
   Proof.
     intros w k Hw Hk.
@@ -82,8 +82,8 @@ Section UsingCorollaries.
   
   Example construct_cover_from_width : 
     forall w,
-      Width R w ->
-      ChainCoverNumber R w.
+      Width R (Full_set A) w ->
+      ChainCoverNumber R (Full_set A) w.
   Proof.
     intros w Hw.
     apply (dilworth_width_equals_cover R w Hw).
@@ -110,7 +110,7 @@ Section FundamentalBounds.
   Check @DilworthA.
   (*  DilworthA : forall (cover : Ensemble (Ensemble A)) 
                          (la : Ensemble A) (k w : nat),
-                    IsChainCover R cover ->
+                    IsChainCover R (Full_set A) cover ->
                     IsAntichain R la ->
                     cardinal (Ensemble A) cover k ->
                     cardinal A la w ->
@@ -120,13 +120,13 @@ Section FundamentalBounds.
   Lemma antichain_bounds_cover : 
     forall (antichain : Ensemble A) (cover : Ensemble (Ensemble A)) (w k : nat),
       IsAntichain R antichain ->
-      IsChainCover R cover ->
+      IsChainCover R (Full_set A) cover ->
       cardinal A antichain w ->
       cardinal (Ensemble A) cover k ->
       w <= k.
   Proof.
     intros antichain cover w k Ha Hc Hw Hk.
-    apply (DilworthA R cover antichain k w Hc Ha Hk Hw).
+    apply (DilworthA R (Full_set A) cover antichain k w Hc Ha (fun x _ => Full_intro A x) Hk Hw).
   Qed.
   
   (* DilworthB: From any largest antichain, we can construct a chain cover *)
@@ -134,14 +134,14 @@ Section FundamentalBounds.
   (*  DilworthB : forall (la : Ensemble A) (w : nat),
                     IsLargestAntichain R la w ->
                     { cover : Ensemble (Ensemble A) |
-                      IsChainCover R cover /\ cardinal (Ensemble A) cover w } *)
+                      IsChainCover R (Full_set A) cover /\ cardinal (Ensemble A) cover w } *)
   
   (* This gives us an upper bound on chain cover size *)
   Lemma width_gives_cover : 
     forall (la : Ensemble A) (w : nat),
-      IsLargestAntichain R la w ->
+      IsLargestAntichain R (Full_set A) la w ->
       { cover : Ensemble (Ensemble A) | 
-        IsChainCover R cover /\ 
+        IsChainCover R (Full_set A) cover /\ 
         cardinal (Ensemble A) cover w }.
   Proof.
     intros la w Hla.
@@ -182,52 +182,55 @@ Section PracticalWorkflow.
   Hypothesis antichain_is_antichain : IsAntichain R my_antichain.
   Hypothesis antichain_has_size_w : cardinal A my_antichain w.
   
-  Hypothesis cover_is_cover : IsChainCover R my_cover.
+  Hypothesis cover_is_cover : IsChainCover R (Full_set A) my_cover.
   Hypothesis cover_has_size_w : cardinal (Ensemble A) my_cover w.
   
   (* Then we can prove both optimality conditions *)
   Lemma antichain_is_largest : 
     forall s n,
       IsAntichain R s ->
+      Included A s (Full_set A) ->
       cardinal A s n ->
       n <= w.
   Proof.
-    intros s n Hs Hn.
+    intros s n Hs Hincl Hn.
     (* Use DilworthA with our cover *)
-    apply (DilworthA R my_cover s w n);
+    apply (DilworthA R (Full_set A) my_cover s w n);
       assumption.
   Qed.
   
   Lemma cover_is_smallest : 
     forall cv n,
-      IsChainCover R cv ->
+      IsChainCover R (Full_set A) cv ->
       cardinal (Ensemble A) cv n ->
       w <= n.
   Proof.
     intros cv n Hcv Hn.
     (* Use DilworthA with our antichain *)
-    apply (DilworthA R cv my_antichain n w);
-      assumption.
+    apply (DilworthA R (Full_set A) cv my_antichain n w Hcv antichain_is_antichain (fun x _ => Full_intro A x) Hn antichain_has_size_w).
   Qed.
   
   (* Therefore, we can prove width = w *)
-  Theorem proved_width : Width R w.
+  Theorem proved_width : Width R (Full_set A) w.
   Proof.
     refine {| width_la := my_antichain |}.
-    constructor; [exact antichain_is_antichain | exact antichain_has_size_w | apply antichain_is_largest].
+    constructor; [exact antichain_is_antichain | exact (fun x _ => Full_intro A x) | exact antichain_has_size_w | apply antichain_is_largest].
   Qed.
   
   (* And chain cover number = w *)
-  Theorem proved_chain_cover_number : ChainCoverNumber R w.
+  Theorem proved_chain_cover_number : ChainCoverNumber R (Full_set A) w.
   Proof.
     refine {| cover_number_cover := my_cover |}.
     constructor; [exact cover_is_cover | exact cover_has_size_w | apply cover_is_smallest].
   Qed.
   
+  Variable n : nat.
+  Hypothesis full_set_has_size_n : cardinal A (Full_set A) n.
+  
   (* And they are equal by Dilworth *)
   Theorem width_equals_cover_number : w = w.
   Proof.
-    apply (Dilworth R w w proved_width proved_chain_cover_number).
+    apply (Dilworth R n w w full_set_has_size_n proved_width proved_chain_cover_number).
   Qed.
   
 End PracticalWorkflow.

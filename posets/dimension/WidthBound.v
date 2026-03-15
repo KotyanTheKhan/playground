@@ -280,12 +280,12 @@ Section WidthBound.
 
   (** For a chain cover, construct a set of linear extensions forming a realizer *)
   Lemma chain_cover_implies_realizer_le : forall cover k,
-    IsChainCover R cover ->
+    IsChainCover R (Full_set A) cover ->
     cardinal (Ensemble A) cover k ->
     exists realizer n, IsRealizer R realizer /\ cardinal (A -> A -> Prop) realizer n /\ n <= k.
   Proof.
     intros cover k Hcover Hcard.
-    destruct (exists_extensions_for_chains cover k Hcard (@chain_cover_chains _ R cover Hcover))
+    destruct (exists_extensions_for_chains cover k Hcard (@chain_cover_chains _ R (Full_set A) cover Hcover))
       as [exts [n [Hexts_card [Hn_le_w [Hexts_R Hexts_corr]]]]].
     
     exists exts, n.
@@ -295,17 +295,17 @@ Section WidthBound.
     - intros Rxy L HL; destruct (Hexts_R L HL) as [_ Hext]; auto.
     - intros Hxy; destruct (classic (R x y)) as [? | HnotR]; auto.
       destruct (classic (R y x)) as [Hyx | Hnyx].
-      + destruct (@chain_cover_covers A R cover Hcover y (Full_intro A y)) as [C [HC_in HyC]].
+      + destruct (@chain_cover_covers A R (Full_set A) cover Hcover y (Full_intro A y)) as [C [HC_in HyC]].
         destruct (Hexts_corr C HC_in) as [L [HL_in HL_aug]].
         destruct (Hexts_R L HL_in) as [[HL_poset _] HL_extends].
         assert (x = y) by (eapply poset_antisym; [apply Hxy | apply HL_extends]; auto); 
           subst; apply poset_refl.
       + assert (Hinc: Incomparable R x y) by (intros [? | ?]; auto).
-        destruct (@chain_cover_covers A R cover Hcover y (Full_intro A y)) as [C [HC_in HyC]].
+        destruct (@chain_cover_covers A R (Full_set A) cover Hcover y (Full_intro A y)) as [C [HC_in HyC]].
         destruct (Hexts_corr C HC_in) as [L [HL_in HL_aug]].
         destruct (classic (In A C x)) as [HxC | HnxC].
         -- exfalso; apply (chain_incomparable_false C x y); auto.
-           apply (@chain_cover_chains _ R cover Hcover C HC_in).
+           apply (@chain_cover_chains _ R (Full_set A) cover Hcover C HC_in).
         -- assert (Haug: AugmentedRelation C y x) by (right; repeat split; auto; intros [? | ?]; auto).
            destruct HL_aug as [_ HL_aug_ext], (Hexts_R L HL_in) as [[HL_poset _] _].
            assert (x = y) by (eapply poset_antisym; [apply Hxy | apply HL_aug_ext]; auto); 
@@ -318,7 +318,7 @@ Section WidthBound.
 
   (** Main Theorem: Dimension is bounded by width (Dilworth, 1950) *)
   Theorem dimension_le_width : forall d w,
-    PosetDimension R d -> Width R w -> d <= w.
+    PosetDimension R d -> Width R (Full_set A) w -> d <= w.
   Proof.
     intros d w [realizer Hreal Hcard Hmin] Hwidth.
     (* 1. Use Dilworth to get min chain cover size k = w *)

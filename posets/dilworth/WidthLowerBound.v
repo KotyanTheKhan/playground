@@ -31,24 +31,25 @@ Section DilworthForward.
   (* ========================================================================= *)
   (* Pigeonhole Principle for Chains and Antichains                           *)
   (* ========================================================================= *)
-  Lemma pigeonhole_chains_antichains : forall (cover : Ensemble (Ensemble A)) (anti : Ensemble A) n m,
-    IsChainCover R cover ->
+  Lemma pigeonhole_chains_antichains : forall (S : Ensemble A) (cover : Ensemble (Ensemble A)) (anti : Ensemble A) n m,
+    IsChainCover R S cover ->
     IsAntichain R anti ->
+    Included A anti S ->
     cardinal (Ensemble A) cover n ->
     cardinal A anti m ->
     m > n ->
     exists x y c, In A anti x /\ In A anti y /\ In (Ensemble A) cover c /\
                   In A c x /\ In A c y /\ x <> y.
   Proof.
-    intros cover anti n m Hcover Ha Hcard_cover Hcard_anti Hgt.
-    destruct Ha as [Hinhab_a Hanti].
+    intros S cover anti n m Hcover Hanti Hanti_incl Hcard_cover Hcard_anti Hgt.
+    destruct Hanti as [Hinhab_a Hanti].
     
     (* Every antichain element must be in some chain *)
     assert (Helem_in_chain : forall x, In A anti x -> exists c, In (Ensemble A) cover c /\ In A c x).
     {
       intros x Hx.
       destruct Hcover as [_ _ Hallcover].
-      apply Hallcover. apply Full_intro.
+      apply Hallcover. apply Hanti_incl. exact Hx.
     }
     
     (* Define relation RR: anti element x is in chain c *)
@@ -90,20 +91,21 @@ Section DilworthForward.
   (* Forward Direction: DilworthA                                              *)
   (* ========================================================================= *)
 
-  Theorem DilworthA : forall (cover : Ensemble (Ensemble A)) (anti : Ensemble A) n m,
-    IsChainCover R cover ->
+  Theorem DilworthA : forall (S: Ensemble A) (cover : Ensemble (Ensemble A)) (anti : Ensemble A) n m,
+    IsChainCover R S cover ->
     IsAntichain R anti ->
+    Included A anti S ->
     cardinal (Ensemble A) cover n ->
     cardinal A anti m ->
     m <= n.
   Proof.
-    intros cover anti n m Hcover Hanti Hcard_cover Hcard_anti.
+    intros S cover anti n m Hcover Hanti Hincl Hcard_cover Hcard_anti.
     
     (* Proof by contradiction: assume m > n *)
     destruct (le_gt_dec m n) as [Hle | Hgt]; [exact Hle |].
     
     (* By pigeonhole principle, some chain must contain two antichain elements *)
-    destruct (pigeonhole_chains_antichains cover anti n m Hcover Hanti Hcard_cover Hcard_anti Hgt)
+    destruct (pigeonhole_chains_antichains S cover anti n m Hcover Hanti Hincl Hcard_cover Hcard_anti Hgt)
       as [x [y [c [Hax [Hay [Hc [Hcx [Hcy Hneq]]]]]]]].
     
     (* But this contradicts the fact that antichain elements are incomparable *)

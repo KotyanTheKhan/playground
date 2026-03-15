@@ -21,52 +21,53 @@ Section DilworthDefinitions.
     antichain_incomparable : forall x y, In A s x -> In A s y -> (R x y \/ R y x) -> x = y
   }.
 
-  (** A chain cover is a collection of disjoint chains that covers all elements *)
-  Class IsChainCover (cover : Ensemble (Ensemble A)) : Prop := {
+  (** A chain cover is a collection of disjoint chains that covers a subset *)
+  Class IsChainCover (S : Ensemble A) (cover : Ensemble (Ensemble A)) : Prop := {
     chain_cover_chains : forall c, In (Ensemble A) cover c -> IsChain c;
-    chain_cover_included : forall c, In (Ensemble A) cover c -> Included A c (Full_set A);
-    chain_cover_covers : forall x, In A (Full_set A) x -> exists c, In (Ensemble A) cover c /\ In A c x
+    chain_cover_included : forall c, In (Ensemble A) cover c -> Included A c S;
+    chain_cover_covers : forall x, In A S x -> exists c, In (Ensemble A) cover c /\ In A c x
   }.
 
-  (** An antichain cover is a collection of disjoint antichains that covers all elements *)
-  Class IsAntichainCover (cover : Ensemble (Ensemble A)) : Prop := {
+  (** An antichain cover is a collection of disjoint antichains that covers a subset *)
+  Class IsAntichainCover (S : Ensemble A) (cover : Ensemble (Ensemble A)) : Prop := {
     antichain_cover_antichains : forall c, In (Ensemble A) cover c -> IsAntichain c;
-    antichain_cover_included : forall c, In (Ensemble A) cover c -> Included A c (Full_set A);
-    antichain_cover_covers : forall x, In A (Full_set A) x -> exists c, In (Ensemble A) cover c /\ In A c x
+    antichain_cover_included : forall c, In (Ensemble A) cover c -> Included A c S;
+    antichain_cover_covers : forall x, In A S x -> exists c, In (Ensemble A) cover c /\ In A c x
   }.
 
   (* ========================================================================= *)
   (* Optimality Conditions                                                     *)
   (* ========================================================================= *)
 
-  (** The largest antichain in a poset *)
-  Class IsLargestAntichain (la : Ensemble A) (w : nat) : Prop := {
+  (** The largest antichain in a subposet S *)
+  Class IsLargestAntichain (S : Ensemble A) (la : Ensemble A) (w : nat) : Prop := {
     largest_antichain_is_antichain : IsAntichain la;
+    largest_antichain_included : Included A la S;
     largest_antichain_cardinality : cardinal A la w;
-    largest_antichain_is_maximum : forall s n, IsAntichain s -> cardinal A s n -> n <= w
+    largest_antichain_is_maximum : forall s n, IsAntichain s -> Included A s S -> cardinal A s n -> n <= w
   }.
 
-  (** The smallest chain cover in a poset *)
-  Class IsSmallestChainCover (cover : Ensemble (Ensemble A)) (k : nat) : Prop := {
-    smallest_cover_is_cover : IsChainCover cover;
+  (** The smallest chain cover in a subposet S *)
+  Class IsSmallestChainCover (S : Ensemble A) (cover : Ensemble (Ensemble A)) (k : nat) : Prop := {
+    smallest_cover_is_cover : IsChainCover S cover;
     smallest_cover_cardinality : cardinal (Ensemble A) cover k;
-    smallest_cover_is_minimum : forall cv n, IsChainCover cv -> cardinal (Ensemble A) cv n -> k <= n
+    smallest_cover_is_minimum : forall cv n, IsChainCover S cv -> cardinal (Ensemble A) cv n -> k <= n
   }.
 
   (* ========================================================================= *)
   (* Width and Chain Cover Number                                              *)
   (* ========================================================================= *)
 
-  (** Width of a poset - size of the largest antichain *)
-  Class Width (w : nat) := {
+  (** Width of a subposet S - size of the largest antichain *)
+  Class Width (S : Ensemble A) (w : nat) := {
     width_la : Ensemble A;
-    width_is_largest : IsLargestAntichain width_la w
+    width_is_largest : IsLargestAntichain S width_la w
   }.
 
-  (** Chain cover number - size of the smallest chain cover *)
-  Class ChainCoverNumber (k : nat) := {
+  (** Chain cover number - size of the smallest chain cover in S *)
+  Class ChainCoverNumber (S : Ensemble A) (k : nat) := {
     cover_number_cover : Ensemble (Ensemble A);
-    cover_number_is_smallest : IsSmallestChainCover cover_number_cover k
+    cover_number_is_smallest : IsSmallestChainCover S cover_number_cover k
   }.
 
   (* ========================================================================= *)
