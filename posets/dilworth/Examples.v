@@ -55,14 +55,15 @@ Section ApplyingDilworth.
   
   (* Example usage: If we can prove both width w and chain cover number k,
      then Dilworth tells us w = k *)
-  Theorem my_poset_dilworth_application : 
-    forall w k,
+  Lemma width_bounds_cover_size : 
+    forall (n w k : nat) (cover : Ensemble (Ensemble A)),
+      cardinal A (Full_set A) n ->
       Width R (Full_set A) w ->
       ChainCoverNumber R (Full_set A) k ->
       w = k.
   Proof.
-    intros w k Hw Hk.
-    apply (Dilworth R w k Hw Hk).
+    intros n w k cover Hcard Hw Hk.
+    apply (Dilworth R n w k Hcard Hw Hk).
   Qed.
   
 End ApplyingDilworth.
@@ -80,13 +81,14 @@ Section UsingCorollaries.
   (*  dilworth_width_equals_cover : forall w : nat,
                                       Width R w -> ChainCoverNumber R w *)
   
-  Example construct_cover_from_width : 
-    forall w,
+  Lemma width_gives_cover_size : 
+    forall (n w : nat),
+      cardinal A (Full_set A) n ->
       Width R (Full_set A) w ->
       ChainCoverNumber R (Full_set A) w.
   Proof.
-    intros w Hw.
-    apply (dilworth_width_equals_cover R w Hw).
+    intros n w Hcard Hw.
+    apply (dilworth_width_equals_cover R n w Hcard Hw).
   Qed.
   
   (* Corollary 2: Width and chain cover determine each other *)
@@ -138,14 +140,15 @@ Section FundamentalBounds.
   
   (* This gives us an upper bound on chain cover size *)
   Lemma width_gives_cover : 
-    forall (la : Ensemble A) (w : nat),
+    forall (n w : nat) (la : Ensemble A),
+      cardinal A (Full_set A) n ->
       IsLargestAntichain R (Full_set A) la w ->
       { cover : Ensemble (Ensemble A) | 
         IsChainCover R (Full_set A) cover /\ 
         cardinal (Ensemble A) cover w }.
   Proof.
-    intros la w Hla.
-    apply (DilworthB R w la Hla).
+    intros n w la Hcard Hla.
+    apply (DilworthB R n (Full_set A) w la Hcard Hla).
   Qed.
   
 End FundamentalBounds.

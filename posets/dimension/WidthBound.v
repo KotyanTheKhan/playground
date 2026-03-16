@@ -317,21 +317,22 @@ Section WidthBound.
   (* ========================================================================= *)
 
   (** Main Theorem: Dimension is bounded by width (Dilworth, 1950) *)
-  Theorem dimension_le_width : forall d w,
+  Theorem dimension_le_width : forall n d w,
+    cardinal A (Full_set A) n ->
     PosetDimension R d -> Width R (Full_set A) w -> d <= w.
   Proof.
-    intros d w [realizer Hreal Hcard Hmin] Hwidth.
+    intros n d w Hcard [realizer Hreal Hcard_r Hmin] Hwidth.
     (* 1. Use Dilworth to get min chain cover size k = w *)
     destruct Hwidth as [la Hla].
-    destruct (DilworthB R w la Hla) as [cover [Hcover Hcover_card]].
+    destruct (DilworthB R n (Full_set A) w la Hcard Hla) as [cover [Hcover Hcover_card]].
     
-    (* 2. Get realizer of size n <= w *)
+    (* 2. Get realizer of size n' <= w *)
     destruct (chain_cover_implies_realizer_le cover w Hcover Hcover_card) 
-      as [realizer_w [n [Hreal_w [Hcard_real_w Hn_le_w]]]].
+      as [realizer_w [n' [Hreal_w [Hcard_real_w Hn'_le_w]]]].
       
     (* 3. Minimal dimension d <= n <= w *)
-    assert (d <= n).
-    { apply (Hmin realizer_w n Hreal_w Hcard_real_w). }
-    apply PeanoNat.Nat.le_trans with n; auto.
+    assert (d <= n').
+    { apply (Hmin realizer_w n' Hreal_w Hcard_real_w). }
+    apply PeanoNat.Nat.le_trans with n'; auto.
   Qed.
 End WidthBound.
