@@ -495,6 +495,174 @@ Section DilworthBackward.
       intros x Hx. destruct (Hs_incl x Hx) as [x' Hx_sub _]. exact Hx_sub.
   Qed.
 
+  (* ========================================================================= *)
+  (* Finite Poset Lemmas                                                      *)
+  (* ========================================================================= *)
+
+  (** Bridge: Subtract A sub x has the same cardinality as cardinal_remove result *)
+  Lemma cardinal_subtract_elem : forall (sub : Ensemble A) n x,
+    In A sub x ->
+    cardinal A sub (S n) ->
+    cardinal A (Subtract A sub x) n.
+  Proof.
+    intros sub n x Hx Hcard.
+    apply cardinal_extensional_poly with (A_set := fun y => In A sub y /\ y <> x).
+    - intro y. unfold Subtract, Setminus. split.
+      + intros [H1 H2]. split. exact H1. intro Hc. apply H2. inversion Hc. reflexivity.
+      + intros [H1 H2]. split. exact H1. intro Hc. apply H2. subst. apply In_singleton.
+    - exact (cardinal_remove A sub x n Hx Hcard).
+  Qed.
+
+  (** Helper: In Subtract characterization *)
+  Lemma in_subtract_iff : forall (sub : Ensemble A) x y,
+    In A (Subtract A sub x) y <-> (In A sub y /\ y <> x).
+  Proof.
+    intros sub x y. unfold Subtract, Setminus. split.
+    - intros [H1 H2]. split. exact H1. intro Heq. apply H2. subst. apply In_singleton.
+    - intros [H1 H2]. split. exact H1. intro Hc. apply H2. inversion Hc. reflexivity.
+  Qed.
+
+  (** If R x y and x ≠ y and x ∈ sub, then y is not minimal in sub *)
+  Lemma not_in_MIN_from_R : forall (sub : Ensemble A) x y,
+    In A sub x -> R x y -> x <> y -> ~ In A (MIN sub) y.
+  Proof.
+    intros sub x y Hx Rxy Hne Hmin.
+    destruct Hmin as [_ Hmin_prop].
+    specialize (Hmin_prop x Hx Rxy).
+    exact (Hne Hmin_prop).
+  Qed.
+
+  (** If R x y and x ≠ y and y ∈ sub, then x is not maximal in sub *)
+  Lemma not_in_MAX_from_R : forall (sub : Ensemble A) x y,
+    In A sub y -> R x y -> x <> y -> ~ In A (MAX sub) x.
+  Proof.
+    intros sub x y Hy Rxy Hne Hmax.
+    destruct Hmax as [_ Hmax_prop].
+    specialize (Hmax_prop y Hy Rxy).
+    exact (Hne (eq_sym Hmax_prop)).
+  Qed.
+
+  (** A subset of an antichain (with Inhabited hypothesis) is an antichain *)
+  Lemma subtract_antichain : forall (la : Ensemble A) x,
+    IsAntichain R la ->
+    Inhabited A (Subtract A la x) ->
+    IsAntichain R (Subtract A la x).
+  Proof.
+    intros la x Hanti Hinhab.
+    destruct Hanti as [_ Hanti_incomp].
+    constructor.
+    - exact Hinhab.
+    - intros a b Ha Hb Hcomp.
+      apply in_subtract_iff in Ha. destruct Ha as [Ha_in _].
+      apply in_subtract_iff in Hb. destruct Hb as [Hb_in _].
+      apply Hanti_incomp; assumption.
+  Qed.
+
+  (** In a finite subposet, every element is below some maximal element *)
+  Lemma exists_max_above : forall n (sub : Ensemble A) x,
+    cardinal A sub n ->
+    In A sub x ->
+    exists y, In A (MAX sub) y /\ R x y.
+  Proof.
+    induction n as [| k IH]; intros sub x Hcard Hx.
+    - (* n = 0: empty, contradiction *)
+      inversion Hcard. subst. inversion Hx.
+    - (* n = S k *)
+      destruct (classic (In A (MAX sub) x)) as [Hmax | Hnmax].
+      + (* x is already maximal *)
+        exists x. split; [exact Hmax | apply poset_refl].
+      + (* x is not maximal: find strict successor z *)
+        assert (Hnmax_prop : exists z, In A sub z /\ R x z /\ z <> x).
+        { unfold MAX in Hnmax.
+          assert (Hnotand : ~ (In A sub x /\ forall y, In A sub y -> R x y -> y = x)).
+          { exact Hnmax. }
+          apply not_and_or in Hnotand.
+          destruct Hnotand as [Habs | Hnot_max].
+          - contradiction.
+          - apply not_all_ex_not in Hnot_max.
+            destruct Hnot_max as [z Hz].
+            apply imply_to_and in Hz. destruct Hz as [Hz_sub Hnot].
+            apply imply_to_and in Hnot. destruct Hnot as [Rxz Hne].
+            exists z. exact (conj Hz_sub (conj Rxz (fun H => Hne H))). }
+        destruct Hnmax_prop as [z [Hz_sub [Rxz Hz_ne]]].
+        (* Apply IH to sub' = Subtract sub x with element z *)
+        assert (Hcard' : cardinal A (Subtract A sub x) k).
+        { apply cardinal_subtract_elem; assumption. }
+        assert (Hz_sub' : In A (Subtract A sub x) z).
+        { apply in_subtract_iff. exact (conj Hz_sub Hz_ne). }
+        destruct (IH (Subtract A sub x) z Hcard' Hz_sub') as [y [Hy_max Rzy]].
+        exists y.
+        split.
+        * (* Show y ∈ MAX sub *)
+          destruct Hy_max as [Hy_sub' Hy_max_prop].
+          apply in_subtract_iff in Hy_sub'. destruct Hy_sub' as [Hy_sub Hy_ne_x].
+          split.
+          -- exact Hy_sub.
+          -- intros w Hw_sub Ryw.
+             destruct (classic (w = x)) as [Heq | Hne].
+             ++ (* w = x: R y x leads to y = x, contradiction *)
+                subst w.
+                assert (Rxy : R x y).
+                { apply poset_trans with (y := z); assumption. }
+                assert (Hyx : y = x).
+                { apply poset_antisym; assumption. }
+                exact (False_ind _ (Hy_ne_x Hyx)).
+             ++ (* w ≠ x: w ∈ sub', apply Hy_max_prop *)
+                assert (Hw_sub' : In A (Subtract A sub x) w).
+                { apply in_subtract_iff. exact (conj Hw_sub Hne). }
+                exact (Hy_max_prop w Hw_sub' Ryw).
+        * (* R x y by transitivity *)
+          apply poset_trans with (y := z); assumption.
+  Qed.
+
+  (** In a finite subposet, every element is above some minimal element *)
+  Lemma exists_min_below : forall n (sub : Ensemble A) x,
+    cardinal A sub n ->
+    In A sub x ->
+    exists y, In A (MIN sub) y /\ R y x.
+  Proof.
+    induction n as [| k IH]; intros sub x Hcard Hx.
+    - inversion Hcard. subst. inversion Hx.
+    - destruct (classic (In A (MIN sub) x)) as [Hmin | Hnmin].
+      + exists x. split; [exact Hmin | apply poset_refl].
+      + assert (Hnmin_prop : exists z, In A sub z /\ R z x /\ z <> x).
+        { unfold MIN in Hnmin.
+          assert (Hnotand : ~ (In A sub x /\ forall y, In A sub y -> R y x -> y = x)).
+          { exact Hnmin. }
+          apply not_and_or in Hnotand.
+          destruct Hnotand as [Habs | Hnot_min].
+          - contradiction.
+          - apply not_all_ex_not in Hnot_min.
+            destruct Hnot_min as [z Hz].
+            apply imply_to_and in Hz. destruct Hz as [Hz_sub Hnot].
+            apply imply_to_and in Hnot. destruct Hnot as [Rzx Hne].
+            exists z. exact (conj Hz_sub (conj Rzx (fun H => Hne H))). }
+        destruct Hnmin_prop as [z [Hz_sub [Rzx Hz_ne]]].
+        assert (Hcard' : cardinal A (Subtract A sub x) k).
+        { apply cardinal_subtract_elem; assumption. }
+        assert (Hz_sub' : In A (Subtract A sub x) z).
+        { apply in_subtract_iff. exact (conj Hz_sub Hz_ne). }
+        destruct (IH (Subtract A sub x) z Hcard' Hz_sub') as [y [Hy_min Ryz]].
+        exists y.
+        split.
+        * destruct Hy_min as [Hy_sub' Hy_min_prop].
+          apply in_subtract_iff in Hy_sub'. destruct Hy_sub' as [Hy_sub Hy_ne_x].
+          split.
+          -- exact Hy_sub.
+          -- intros w Hw_sub Rwx.
+             destruct (classic (w = x)) as [Heq | Hne].
+             ++ subst w.
+                assert (Ryx : R y x).
+                { apply poset_trans with (y := z); assumption. }
+                assert (Hxy : y = x).
+                { apply poset_antisym; assumption. }
+                exact (False_ind _ (Hy_ne_x Hxy)).
+             ++ assert (Hw_sub' : In A (Subtract A sub x) w).
+                { apply in_subtract_iff. exact (conj Hw_sub Hne). }
+                exact (Hy_min_prop w Hw_sub' Rwx).
+        * apply poset_trans with (y := z); assumption.
+  Qed.
+
   Lemma merge_covers : forall (sub la : Ensemble A) (w : nat) C_above C_below,
     IsLargestAntichain R sub la w ->
     IsChainCover R (Intersection A sub (Above R la)) C_above ->
@@ -567,6 +735,8 @@ Section DilworthBackward.
     exact H_merge.
   Qed.
 
+  (* This lemma will be replaced by exists_comparable_min_max_ne in Block 4.
+     Stub with admit until then. *)
   Lemma exists_comparable_min_max : forall (sub la : Ensemble A) (w n : nat),
     cardinal A sub n ->
     w >= 2 ->
@@ -574,282 +744,7 @@ Section DilworthBackward.
     (forall la_ex : Ensemble A, IsLargestAntichain R sub la_ex w -> la_ex = MIN sub \/ la_ex = MAX sub) ->
     exists x y, In A (MIN sub) x /\ In A (MAX sub) y /\ x <> y /\ R x y.
   Proof.
-    intros sub la w n Hcard_n Hw Hla H_extremal.
-    assert (H_la_choice : la = MIN sub \/ la = MAX sub).
-    { apply H_extremal. exact Hla. }
-    destruct Hla as [Hanti Hla_sub Hcard Hmax].
-    destruct Hanti as [Hinhab Hanti_incomp].
-    (* Get two distinct elements a, b from la (since w >= 2) *)
-    assert (H_la_ge2 : exists a b, In A la a /\ In A la b /\ a <> b).
-    {
-      assert (Hw2 : 2 <= w) by exact Hw.
-      (* invert twice using the cardinal structure *)
-      set (la_inner := la) in Hcard.
-      destruct Hcard as [| A1 n1 H1 z1 Hz1_notin] eqn:E1.
-      - lia.
-      - (* la = Add A1 z1, |A1| = n1, w = S n1 *)
-        destruct H1 as [| A2 n2 H2 z2 Hz2_notin] eqn:E2.
-        + lia.
-        + exists z2. exists z1.
-          repeat split.
-          * apply Union_introl. apply Union_intror. apply In_singleton.
-          * apply Union_intror. apply In_singleton.
-          * intro Heq_zz. subst z2.
-            exact (Hz1_notin (Union_intror _ _ _ _ (In_singleton _ _ z1))).
-    }
-    destruct H_la_ge2 as [a [b [Ha_la [Hb_la Hab_neq]]]].
-    (* Now: both a, b ∈ la; la ⊆ sub; la is an antichain *)
-    assert (Ha_sub : In A sub a). { apply Hla_sub. exact Ha_la. }
-    assert (Hb_sub : In A sub b). { apply Hla_sub. exact Hb_la. }
-    (* a and b are incomparable since la is an antichain and a ≠ b *)
-    assert (Hab_incomp : ~ (R a b \/ R b a)).
-    {
-      intro Hcomp. apply Hab_neq. apply Hanti_incomp; assumption.
-    }
-    assert (Hab_not_R_ab : ~ R a b). { intro H. apply Hab_incomp. left. exact H. }
-    assert (Hab_not_R_ba : ~ R b a). { intro H. apply Hab_incomp. right. exact H. }
-    (* Now we construct x ∈ MIN and y ∈ MAX and prove x <> y and R x y *)
-    (* Strategy: for each element of la, look at the chain from the bottom to it.
-       Let x be the minimal element of sub below a, and y be the maximal above b.
-       But this requires a finite chain argument which we don't have.
-       
-       Alternative: La = MIN ∨ la = MAX. 
-       Case 1: la = MIN. Take x = a ∈ la = MIN, and y = b ∈ la = MIN.
-         a and b are both in MIN and incomparable. But any element of MIN
-         is comparable to any element of MAX (see below).
-         Take any y' ∈ MAX sub (non-empty since sub non-empty). 
-         Claim: x = a ≠ y' and R a y'. 
-       Case 2: la = MAX. Symmetric.
-       
-       The claim R a y' where a ∈ MIN, y' ∈ MAX is actually non-trivial without 
-       assuming the poset is connected. Let's try: pick x ∈ la = MIN, y = x ∈ MAX?
-       No, that's circular.
-       
-       Actually, the simplest approach: 
-       Since la = MIN is an antichain of size w, all elements of MIN are mutually incomparable.
-       But since la = MIN is also the LARGEST antichain, anything outside MIN can be added to 
-       get a bigger antichain... unless it's comparable to some MIN element.
-       
-       The key insight: x ∈ MIN sub means ("minimal in sub"). There must be some y ∈ MAX sub 
-       reachable from x (finite poset). But we don't have finiteness directly...
-       
-       Let's use the proof approach: take x = a ∈ MIN, y ∈ MAX.
-       Since la = MIN and MAX ≠ MIN (because a and b are incomparable in MIN,
-       but MAX has comparable elements via reflexivity), ... this is getting circular.
-       
-       Actually the real issue is this lemma might not be provable without more hypotheses.
-       Let's simply use the weaker approach: *)
-    (* Attempt: construct MIN-MAX pair directly from la *)
-    (* If la = MIN: all elements of MIN are mutually incomparable, but any element of sub
-       not in MIN is above some element of MIN (by definition). Actually, definition of MIN 
-       is: x ∈ MIN iff x ∈ sub and for all y ∈ sub, R y x → y = x.
-       This does NOT mean all of sub is above MIN elements in a linear way. *)
-    (* The lemma as stated requires: exists x y, x ∈ MIN, y ∈ MAX, x ≠ y, R x y.
-       This is true in finite posets (every minimal element is below some maximal), but 
-       requires a separate finite chain argument. Let us admit this auxiliary claim. *)
-    (* For now: use a ∈ la (MIN or MAX) and find corresponding partner *)
-    
-    (* Take x from MIN; take y from MAX; R x y follows if the poset is such that
-       every minimal element is below every maximal element, which only holds in
-       special cases. In general: x ∈ MIN, y ∈ MAX, AND x ≤ y is NOT always true
-       unless the poset is connected. *)
-    
-    (* The correct approach: this specific proof obligation (exists_comparable_min_max) 
-       requires that since every largest antichain = MIN or MAX, there must exist 
-       elements that "bridge" between MIN and MAX. The proof is:
-       - la = MIN is the largest antichain
-       - Take any a ∈ MIN. Consider b ∈ MAX. 
-       - If R a b, done.
-       - If ¬ R a b, then a and b are incomparable (since if R b a and b ≠ a, 
-         then a is not minimal — contradiction with a ∈ MIN unless b ∉ sub).
-       - Actually: b ∈ MAX ⊆ sub and a ∈ MIN ⊆ sub. If R b a and b ≠ a, 
-         then b < a, so a is not minimal — contradiction.
-       - So either R a b or (¬ R a b and ¬ R b a), i.e., incomparable.
-       - If a and b are incomparable, then {a, b} is an antichain of size 2.
-       - By IH: there exists a largest antichain of the same size (or bigger) 
-         containing both a and b. But this largest antichain = MIN or MAX.
-       - If the largest antichain = MIN = la and a ∈ la and b ∈ la, then b ∈ MIN.
-         But b ∈ MAX, so b is both min and max. 
-         Since b ∈ MIN, for all z ∈ sub, R z b → z = b.
-         Since b ∈ MAX, for all z ∈ sub, R b z → z = b.
-         So b is an isolated element.
-         But then: take any other element c ∈ la = MIN (la has w ≥ 2 elements).
-         c and b are incomparable (antichain). c ∈ MIN → for all z ∈ sub, R z c → z = c.
-         But b ∈ sub, b ≠ c, and ¬ R b c (since b is incomparable with c). 
-         Also ¬ R c b (since b ∈ MAX and the only thing above b is b, so R c b → c = b, contradiction).
-         ...This actually works! *)
-    
-    (* Take x = a ∈ MIN (from la), find y = a itself ∈ MAX? No *)
-    (* Let's find y ∈ MAX sub. MIN sub is inhabited, MAX sub must be inhabited too. *)
-    assert (H_max_inhabited : Inhabited A (MAX sub)).
-    {
-      destruct H_la_choice as [Hmin | Hmax_choice].
-      - subst la.
-        (* la = MIN; MAX sub is inhabited *)
-        (* Take a ∈ MIN sub (from Hinhab), and find the maximal element above a *)
-        (* This needs chain/Zorn; let's use an indirect argument *)
-        (* MAX sub must be inhabited because sub is finite and non-empty *)
-        (* We can't prove this without finiteness... *)
-        (* But wait: la = MIN = an antichain of size w ≥ 2 ⊆ sub. 
-           sub is finite (cardinal A sub n). In a finite poset, every element has a maximal above it. *)
-        (* For now, admit this piece *)
-        admit.
-      - subst la. exact Hinhab.
-    }
-    assert (H_min_inhabited : Inhabited A (MIN sub)).
-    {
-      destruct H_la_choice as [Hmin | Hmax_choice].
-      - subst la. exact Hinhab.
-      - subst la. admit.
-    }
-    destruct H_min_inhabited as [x Hx_min].
-    destruct H_max_inhabited as [y Hy_max].
-    exists x. exists y.
-    split. { exact Hx_min. }
-    split. { exact Hy_max. }
-    split.
-    - (* x <> y *)
-      intro Heq. subst y.
-      (* x ∈ MIN ∩ MAX, and la has w ≥ 2 elements *)
-      (* If la = MIN: la has another element z ≠ x.
-         z ∈ MIN and x ∈ MAX: R x z → z = x (contradiction) and ¬ R z x (z ∈ MIN, z ≠ x means z minimal).
-         Actually: z ∈ MIN means for all t ∈ sub, R t z → t = z. So ¬ R x z (since x ≠ z and x ∈ sub).
-         And x ∈ MAX means for all t ∈ sub, R x t → t = x. So ¬ R x z (since x ≠ z and z ∈ sub).
-         Hmm wait: ¬ R x z follows from z ∈ MIN and x ≠ z (if R x z then by z-is-min, x = z, contra).
-         And ¬ R z x follows from x ∈ MAX and z ≠ x (if R z x then by x-MAX, z = x, contra).
-         So z and x are incomparable. But z ∈ la and x ∈ la and la is antichain: OK!
-         So no direct contradiction yet.
-         
-         The real issue: if x ∈ MIN s.t. everything above x is x (MAX property),
-         then everything in sub is either x or incomparable to x.
-         But la has another element z incomparable to x and z ∈ sub.
-         Now consider: z ∈ MIN and ¬ R z x. Is MAX sub inhabited with something ≠ x?
-         If all of MAX sub = {x}, then x is a global max. But z ∈ MIN and z incomparable to x
-         means z is not below x, yet z ∈ sub. Since z ∈ MIN (z is minimal in sub), 
-         z ∈ MAX would require R z t → t = z for all t ∈ sub; since x ∉ {z} and 
-         R z x requires... *)
-      (* Getting complex. Let's use: since w ≥ 2 and la is antichain, pick two distinct elements.
-         If la = MIN, pick z ∈ la ≠ x. Then x ∈ MIN ∩ MAX. 
-         z ∈ MIN. ¬ R z x (since x ∈ MAX and z ≠ x → R z x implies z = x by MAX).
-         AND z ∈ la is an antichain with x ∈ la: ¬(R z x ∨ R x z). 
-         Both give ¬ R z x, but also ¬ R x z.
-         ¬ R x z: since x ∈ MIN and z ≠ x → R z x → z = x by MIN; but wait, 
-         x ∈ MIN means for all t ∈ sub, R t x → t = x. z ∈ sub.
-         ¬ R z x follows already from antichain (z, x incomparable by Hanti_incomp).
-         So both z, x ∈ la are incomparable, which is fine for antichain. 
-         No contradiction yet *)
-      (* The contradiction must come from something else. 
-         x ∈ MIN ∩ MAX AND la = MIN AND |la| ≥ 2. 
-         x ∈ MAX: ∀ t ∈ sub, R x t → t = x.
-         z ∈ la = MIN: z ∈ sub.
-         If R x z: by MAX, z = x. Contradiction with z ≠ x.
-         If ¬ R x z: fine.
-         If R z x: by MIN, z = x. Contradiction.
-         If ¬ R z x: fine.
-         So z and x are incomparable — consistent with antichain.
-         Hmm, no direct contradiction.
-         
-         Wait! We need to use: la = MIN and x ∈ MAX.
-         We need to show that if x ∈ MIN ∩ MAX, then for every z ∈ sub incomparable to x,
-         ALL chains from z upward (in a finite poset) ...
-         
-         The problem is we don't have the crucial fact:
-         "In a finite poset, every element is below some maximal element"
-         without additional finiteness reasoning.
-         
-         Actually: we DO have cardinal A sub n (finiteness). Let's admit this for now. *)
-      admit.
-    - (* R x y *)
-      destruct Hx_min as [Hx_sub Hx_is_min].
-      destruct Hy_max as [Hy_sub Hy_is_max].
-      (* NNPP: assume ¬ R x y. Then either R y x (giving y = x by MAX + MIN) or incomparable. *)
-      apply NNPP. intro Hnot_Rxy.
-      assert (H_not_Ryx : ~ R y x).
-      {
-        intro HRyx. apply Hnot_Rxy. apply Hx_is_min; [exact Hy_sub | exact HRyx].
-      }
-      (* x and y are incomparable *)
-      (* {x, y} is an antichain of size 2 ≤ w *)
-      (* Since x ≠ y (from sub-goal above... but we're in a different sub-goal!) *)
-      (* Actually we need x ≠ y here too *)
-      assert (H_x_neq_y : x <> y).
-      {
-        intro Heq_xy. subst. apply Hnot_Rxy. apply poset_refl.
-      }
-      (* {x, y} is an antichain *)
-      assert (H_xy_anti : IsAntichain R (Couple A x y)).
-      {
-        constructor.
-        - exact (Inhabited_intro _ _ x (Couple_l _ _ _)).
-        - intros a b Ha Hb Hcomp.
-          inversion Ha; inversion Hb; subst.
-          + apply poset_antisym. apply poset_refl. apply poset_refl.
-          + destruct Hcomp as [H | H].
-            * apply Hnot_Rxy in H. contradiction.
-            * exact (H_not_Ryx H |> False.elim).
-          + destruct Hcomp as [H | H].
-            * exact (H_not_Ryx H |> False.elim).
-            * apply Hnot_Rxy in H. contradiction.
-          + apply poset_antisym. apply poset_refl. apply poset_refl.
-      }
-      (* {x, y} ⊆ sub *)
-      assert (H_xy_sub : Included A (Couple A x y) sub).
-      {
-        intros z Hz. inversion Hz; subst.
-        - exact Hx_sub.
-        - exact Hy_sub.
-      }
-      (* cardinal Couple A x y 2 *)
-      assert (H_card_xy : cardinal A (Couple A x y) 2).
-      {
-        assert (H_pair : Couple A x y = Add A (Singleton A x) y).
-        { apply Extensionality_Ensembles. intro z; split; intro Hz.
-          - inversion Hz; subst.
-            + apply Union_introl. apply In_singleton.
-            + apply Union_intror. apply In_singleton.
-          - inversion Hz as [z' Hz' | z' Hz'];
-            [ inversion Hz'; subst; apply Couple_l
-            | inversion Hz'; subst; apply Couple_r ]. }
-        rewrite H_pair. apply card_add.
-        - apply card_add. constructor. apply In_singleton.
-        - intro H. inversion H. exact H_x_neq_y.
-      }
-      (* By maximality of la, |{x, y}| <= w, i.e., 2 <= w *)
-      assert (H_2_le_w : 2 <= w).
-      { apply Hmax with (s := Couple A x y); [exact H_xy_anti | exact H_xy_sub | exact H_card_xy]. }
-      (* But also by maximality of la, |{x, y}| <= w, and la achieves w *)
-      (* Since la is a maximum antichain of cardinality w, {x,y} ⊆ la for some largest antichain *)
-      (* Actually: k <= w and w is the max, so 2 <= w is consistent, not a contradiction *)
-      (* The real contradiction: la = MIN (or MAX) and x ∈ MIN ∩ la and y ∈ MAX;
-         if they're incomparable, then x and y are both in la (by maximality),
-         which means y ∈ MIN = la. But if y ∈ MIN, then everything below y is y.
-         Since x ∈ sub and ¬ R x y and ¬ R y x, x is incomparable to y...
-         But we also need: x ∈ la = MIN and y ∈ la = MIN and they're incomparable — OK.
-         Still no direct contradiction.
-         
-         The real key: in case la = MIN, take ANY element of Max. 
-         By our specific choice, y ∈ MAX.
-         y ∈ MAX means: ∀ t ∈ sub, R y t → t = y.
-         x ∈ MIN = la means: x ∈ la. la = MIN.
-         Since we took x from MIN (which = la), x ∈ la.
-         
-         Now, since {x, y} is antichain of size 2 and la is the LARGEST antichain,
-         there exists a largest antichain containing {x, y}... No, la is just one specific max antichain.
-         
-         But H_extremal says EVERY largest antichain = MIN or MAX.
-         So there exists A* (a specific longest antichain that contains {x, y}),
-         and A* = MIN or = MAX.
-         If A* = MIN: x, y ∈ MIN. y ∈ MIN means ∀ z ∈ sub, R z y → z = y.
-           But then: x ∈ sub and (we need R x y to derive a contradiction, but we assumed ¬ R x y)...
-         If A* = MAX: x, y ∈ MAX. x ∈ MAX means ∀ z ∈ sub, R x z → z = x.
-           x ∈ MIN means ∀ z ∈ sub, R z x → z = x. So x is isolated.
-           But is x isolated possible in a poset of width w ≥ 2?
-           Isolated means nothing above or below except x... so x is incomparable to everything else.
-           But then {x, anything else} is an antichain of size 2 ≤ w.
-           Hmm, this is still consistent.
-         
-         The proof is getting very involved. Let me admit the R x y part for now. *)
-      admit.
+    admit.
   Admitted.
 
   Lemma width_decreases_when_removing_extremes : forall (sub la : Ensemble A) (w n : nat) (x y : A),
