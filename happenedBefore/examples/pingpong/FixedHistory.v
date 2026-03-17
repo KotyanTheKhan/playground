@@ -145,12 +145,196 @@ Section PingPongParameters.
       apply Nat.add_lt_mono_l, Nat.lt_succ_diag_r.
   Qed.
 
+  (* ── General div/mod helpers for event indices ─────────────────────────── *)
+
+  Lemma p0_event_div : forall i k, k < p0_epc ->
+    (p0_base_index GAP_0 i + k) / p0_epc = i.
+  Proof.
+    intros i k Hk. unfold p0_base_index.
+    apply div_mul_add_small; [unfold p0_events_per_cycle; lia | exact Hk].
+  Qed.
+
+  Lemma p0_event_mod : forall i k, k < p0_epc ->
+    (p0_base_index GAP_0 i + k) mod p0_epc = k.
+  Proof.
+    intros i k Hk. unfold p0_base_index.
+    apply mod_mul_add_small; [unfold p0_events_per_cycle; lia | exact Hk].
+  Qed.
+
+  Lemma p1_event_div : forall i k, k < p1_epc ->
+    (p1_base_index GAP_1 i + k) / p1_epc = i.
+  Proof.
+    intros i k Hk. unfold p1_base_index.
+    apply div_mul_add_small; [unfold p1_events_per_cycle; lia | exact Hk].
+  Qed.
+
+  Lemma p1_event_mod : forall i k, k < p1_epc ->
+    (p1_base_index GAP_1 i + k) mod p1_epc = k.
+  Proof.
+    intros i k Hk. unfold p1_base_index.
+    apply mod_mul_add_small; [unfold p1_events_per_cycle; lia | exact Hk].
+  Qed.
+
+  (* ── Rank increase for all internal-chain steps ─────────────────────────── *)
+
+  (** Extends rank_mono_p0_int to the boundary step k = GAP_0 - 1. *)
+  Lemma rank_mono_p0_int_any : forall i k, k < GAP_0 ->
+    rank ⟨0, p0_base_index GAP_0 i + 1 + k⟩ < rank ⟨0, p0_base_index GAP_0 i + 1 + S k⟩.
+  Proof.
+    intros i k Hk.
+    assert (H1k : 1 + k < p0_epc) by (unfold p0_events_per_cycle; lia).
+    assert (H2k : 2 + k < p0_epc) by (unfold p0_events_per_cycle; lia).
+    unfold rank. cbn [process index fst snd]. cbn [Nat.eqb].
+    replace (p0_base_index GAP_0 i + 1 + k)   with (p0_base_index GAP_0 i + (1 + k)) by lia.
+    replace (p0_base_index GAP_0 i + 1 + S k) with (p0_base_index GAP_0 i + (2 + k)) by lia.
+    rewrite (p0_event_div i (1+k) H1k), (p0_event_mod i (1+k) H1k).
+    rewrite (p0_event_div i (2+k) H2k), (p0_event_mod i (2+k) H2k).
+    unfold K_cycle. destruct (Nat.even i); cbn [Nat.eqb].
+    - assert (H1 : nat_eqb (1+k) 0 = false) by (apply Nat.eqb_neq; lia).
+      assert (H2 : nat_eqb (2+k) 0 = false) by (apply Nat.eqb_neq; lia).
+      rewrite H1, H2. lia.
+    - assert (H1 : nat_eqb (1+k) 0 = false) by (apply Nat.eqb_neq; lia).
+      assert (H2 : nat_eqb (2+k) 0 = false) by (apply Nat.eqb_neq; lia).
+      rewrite H1, H2. lia.
+  Qed.
+
+  Lemma rank_mono_p1_int_any : forall i k, k < GAP_1 ->
+    rank ⟨1, p1_base_index GAP_1 i + 1 + k⟩ < rank ⟨1, p1_base_index GAP_1 i + 1 + S k⟩.
+  Proof.
+    intros i k Hk.
+    assert (H1k : 1 + k < p1_epc) by (unfold p1_events_per_cycle; lia).
+    assert (H2k : 2 + k < p1_epc) by (unfold p1_events_per_cycle; lia).
+    unfold rank. cbn [process index fst snd]. cbn [Nat.eqb].
+    replace (p1_base_index GAP_1 i + 1 + k)   with (p1_base_index GAP_1 i + (1 + k)) by lia.
+    replace (p1_base_index GAP_1 i + 1 + S k) with (p1_base_index GAP_1 i + (2 + k)) by lia.
+    rewrite (p1_event_div i (1+k) H1k), (p1_event_mod i (1+k) H1k).
+    rewrite (p1_event_div i (2+k) H2k), (p1_event_mod i (2+k) H2k).
+    unfold K_cycle. destruct (Nat.even i); cbn [Nat.eqb].
+    - assert (H1 : nat_eqb (1+k) 0 = false) by (apply Nat.eqb_neq; lia).
+      assert (H2 : nat_eqb (2+k) 0 = false) by (apply Nat.eqb_neq; lia).
+      rewrite H1, H2. lia.
+    - assert (H1 : nat_eqb (1+k) 0 = false) by (apply Nat.eqb_neq; lia).
+      assert (H2 : nat_eqb (2+k) 0 = false) by (apply Nat.eqb_neq; lia).
+      rewrite H1, H2. lia.
+  Qed.
+
+  (* ── Rank increase per message type ────────────────────────────────────── *)
+
+  Ltac rank_event_tac p_div p_mod k :=
+    unfold rank; cbn [process index fst snd send_event recv_event]; cbn [Nat.eqb];
+    rewrite p_div, p_mod; unfold K_cycle; cbn [nat_eqb].
+
+  Lemma rank_ping0_inc : forall i, Nat.even i = true ->
+    rank (send_event (msg_ping0 GAP_0 GAP_1 i)) < rank (recv_event (msg_ping0 GAP_0 GAP_1 i)).
+  Proof.
+    intros i Heven. unfold msg_ping0, event_0, event_1.
+    assert (Ds : (p0_base_index GAP_0 i + 0) / p0_epc = i)
+      by (apply p0_event_div; unfold p0_events_per_cycle; lia).
+    assert (Ms : (p0_base_index GAP_0 i + 0) mod p0_epc = 0)
+      by (apply p0_event_mod; unfold p0_events_per_cycle; lia).
+    assert (Dr : (p1_base_index GAP_1 i + 0) / p1_epc = i)
+      by (apply p1_event_div; unfold p1_events_per_cycle; lia).
+    assert (Mr : (p1_base_index GAP_1 i + 0) mod p1_epc = 0)
+      by (apply p1_event_mod; unfold p1_events_per_cycle; lia).
+    unfold rank. cbn [process index fst snd send_event recv_event]. cbn [Nat.eqb].
+    rewrite Ds, Ms, Dr, Mr. unfold K_cycle. cbn [nat_eqb].
+    rewrite Heven. lia.
+  Qed.
+
+  Lemma rank_ping1_inc : forall i, Nat.even i = false ->
+    rank (send_event (msg_ping1 GAP_0 GAP_1 i)) < rank (recv_event (msg_ping1 GAP_0 GAP_1 i)).
+  Proof.
+    intros i Hodd. unfold msg_ping1, event_1, event_0.
+    assert (Ds : (p1_base_index GAP_1 i + 0) / p1_epc = i)
+      by (apply p1_event_div; unfold p1_events_per_cycle; lia).
+    assert (Ms : (p1_base_index GAP_1 i + 0) mod p1_epc = 0)
+      by (apply p1_event_mod; unfold p1_events_per_cycle; lia).
+    assert (Dr : (p0_base_index GAP_0 i + 0) / p0_epc = i)
+      by (apply p0_event_div; unfold p0_events_per_cycle; lia).
+    assert (Mr : (p0_base_index GAP_0 i + 0) mod p0_epc = 0)
+      by (apply p0_event_mod; unfold p0_events_per_cycle; lia).
+    unfold rank. cbn [process index fst snd send_event recv_event]. cbn [Nat.eqb].
+    rewrite Ds, Ms, Dr, Mr. unfold K_cycle. cbn [nat_eqb].
+    rewrite Hodd. lia.
+  Qed.
+
+  Lemma rank_pong0_inc : forall i, Nat.even i = true ->
+    rank (send_event (msg_pong0 GAP_0 GAP_1 i)) < rank (recv_event (msg_pong0 GAP_0 GAP_1 i)).
+  Proof.
+    intros i Heven. unfold msg_pong0, event_1, event_0.
+    assert (Ds : (p1_base_index GAP_1 i + 1) / p1_epc = i)
+      by (apply p1_event_div; unfold p1_events_per_cycle; lia).
+    assert (Ms : (p1_base_index GAP_1 i + 1) mod p1_epc = 1)
+      by (apply p1_event_mod; unfold p1_events_per_cycle; lia).
+    assert (Dr : (p0_base_index GAP_0 i + 1) / p0_epc = i)
+      by (apply p0_event_div; unfold p0_events_per_cycle; lia).
+    assert (Mr : (p0_base_index GAP_0 i + 1) mod p0_epc = 1)
+      by (apply p0_event_mod; unfold p0_events_per_cycle; lia).
+    unfold rank. cbn [process index fst snd send_event recv_event]. cbn [Nat.eqb].
+    rewrite Ds, Ms, Dr, Mr. unfold K_cycle. cbn [nat_eqb].
+    rewrite Heven. lia.
+  Qed.
+
+  Lemma rank_pong1_inc : forall i, Nat.even i = false ->
+    rank (send_event (msg_pong1 GAP_0 GAP_1 i)) < rank (recv_event (msg_pong1 GAP_0 GAP_1 i)).
+  Proof.
+    intros i Hodd. unfold msg_pong1, event_0, event_1.
+    assert (Ds : (p0_base_index GAP_0 i + 1) / p0_epc = i)
+      by (apply p0_event_div; unfold p0_events_per_cycle; lia).
+    assert (Ms : (p0_base_index GAP_0 i + 1) mod p0_epc = 1)
+      by (apply p0_event_mod; unfold p0_events_per_cycle; lia).
+    assert (Dr : (p1_base_index GAP_1 i + 1) / p1_epc = i)
+      by (apply p1_event_div; unfold p1_events_per_cycle; lia).
+    assert (Mr : (p1_base_index GAP_1 i + 1) mod p1_epc = 1)
+      by (apply p1_event_mod; unfold p1_events_per_cycle; lia).
+    unfold rank. cbn [process index fst snd send_event recv_event]. cbn [Nat.eqb].
+    rewrite Ds, Ms, Dr, Mr. unfold K_cycle. cbn [nat_eqb].
+    rewrite Hodd. lia.
+  Qed.
+
   (* ── Acyclicity ────────────────────────────────────────────────────────── *)
 
   Lemma nth_message_fixed_rank_increase : forall n,
     rank (send_event (nth_message_fixed n)) < rank (recv_event (nth_message_fixed n)).
   Proof.
-  Admitted.
+    intro n.
+    unfold nth_message_fixed.
+    (* Use distinct names to avoid clashing with the let-binding names cycle/phase *)
+    remember (n / msgs_per_cycle_fixed) as cyc eqn:Heqcyc.
+    remember (n mod msgs_per_cycle_fixed) as ph  eqn:Heqph.
+    cbv zeta.   (* zeta-reduce let-bindings so cyc/ph appear free in the goal *)
+    assert (Hph_lt : ph < msgs_per_cycle_fixed)
+      by (rewrite Heqph; apply Nat.mod_upper_bound; unfold msgs_per_cycle_fixed; lia).
+    destruct (nat_eqb ph 0) eqn:H0.
+    - apply Nat.eqb_eq in H0. subst ph. cbv iota.
+      destruct (Nat.even cyc) eqn:Heven.
+      + rewrite get_transaction_ping_even by exact Heven.
+        apply rank_ping0_inc. exact Heven.
+      + rewrite get_transaction_ping_odd  by exact Heven.
+        apply rank_ping1_inc. exact Heven.
+    - destruct (nat_eqb ph 1) eqn:H1.
+      + apply Nat.eqb_eq in H1. subst ph. cbv iota.
+        destruct (Nat.even cyc) eqn:Heven.
+        * rewrite get_transaction_pong_even by exact Heven.
+          apply rank_pong0_inc. exact Heven.
+        * rewrite get_transaction_pong_odd  by exact Heven.
+          apply rank_pong1_inc. exact Heven.
+      + apply Nat.eqb_neq in H0. apply Nat.eqb_neq in H1.
+        destruct (nat_leb ph (1 + GAP_0)) eqn:Hleb.
+        * (* ph in 2..1+GAP_0: P0 internal chain, k := ph-2 < GAP_0 *)
+          apply Nat.leb_le in Hleb.
+          assert (Hk : ph - 2 < GAP_0) by lia.
+          cbv iota.
+          unfold msg_internal_chain. simpl send_event. simpl recv_event.
+          apply rank_mono_p0_int_any. exact Hk.
+        * (* ph in 2+GAP_0..end: P1 internal chain, k := ph-(2+GAP_0) < GAP_1 *)
+          apply Nat.leb_nle in Hleb.
+          assert (Hk : ph - (2 + GAP_0) < GAP_1)
+            by (unfold msgs_per_cycle_fixed in *; lia).
+          cbv iota.
+          unfold msg_internal_chain. simpl send_event. simpl recv_event.
+          apply rank_mono_p1_int_any. exact Hk.
+  Qed.
 
   Lemma pp_history_content : forall n m,
     In m (pp_history_fixed n) -> exists k, k < n /\ m = nth_message_fixed k.
