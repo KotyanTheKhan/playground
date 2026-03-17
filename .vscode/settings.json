@@ -36,7 +36,9 @@
         "-R",
         "/Users/maxstarling/code/research/playground/_build/default/posets/dimension,Dimension",
         "-R",
-        "/Users/maxstarling/code/research/playground/_build/default/chipala_book,ChipalaBook"
+        "/Users/maxstarling/code/research/playground/_build/default/chipala_book,ChipalaBook",
+        "-R",
+        "/Users/maxstarling/code/research/playground/_build/default/happenedBefore/examples/pingpong,HappenedBeforePingPong"
     ],
     "coq-lsp.eager_diagnostics": true,
     "coq-lsp.trace.server": "verbose",

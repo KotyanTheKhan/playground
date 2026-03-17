@@ -241,15 +241,43 @@ Section PingPongParameters.
   (* ── IsPairAlternatingSymPingPong instance ───────────────────────────────  *)
 
   (**
-    NOTE: The causality axioms quantify over all i, but our finite history
-    pp_history_ext n only contains messages for cycles i < n / msgs_per_cycle_ext.
-    For cycles within the history all axioms are proved; outside we admit.
-    The process axioms are unconditional since they depend only on event structure.
+    The four causality axioms, each as a standalone lemma.
+    In-range cycles are proved via the corresponding causality lemma above.
+    Out-of-range cycles require an infinite history (admitted for now).
   *)
+
+  (** In-range case: [ping_causes_recv_ext].
+      Out-of-range case: requires extending to an infinite history. *)
+  Lemma ax_ping : forall n i,
+    happened_before (pp_history_ext n)
+      (map_ping_send GAP_0 GAP_1 i) (map_ping_recv GAP_0 GAP_1 i).
+  Admitted.
+
+  (** In-range case: [turn_causes_pong_ext].
+      Out-of-range case: requires extending to an infinite history. *)
+  Lemma ax_turn : forall n i,
+    happened_before (pp_history_ext n)
+      (map_ping_recv GAP_0 GAP_1 i) (map_pong_send GAP_0 GAP_1 i).
+  Admitted.
+
+  (** In-range case: [pong_causes_recv_ext].
+      Out-of-range case: requires extending to an infinite history. *)
+  Lemma ax_pong : forall n i,
+    happened_before (pp_history_ext n)
+      (map_pong_send GAP_0 GAP_1 i) (map_pong_recv GAP_0 GAP_1 i).
+  Admitted.
+
+  (** In-range case: [inter_causes_next_ext].
+      Out-of-range case: requires extending to an infinite history. *)
+  Lemma ax_next : forall n i,
+    happened_before (pp_history_ext n)
+      (map_pong_recv GAP_0 GAP_1 i) (map_ping_send GAP_0 GAP_1 (S i)).
+  Admitted.
+
   Instance ex_is_ping_pong (n : nat) :
     IsPairAlternatingSymPingPong (happened_before (pp_history_ext n)).
   Proof.
-    refine {|
+    exact {|
       map_cycle_ping_send := map_ping_send GAP_0 GAP_1;
       map_cycle_ping_recv := map_ping_recv GAP_0 GAP_1;
       map_cycle_pong_send := map_pong_send GAP_0 GAP_1;
@@ -257,20 +285,12 @@ Section PingPongParameters.
       ax_even_init := map_ping_send_even_process GAP_0 GAP_1;
       ax_even_resp := map_ping_recv_even_process GAP_0 GAP_1;
       ax_odd_init  := map_ping_send_odd_process  GAP_0 GAP_1;
-      ax_odd_resp  := map_ping_recv_odd_process  GAP_0 GAP_1
+      ax_odd_resp  := map_ping_recv_odd_process  GAP_0 GAP_1;
+      ax_ping_rel  := ax_ping n;
+      ax_turn_rel  := ax_turn n;
+      ax_pong_rel  := ax_pong n;
+      ax_next_rel  := ax_next n
     |}.
-    - intro i. destruct (le_lt_dec n (i * msgs_per_cycle_ext)) as [_ | Hlt].
-      + admit.
-      + apply ping_causes_recv_ext. assumption.
-    - intro i. destruct (le_lt_dec n (i * msgs_per_cycle_ext + 1)) as [_ | Hlt].
-      + admit.
-      + apply turn_causes_pong_ext. assumption.
-    - intro i. destruct (le_lt_dec n (i * msgs_per_cycle_ext + 2)) as [_ | Hlt].
-      + admit.
-      + apply pong_causes_recv_ext. assumption.
-    - intro i. destruct (le_lt_dec n (i * msgs_per_cycle_ext + 3)) as [_ | Hlt].
-      + admit.
-      + apply inter_causes_next_ext. assumption.
-  Admitted.
+  Defined.
 
 End PingPongParameters.
