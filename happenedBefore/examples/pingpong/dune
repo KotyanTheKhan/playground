@@ -2,4 +2,4 @@
  (name HappenedBeforePingPong)
  (package playground)
  (theories HappenedBefore Stdlib)
- (modules PingPong))
+ (modules Helpers Definitions FixedHistory ExtendedHistory PingPong))
