@@ -2,6 +2,48 @@ From Stdlib Require Import Ensembles Finite_sets Classical Lia Arith Wf_nat.
 From Stdlib Require Import Finite_sets_facts ClassicalEpsilon ClassicalChoice.
 From Dilworth Require Import CardinalArithmetic CardinalLemmas.
 
+(** Generic disjoint-union cardinality, used for both L and R below *)
+Lemma cardinal_disjoint_union_gen : forall (U : Type) (S T : Ensemble U) n m,
+  (forall x, In U S x -> ~ In U T x) ->
+  cardinal U S n ->
+  cardinal U T m ->
+  cardinal U (Union U S T) (n + m).
+Proof.
+  intros U S T n m Hdisj HcardS HcardT.
+  revert T m Hdisj HcardT.
+  induction HcardS as [| S' n' HcardS' IH a Ha_notin]; intros T m Hdisj HcardT.
+  - simpl.
+    apply (cardinal_extensional_poly U T); [| exact HcardT].
+    intros x. split.
+    + intro Hx. apply Union_intror. exact Hx.
+    + intro Hx. inversion Hx as [z Hz | z Hz]; subst.
+      * inversion Hz.
+      * exact Hz.
+  - simpl.
+    apply (cardinal_extensional_poly U (Add U (Union U S' T) a)).
+    + intros x. split.
+      * intro Hx.
+        inversion Hx as [z Hz | z Hz]; subst.
+        -- inversion Hz as [w Hw | w Hw]; subst.
+           ++ apply Union_introl. apply Union_introl. exact Hw.
+           ++ apply Union_intror. exact Hw.
+        -- inversion Hz. subst. apply Union_introl. apply Union_intror. apply In_singleton.
+      * intro Hx.
+        inversion Hx as [z Hz | z Hz]; subst.
+        -- inversion Hz as [w Hw | w Hw]; subst.
+           ++ apply Union_introl. apply Union_introl. exact Hw.
+           ++ inversion Hw. subst. apply Union_intror. apply In_singleton.
+        -- apply Union_introl. apply Union_intror. exact Hz.
+    + apply card_add.
+      * apply IH.
+        -- intros x Hx. exact (Hdisj x (Union_introl _ _ _ _ Hx)).
+        -- exact HcardT.
+      * intro Hcontra.
+        inversion Hcontra as [z Hz | z Hz]; subst.
+        -- exact (Ha_notin Hz).
+        -- exact (Hdisj a (Union_intror _ _ _ _ (In_singleton _ _)) Hz).
+Qed.
+
 Section Hall.
   Variables L R : Type.
 
@@ -104,38 +146,7 @@ Section Hall.
     cardinal L (Union L S T) (n + m).
   Proof.
     intros S T n m Hdisj HcardS HcardT.
-    revert T m Hdisj HcardT.
-    induction HcardS as [| S' n' HcardS' IH a Ha_notin]; intros T m Hdisj HcardT.
-    - simpl.
-      apply (cardinal_extensional_poly L T); [| exact HcardT].
-      intros x. split.
-      + intro Hx. apply Union_intror. exact Hx.
-      + intro Hx. inversion Hx as [z Hz | z Hz]; subst.
-        * inversion Hz.
-        * exact Hz.
-    - simpl.
-      apply (cardinal_extensional_poly L (Add L (Union L S' T) a)).
-      + intros x. split.
-        * intro Hx.
-          inversion Hx as [z Hz | z Hz]; subst.
-          -- inversion Hz as [w Hw | w Hw]; subst.
-             ++ apply Union_introl. apply Union_introl. exact Hw.
-             ++ apply Union_intror. exact Hw.
-          -- inversion Hz. subst. apply Union_introl. apply Union_intror. apply In_singleton.
-        * intro Hx.
-          inversion Hx as [z Hz | z Hz]; subst.
-          -- inversion Hz as [w Hw | w Hw]; subst.
-             ++ apply Union_introl. apply Union_introl. exact Hw.
-             ++ inversion Hw. subst. apply Union_intror. apply In_singleton.
-          -- apply Union_introl. apply Union_intror. exact Hz.
-      + apply card_add.
-        * apply IH.
-          -- intros x Hx. exact (Hdisj x (Union_introl _ _ _ _ Hx)).
-          -- exact HcardT.
-        * intro Hcontra.
-          inversion Hcontra as [z Hz | z Hz]; subst.
-          -- exact (Ha_notin Hz).
-          -- exact (Hdisj a (Union_intror _ _ _ _ (In_singleton _ _)) Hz).
+    exact (cardinal_disjoint_union_gen L S T n m Hdisj HcardS HcardT).
   Qed.
 
   Lemma proper_subset_card_lt : forall (X T : Ensemble L) n m,
@@ -154,9 +165,7 @@ Section Hall.
     apply Extensionality_Ensembles. intros x. split.
     - intro Hx. exact (Hincl x Hx).
     - intro Hx.
-      (* x ∈ X; since |T| = |X| = n and T ⊆ X, T = X *)
       apply NNPP. intro Hnotin.
-      (* T ∪ {x} is a subset of X with cardinality m+1 > m = n = |X| — contradiction *)
       assert (Hx_notT : ~ In L T x) by exact Hnotin.
       assert (Hcard_Tx : cardinal L (Add L T x) (S m)).
       { apply card_add; assumption. }
@@ -185,43 +194,42 @@ Section Hall.
       forall (X : Ensemble L) (Y : Ensemble R) nx (nbrs : L -> Ensemble R),
     cardinal L X nx ->
     Finite R Y ->
+    inhabited R ->
     (forall x y, In L X x -> In R (nbrs x) y -> In R Y y) ->
     HallCondition X nbrs ->
     exists m : L -> R, IsPerfectMatching X Y nbrs m.
   Proof.
-    (* Reorder so nx is first for Fix *)
     enough (Hall_ind : forall nx (X : Ensemble L) (Y : Ensemble R) (nbrs : L -> Ensemble R),
         cardinal L X nx ->
         Finite R Y ->
+        inhabited R ->
         (forall x y, In L X x -> In R (nbrs x) y -> In R Y y) ->
         HallCondition X nbrs ->
         exists m : L -> R, IsPerfectMatching X Y nbrs m)
-      by (intros X Y nx nbrs; exact (Hall_ind nx X Y nbrs)).
+      by (intros X Y nx nbrs HcardX HfinY HinhR Hnbrs_Y Hhall;
+          exact (Hall_ind nx X Y nbrs HcardX HfinY HinhR Hnbrs_Y Hhall)).
     refine (Fix lt_wf
       (fun nx => forall (X : Ensemble L) (Y : Ensemble R) (nbrs : L -> Ensemble R),
         cardinal L X nx ->
         Finite R Y ->
+        inhabited R ->
         (forall x y, In L X x -> In R (nbrs x) y -> In R Y y) ->
         HallCondition X nbrs ->
         exists m : L -> R, IsPerfectMatching X Y nbrs m)
-      (fun nx IH X Y nbrs Hcard_X HfinY Hnbrs_Y Hhall => _)).
+      (fun nx IH X Y nbrs Hcard_X HfinY HinhR Hnbrs_Y Hhall => _)).
     destruct nx as [| nx'].
     - (* Base case: X = ∅ *)
       inversion Hcard_X. subst.
-      destruct (classic (inhabited R)) as [[r0] | Huninh].
-      + exists (fun _ => r0).
-        assert (Hempty : forall x, ~ In L (Empty_set L) x).
-        { intros x Hx. unfold In in Hx. inversion Hx. }
-        unfold IsPerfectMatching.
-        repeat split; intros; exfalso; eapply Hempty; eassumption.
-      + (* R uninhabited: all conditions on m vacuous, but no term m : L -> R exists.
-           In the Dilworth application R = sum A A is always inhabited. *)
-        admit.
+      destruct HinhR as [r0].
+      exists (fun _ => r0).
+      assert (Hempty : forall x, ~ In L (Empty_set L) x).
+      { intros x Hx. unfold In in Hx. inversion Hx. }
+      unfold IsPerfectMatching.
+      repeat split; intros; exfalso; eapply Hempty; eassumption.
     - (* Inductive case: |X| = S nx' *)
       assert (Hinhab_X : Inhabited L X).
       { inversion Hcard_X as [| X' n Hcard' x Hnotin]. subst.
         apply Inhabited_intro with x. apply Union_intror. apply In_singleton. }
-      (* Classical case split: does a tight proper subset T ⊊ X exist? *)
       destruct (classic (exists (T : Ensemble L),
           Inhabited L T /\ T <> X /\ Included L T X /\
           exists nt nn : nat,
@@ -239,17 +247,14 @@ Section Hall.
           exact (Hhall S ns nn (fun x Hx => HinclT x (HinclS x Hx)) HcardS HcardNS). }
         assert (HnbrsT_Y : forall x y, In L T x -> In R (nbrs x) y -> In R Y y)
           by (intros x y Hx Hy; exact (Hnbrs_Y x y (HinclT x Hx) Hy)).
-        destruct (IH nt HcardT_lt T Y nbrs HcardT HfinY HnbrsT_Y HhallT)
+        destruct (IH nt HcardT_lt T Y nbrs HcardT HfinY HinhR HnbrsT_Y HhallT)
           as [mT [HmT_Y [HmT_nbrs HmT_inj]]].
-        (* N(T) — the neighborhood of T under nbrs *)
         pose (NT := set_neighbors nbrs T).
-        (* X'' = X \ T *)
         pose (X'' := fun x => In L X x /\ ~ In L T x).
         assert (HfinX : Finite L X) by exact (cardinal_finite L X (S nx') Hcard_X).
         assert (HfinX'' : Finite L X'')
           by exact (Finite_downward_closed L X HfinX X'' (fun x Hx => proj1 Hx)).
         destruct (finite_cardinal L X'' HfinX'') as [nX'' HcardX''].
-        (* |X''| < S nx' since nt ≥ 1 and |X''| + nt ≤ |X| = S nx' *)
         assert (HX''_lt : nX'' < S nx').
         { destruct nt as [| nt'].
           - destruct HinhT as [a Ha]. inversion HcardT. subst. inversion Ha.
@@ -264,25 +269,106 @@ Section Hall.
               - exact (proj1 Hz).
               - exact (HinclT x Hz). }
             lia. }
-        (* nbrs'' : neighbors avoiding N(T) *)
         pose (nbrs'' := fun x z => In R (nbrs x) z /\ ~ In R NT z).
         assert (HfinY'' : Finite R (fun z => In R Y z /\ ~ In R NT z))
           by exact (Finite_downward_closed R Y HfinY _ (fun z Hz => proj1 Hz)).
         assert (Hnbrs'' : forall x y, In L X'' x -> In R (nbrs'' x) y ->
             In R (fun z => In R Y z /\ ~ In R NT z) y).
         { intros x y [Hx _] [Hy Hnot]. exact (conj (Hnbrs_Y x y Hx Hy) Hnot). }
+        (* Hall's condition for X'' with nbrs'' *)
         assert (Hhall'' : HallCondition X'' nbrs'').
-        { (* For any S ⊆ X'', |N''(S)| ≥ |S|.
-             N(S ∪ T) ≥ |S| + |T| by Hall; N''(S) = N(S ∪ T) \ N(T) ≥ |S| + |T| - |T| = |S|. *)
-          admit. }
+        { intros S ns nn HinclS HcardS HcardNS.
+          unfold nbrs'' in HcardNS. rewrite set_neighbors_remove_set in HcardNS.
+          assert (HinclSX : Included L S X) by (intros z Hz; exact (proj1 (HinclS z Hz))).
+          assert (HdisS_T : forall x, In L S x -> ~ In L T x)
+            by (intros x Hx; exact (proj2 (HinclS x Hx))).
+          assert (HinclST_X : Included L (Union L S T) X).
+          { intros x Hx. inversion Hx as [z Hz | z Hz]; subst.
+            - exact (HinclSX x Hz).
+            - exact (HinclT x Hz). }
+          assert (HcardST : cardinal L (Union L S T) (ns + nt)).
+          { apply cardinal_disjoint_union; [| exact HcardS | exact HcardT].
+            intros x Hx. exact (HdisS_T x Hx). }
+          assert (Hfin_NST : Finite R (set_neighbors nbrs (Union L S T))).
+          { apply (Finite_downward_closed R Y HfinY).
+            intros y [x [Hx Hy]]. exact (Hnbrs_Y x y (HinclST_X x Hx) Hy). }
+          destruct (finite_cardinal R (set_neighbors nbrs (Union L S T)) Hfin_NST)
+            as [nST HcardNST].
+          assert (HnST_ge : ns + nt <= nST)
+            by exact (Hhall (Union L S T) (ns + nt) nST HinclST_X HcardST HcardNST).
+          (* N(S ∪ T) = N(S) ∪ NT, so cardinality nST holds for the union *)
+          assert (HcardNS_union : cardinal R (Union R (set_neighbors nbrs S) NT) nST).
+          { unfold NT. rewrite <- (set_neighbors_union nbrs S T). exact HcardNST. }
+          (* N(S) ∪ NT = (N(S) \ NT) ∪ NT  (set equality) *)
+          assert (Hset_eq : Union R (set_neighbors nbrs S) NT =
+                            Union R (fun z => In R (set_neighbors nbrs S) z /\ ~ In R NT z) NT).
+          { apply Extensionality_Ensembles. intros z. split.
+            - intro Hz. inversion Hz as [w Hw | w Hw]; subst.
+              + destruct (classic (In R NT z)) as [HinNT | HnotNT].
+                * apply Union_intror. exact HinNT.
+                * apply Union_introl. exact (conj Hw HnotNT).
+              + apply Union_intror. exact Hw.
+            - intro Hz. inversion Hz as [w Hw | w Hw]; subst.
+              + apply Union_introl. exact (proj1 Hw).
+              + apply Union_intror. exact Hw. }
+          assert (HcardNST' : cardinal R
+              (Union R (fun z => In R (set_neighbors nbrs S) z /\ ~ In R NT z) NT) nST).
+          { rewrite <- Hset_eq. exact HcardNS_union. }
+          (* |(N(S) \ NT) ∪ NT| = nn + nt  (disjoint union) *)
+          assert (HcardUnion : cardinal R
+              (Union R (fun z => In R (set_neighbors nbrs S) z /\ ~ In R NT z) NT) (nn + nt)).
+          { apply cardinal_disjoint_union_gen.
+            - intros x [_ Hnot]. exact Hnot.
+            - exact HcardNS.
+            - exact HcardNT. }
+          assert (Heq_nST : nST = nn + nt)
+            by exact (cardinal_unicity R _ nST HcardNST' (nn + nt) HcardUnion).
+          lia. }
         destruct (IH nX'' HX''_lt X'' (fun z => In R Y z /\ ~ In R NT z) nbrs''
-                     HcardX'' HfinY'' Hnbrs'' Hhall'')
+                     HcardX'' HfinY'' HinhR Hnbrs'' Hhall'')
           as [m'' [Hm''_Y [Hm''_nbrs Hm''_inj]]].
-        (* Combine: m = mT on T, m = m'' on X'' *)
-        exists (fun x =>
-          if excluded_middle_informative (In L T x) then mT x else m'' x).
-        (* Verification of IsPerfectMatching for combined m — filled in Task 4 *)
-        admit.
+        (* Combine: f = mT on T, f = m'' on X'' *)
+        set (f := fun x => if excluded_middle_informative (In L T x) then mT x else m'' x).
+        assert (Hf_T : forall x, In L T x -> f x = mT x).
+        { intros x Hx. unfold f.
+          destruct (excluded_middle_informative (In L T x)) as [_ | Habs].
+          - reflexivity.
+          - exact (False_rect _ (Habs Hx)). }
+        assert (Hf_nT : forall x, ~ In L T x -> f x = m'' x).
+        { intros x Hnotx. unfold f.
+          destruct (excluded_middle_informative (In L T x)) as [Habs | _].
+          - exact (False_rect _ (Hnotx Habs)).
+          - reflexivity. }
+        exists f.
+        unfold IsPerfectMatching. split; [| split].
+        * intros x Hx.
+          destruct (classic (In L T x)) as [HxT | HxnT].
+          -- rewrite (Hf_T x HxT). exact (HmT_Y x HxT).
+          -- rewrite (Hf_nT x HxnT). exact (proj1 (Hm''_Y x (conj Hx HxnT))).
+        * intros x Hx.
+          destruct (classic (In L T x)) as [HxT | HxnT].
+          -- rewrite (Hf_T x HxT). exact (HmT_nbrs x HxT).
+          -- rewrite (Hf_nT x HxnT).
+             destruct (Hm''_nbrs x (conj Hx HxnT)) as [Hnbr _]. exact Hnbr.
+        * intros x1 x2 Hx1 Hx2 Heqf.
+          destruct (classic (In L T x1)) as [HxT1 | HxnT1];
+          destruct (classic (In L T x2)) as [HxT2 | HxnT2].
+          -- rewrite (Hf_T x1 HxT1), (Hf_T x2 HxT2) in Heqf.
+             exact (HmT_inj x1 x2 HxT1 HxT2 Heqf).
+          -- rewrite (Hf_T x1 HxT1), (Hf_nT x2 HxnT2) in Heqf.
+             exfalso.
+             assert (HmTx1_NT : In R NT (mT x1))
+               by exact (ex_intro _ x1 (conj HxT1 (HmT_nbrs x1 HxT1))).
+             destruct (Hm''_nbrs x2 (conj Hx2 HxnT2)) as [_ Hm''x2_notNT].
+             rewrite <- Heqf in Hm''x2_notNT. exact (Hm''x2_notNT HmTx1_NT).
+          -- rewrite (Hf_nT x1 HxnT1), (Hf_T x2 HxT2) in Heqf.
+             exfalso.
+             assert (HmTx2_NT : In R NT (mT x2))
+               by exact (ex_intro _ x2 (conj HxT2 (HmT_nbrs x2 HxT2))).
+             destruct (Hm''_nbrs x1 (conj Hx1 HxnT1)) as [_ Hm''x1_notNT].
+             rewrite Heqf in Hm''x1_notNT. exact (Hm''x1_notNT HmTx2_NT).
+          -- rewrite (Hf_nT x1 HxnT1), (Hf_nT x2 HxnT2) in Heqf.
+             exact (Hm''_inj x1 x2 (conj Hx1 HxnT1) (conj Hx2 HxnT2) Heqf).
       + (* ===== Non-tight case: every proper S ⊊ X has |N(S)| > |S| ===== *)
         assert (Hstrict : forall S ns nn,
           Inhabited L S -> S <> X -> Included L S X ->
@@ -295,7 +381,6 @@ Section Hall.
           assert (Heq : nn = ns) by lia.
           exists S. split; [exact HinhS | split; [exact HneqS | split; [exact HinclS |]]].
           exists ns, nn. exact (conj HcardS (conj HcardNS (eq_sym Heq))). }
-        (* Pick x0 ∈ X and y0 ∈ nbrs(x0) *)
         destruct Hinhab_X as [x0 Hx0].
         assert (Hnbrs_ne : Inhabited R (nbrs x0)).
         { destruct (classic (Inhabited R (nbrs x0))) as [H | H]; [exact H |].
@@ -314,7 +399,6 @@ Section Hall.
             by exact (Hhall (Singleton L x0) 1 0 HinclSing Hcard_x0 HcardNx0).
           lia. }
         destruct Hnbrs_ne as [y0 Hy0_nbrs].
-        (* X' = X \ {x0}, nbrs' = nbrs with y0 removed *)
         pose (X' := fun x => In L X x /\ x <> x0).
         pose (nbrs' := fun x z => In R (nbrs x) z /\ z <> y0).
         assert (HcardX' : cardinal L X' nx')
@@ -324,19 +408,75 @@ Section Hall.
         assert (Hnbrs' : forall x y, In L X' x -> In R (nbrs' x) y ->
             In R (fun z => In R Y z /\ z <> y0) y).
         { intros x y [Hx _] [Hy Hneq]. exact (conj (Hnbrs_Y x y Hx Hy) Hneq). }
+        (* Hall's condition for X' with nbrs' *)
         assert (Hhall' : HallCondition X' nbrs').
-        { (* For any S ⊆ X', |N'(S)| ≥ |S|.
-             N'(S) = N(S) \ {y0}; since S ⊊ X, |N(S)| > |S|, so |N'(S)| ≥ |N(S)| - 1 ≥ |S|. *)
-          admit. }
+        { intros S_set ns nn HinclS HcardS HcardNS.
+          unfold nbrs' in HcardNS. rewrite set_neighbors_remove_point in HcardNS.
+          destruct ns as [| ns']. { lia. }
+          assert (HinhS : Inhabited L S_set).
+          { inversion HcardS as [| S_rest n0 Hcard0 a Ha0]; subst.
+            apply Inhabited_intro with a. apply Union_intror. apply In_singleton. }
+          assert (HinclSX : Included L S_set X) by (intros z Hz; exact (proj1 (HinclS z Hz))).
+          assert (HneqSX : S_set <> X).
+          { intro Heq. subst S_set.
+            assert (HxX' : In L X' x0) by exact (HinclS x0 Hx0).
+            unfold X' in HxX'. destruct HxX' as [_ Hne]. exact (Hne eq_refl). }
+          assert (Hfin_NS : Finite R (set_neighbors nbrs S_set)).
+          { apply (Finite_downward_closed R Y HfinY).
+            intros y [x [Hx Hy]]. exact (Hnbrs_Y x y (HinclSX x Hx) Hy). }
+          destruct (finite_cardinal R (set_neighbors nbrs S_set) Hfin_NS) as [nsN HcardNS_orig].
+          assert (HnsN_gt : nsN > S ns')
+            by exact (Hstrict S_set (S ns') nsN HinhS HneqSX HinclSX HcardS HcardNS_orig).
+          destruct (classic (In R (set_neighbors nbrs S_set) y0)) as [Hy0_in | Hy0_out].
+          - destruct nsN as [| nsN']. { lia. }
+            assert (Hcard_diff : cardinal R (fun z => In R (set_neighbors nbrs S_set) z /\ z <> y0) nsN')
+              by exact (cardinal_remove R (set_neighbors nbrs S_set) y0 nsN' Hy0_in HcardNS_orig).
+            assert (Heq_nn : nn = nsN')
+              by exact (cardinal_unicity R _ nn HcardNS nsN' Hcard_diff).
+            lia.
+          - assert (Hset_eq : (fun z => In R (set_neighbors nbrs S_set) z /\ z <> y0) = set_neighbors nbrs S_set).
+            { apply Extensionality_Ensembles. intros z. split.
+              - intros [Hz _]. exact Hz.
+              - intro Hz. split; [exact Hz | intro Heqz; subst z; exact (Hy0_out Hz)]. }
+            rewrite Hset_eq in HcardNS.
+            assert (Heq_nn : nn = nsN)
+              by exact (cardinal_unicity R _ nn HcardNS nsN HcardNS_orig).
+            lia. }
         destruct (IH nx' (Nat.lt_succ_diag_r nx') X'
                      (fun z => In R Y z /\ z <> y0) nbrs'
-                     HcardX' HfinY' Hnbrs' Hhall')
+                     HcardX' HfinY' HinhR Hnbrs' Hhall')
           as [m' [Hm'_Y [Hm'_nbrs Hm'_inj]]].
-        (* m(x0) = y0, m(x) = m'(x) for x ≠ x0 *)
-        exists (fun x =>
-          if excluded_middle_informative (x = x0) then y0 else m' x).
-        (* Verification of IsPerfectMatching for combined m — filled in Task 5 *)
-        admit.
-  Admitted.
+        set (f := fun x => if excluded_middle_informative (x = x0) then y0 else m' x).
+        assert (Hf_x0 : f x0 = y0).
+        { unfold f. destruct (excluded_middle_informative (x0 = x0)) as [_ | Habs].
+          - reflexivity.
+          - exact (False_rect _ (Habs eq_refl)). }
+        assert (Hf_ne : forall x, x <> x0 -> f x = m' x).
+        { intros x Hne. unfold f.
+          destruct (excluded_middle_informative (x = x0)) as [Heq | _].
+          - exact (False_rect _ (Hne Heq)).
+          - reflexivity. }
+        exists f.
+        unfold IsPerfectMatching. split; [| split].
+        * intros x Hx.
+          destruct (classic (x = x0)) as [Heq | Hne].
+          -- subst x. rewrite Hf_x0. exact (Hnbrs_Y x0 y0 Hx0 Hy0_nbrs).
+          -- rewrite (Hf_ne x Hne). exact (proj1 (Hm'_Y x (conj Hx Hne))).
+        * intros x Hx.
+          destruct (classic (x = x0)) as [Heq | Hne].
+          -- subst x. rewrite Hf_x0. exact Hy0_nbrs.
+          -- rewrite (Hf_ne x Hne).
+             destruct (Hm'_nbrs x (conj Hx Hne)) as [Hnbr _]. exact Hnbr.
+        * intros x1 x2 Hx1 Hx2 Heqf.
+          destruct (classic (x1 = x0)) as [Heq1 | Hne1];
+          destruct (classic (x2 = x0)) as [Heq2 | Hne2].
+          -- rewrite Heq1, Heq2. reflexivity.
+          -- rewrite Heq1 in Heqf. rewrite Hf_x0, (Hf_ne x2 Hne2) in Heqf.
+             exfalso. exact (proj2 (Hm'_Y x2 (conj Hx2 Hne2)) (eq_sym Heqf)).
+          -- rewrite Heq2 in Heqf. rewrite Hf_x0, (Hf_ne x1 Hne1) in Heqf.
+             exfalso. exact (proj2 (Hm'_Y x1 (conj Hx1 Hne1)) Heqf).
+          -- rewrite (Hf_ne x1 Hne1), (Hf_ne x2 Hne2) in Heqf.
+             exact (Hm'_inj x1 x2 (conj Hx1 Hne1) (conj Hx2 Hne2) Heqf).
+  Qed.
 
 End Hall.
