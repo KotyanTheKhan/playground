@@ -1,20 +1,16 @@
 From Stdlib Require Import Ensembles Finite_sets Classical Lia Arith Wf_nat.
-From Stdlib Require Import Finite_sets_facts ClassicalEpsilon.
+From Stdlib Require Import Finite_sets_facts ClassicalEpsilon ClassicalChoice.
 From Posets Require Import PosetClasses.
-From Dilworth Require Import CardinalArithmetic Definitions InjectionPrinciple CardinalLemmas.
+From Dilworth Require Import CardinalArithmetic Definitions InjectionPrinciple CardinalLemmas WidthLowerBound Helpers Hall.
 
 Section DilworthBackward.
   Context {A : Type}.
   Context (R : A -> A -> Prop) `{IsPoset A R}.
 
-  (* WidthUpperBound.v now uses the classes defined in Definitions.v *)
-
-
   (* ========================================================================= *)
   (* Helper Lemmas for Above and Below                                         *)
   (* ========================================================================= *)
 
-  (** Above and Below include the antichain itself (by reflexivity) *)
   Lemma la_in_Above : forall la,
     IsAntichain R la ->
     Included A la (Above R la).
@@ -35,7 +31,6 @@ Section DilworthBackward.
     apply poset_refl.
   Qed.
 
-  (** If la is the largest antichain, it's also the largest in Above/Below *)
   Lemma largest_antichain_in_Above : forall la w,
     IsLargestAntichain R (Full_set A) la w ->
     Inhabited A (Above R la) ->
@@ -58,7 +53,6 @@ Section DilworthBackward.
     apply (Hmax s n Hs); [intros x Hx; apply Full_intro | exact Hcard_s].
   Qed.
 
-  (** Above contains la *)
   Lemma above_contains_la : forall la,
     IsAntichain R la ->
     Inhabited A (Above R la).
@@ -71,7 +65,6 @@ Section DilworthBackward.
     apply poset_refl.
   Qed.
 
-  (** Below contains la *)
   Lemma below_contains_la : forall la,
     IsAntichain R la ->
     Inhabited A (Below R la).
@@ -84,6 +77,83 @@ Section DilworthBackward.
     apply poset_refl.
   Qed.
 
+  Lemma min_elements_eq_la : forall (sub la : Ensemble A) w,
+    IsLargestAntichain R sub la w ->
+    Included A sub (Above R la) ->
+    forall x, In A sub x ->
+      ((forall y, In A sub y -> R y x -> y = x) <-> In A la x).
+  Proof.
+    intros sub la w Hla Habove x Hx.
+    destruct Hla as [Hanti Hincl_la Hcard_la Hmax].
+    destruct Hanti as [_ Hincompat].
+    split.
+    - intro Hmin.
+      destruct (Habove x Hx) as [a [Ha_la Hax]].
+      assert (Ha_sub : In A sub a) by exact (Hincl_la a Ha_la).
+      assert (Haeqx : a = x) by exact (Hmin a Ha_sub Hax).
+      subst a. exact Ha_la.
+    - intro Hx_la.
+      intros y Hy_sub Hyx.
+      destruct (Habove y Hy_sub) as [b [Hb_la Hby]].
+      assert (Hbx : R b x) by exact (poset_trans b y x Hby Hyx).
+      assert (Hbeqx : b = x) by exact (Hincompat b x Hb_la Hx_la (or_introl Hbx)).
+      subst b.
+      exact (poset_antisym y x Hyx Hby).
+  Qed.
+
+  Definition StrictSucc (sub S : Ensemble A) : Ensemble A :=
+    fun y => In A sub y /\ exists x, In A S x /\ R x y /\ x <> y.
+
+  Lemma dilworth_hall_defect : forall (sub la : Ensemble A) w,
+    IsLargestAntichain R sub la w ->
+    Included A sub (Above R la) ->
+    forall S ns nn,
+      Included A S sub ->
+      cardinal A S ns ->
+      cardinal A (StrictSucc sub S) nn ->
+      ns <= nn + w.
+  Proof.
+    intros sub la w Hla Habove S ns nn HinclS HcardS HcardNS.
+    destruct Hla as [_ Hincl_la Hcard_la Hmax].
+    pose (M := fun x => In A S x /\ ~ In A (StrictSucc sub S) x).
+    assert (HfinS : Finite A S) by exact (cardinal_finite A S ns HcardS).
+    assert (HfinM : Finite A M).
+    { apply (Finite_downward_closed A S HfinS). intros x [HxS _]. exact HxS. }
+    destruct (finite_cardinal A M HfinM) as [m HcardM].
+    assert (Hincl_S : Included A S (Union A M (StrictSucc sub S))).
+    { intros x HxS.
+      destruct (classic (In A (StrictSucc sub S) x)) as [Hxin | Hxout].
+      - apply Union_intror. exact Hxin.
+      - apply Union_introl. exact (conj HxS Hxout). }
+    assert (HdisM : forall x, In A M x -> ~ In A (StrictSucc sub S) x).
+    { intros x [_ Hxout]. exact Hxout. }
+    assert (HcardMN : cardinal A (Union A M (StrictSucc sub S)) (m + nn)).
+    { exact (cardinal_disjoint_union_gen A M (StrictSucc sub S) m nn HdisM HcardM HcardNS). }
+    assert (Hns_le : ns <= m + nn).
+    { exact (incl_card_le A S (Union A M (StrictSucc sub S)) ns (m + nn)
+               HcardS HcardMN Hincl_S). }
+    assert (HM_le_w : m <= w).
+    { destruct m as [| m'].
+      - lia.
+      - assert (HinhM : Inhabited A M).
+        { inversion HcardM as [| M' n' Hcard' x Hx_notin]. subst.
+          apply Inhabited_intro with x. apply Union_intror. apply In_singleton. }
+        assert (HincompM : forall x y, In A M x -> In A M y -> (R x y \/ R y x) -> x = y).
+        { intros x y [HxS HxnN] [HyS HynN] Hcomp.
+          destruct Hcomp as [Hxy | Hyx].
+          - destruct (classic (x = y)) as [Heq | Hneq]; [exact Heq |].
+            exfalso. apply HynN.
+            exact (conj (HinclS y HyS) (ex_intro _ x (conj HxS (conj Hxy Hneq)))).
+          - destruct (classic (x = y)) as [Heq | Hneq]; [exact Heq |].
+            exfalso. apply HxnN.
+            exact (conj (HinclS x HxS)
+                        (ex_intro _ y (conj HyS (conj Hyx (fun h => Hneq (eq_sym h)))))). }
+        exact (Hmax M _ (Build_IsAntichain R M HinhM HincompM)
+                        (fun x HxM => HinclS x (proj1 HxM))
+                        HcardM). }
+    lia.
+  Qed.
+
   (* ========================================================================= *)
   (* Special Cases: Width 0 and Width 1                                        *)
   (* ========================================================================= *)
@@ -94,8 +164,7 @@ Section DilworthBackward.
     intros s Ha Hcard.
     destruct Ha as [Hinhab _].
     destruct Hinhab as [a Ha].
-    inversion Hcard. subst.
-    inversion Ha.
+    inversion Hcard. subst. inversion Ha.
   Qed.
 
   Lemma singleton_antichain_is_chain : forall (s : Ensemble A),
@@ -116,7 +185,6 @@ Section DilworthBackward.
       left. apply poset_refl.
   Qed.
 
-  (** Key lemma: If width = 1, then the subposet is a chain *)
   Lemma width_one_implies_chain : forall (sub s : Ensemble A),
     IsLargestAntichain R sub s 1 ->
     IsChain R sub.
@@ -130,26 +198,19 @@ Section DilworthBackward.
       apply Hincl_s. exact Ha.
     - intros x y Hx Hy.
       destruct (classic (R x y \/ R y x)) as [Hcomp | Hincomp]; [exact Hcomp | exfalso].
-      
-      (* Construct the antichain {x, y} *)
       pose (pair := Add A (Add A (Empty_set A) x) y).
-      
       assert (Hneq : x <> y).
-      {
-        intro Heq. subst y.
-        apply Hincomp. left. apply poset_refl.
-      }
-      
+      { intro Heq. subst y. apply Hincomp. left. apply poset_refl. }
       assert (Hanti_pair : IsAntichain R pair).
-      {
-        split.
+      { split.
         - unfold pair, Add. apply Inhabited_intro with x.
           apply Union_introl. apply Union_intror. apply In_singleton.
-        - intros z1 z2 Hz1 Hz2 Hcomp.
+        - intros z1 z2 Hz1 Hz2 Hcomp'.
           unfold pair, Add in Hz1, Hz2.
           inversion Hz1 as [z1' Hz1' | z1' Hz1']; inversion Hz2 as [z2' Hz2' | z2' Hz2']; subst.
           + unfold Add in Hz1', Hz2'.
-            inversion Hz1' as [z1'' Hz1'' | z1'' Hz1'']; inversion Hz2' as [z2'' Hz2'' | z2'' Hz2'']; subst.
+            inversion Hz1' as [z1'' Hz1'' | z1'' Hz1''];
+            inversion Hz2' as [z2'' Hz2'' | z2'' Hz2'']; subst.
             * inversion Hz1''.
             * inversion Hz1''.
             * inversion Hz2''.
@@ -158,68 +219,35 @@ Section DilworthBackward.
             inversion Hz1' as [z1'' Hz1'' | z1'' Hz1'']; subst.
             * inversion Hz1''.
             * inversion Hz1''. inversion Hz2'. subst.
-              exfalso. apply Hincomp. exact Hcomp.
+              exfalso. apply Hincomp. exact Hcomp'.
           + unfold Add in Hz2'.
             inversion Hz2' as [z2'' Hz2'' | z2'' Hz2'']; subst.
             * inversion Hz2''.
             * inversion Hz2''. inversion Hz1'; subst.
-              exfalso. apply Hincomp. destruct Hcomp; [right | left]; auto.
-          + inversion Hz1'. inversion Hz2'. subst. reflexivity.
-      }
-      
+              exfalso. apply Hincomp. destruct Hcomp'; [right | left]; auto.
+          + inversion Hz1'. inversion Hz2'. subst. reflexivity. }
       assert (Hcard_pair : cardinal A pair 2).
-      {
-        unfold pair. replace 2 with (S (S 0)) by reflexivity.
+      { unfold pair. replace 2 with (S (S 0)) by reflexivity.
         apply card_add.
         - apply card_add; [apply card_empty | intro Hempty; inversion Hempty].
         - unfold Add. intro Hcontra.
           inversion Hcontra as [z' Hz' | z' Hz']; subst.
           + unfold Add in Hz'. inversion Hz'; subst; inversion H.
-          + inversion Hz'. contradiction.
-      }
-      
+          + inversion Hz'. contradiction. }
       assert (Hcontra : 2 <= 1).
       { apply (Hmaximal pair 2 Hanti_pair); [| exact Hcard_pair].
         intros z Hz. inversion Hz as [z' Hz' | z' Hz']; subst.
         - inversion Hz' as [z'' Hz'' | z'' Hz'']; subst.
           + inversion Hz''.
           + inversion Hz''; subst. exact Hx.
-        - inversion Hz'; subst. exact Hy.
-      }
+        - inversion Hz'; subst. exact Hy. }
       lia.
-  Qed.
-
-  Lemma singleton_ensemble_card : forall (s : Ensemble A),
-    IsAntichain R s -> cardinal A s 1 ->
-    cardinal (Ensemble A) (Singleton (Ensemble A) s) 1.
-  Proof.
-    intros s Hanti Hcard.
-    replace 1 with (S 0) by reflexivity.
-    
-    assert (Hadd_card : cardinal (Ensemble A) (Add (Ensemble A) (Empty_set (Ensemble A)) s) 1).
-    {
-      apply card_add; [apply card_empty; intros X HX; inversion HX | intro Hcontra; inversion Hcontra].
-    }
-    
-    apply (cardinal_extensional_poly (Ensemble A) (Add (Ensemble A) (Empty_set (Ensemble A)) s) (Singleton (Ensemble A) s) 1).
-    
-    - intro X. split; intro HX.
-      + unfold Add in HX.
-        inversion HX as [X' HX' | X' HX']; subst.
-        * inversion HX'.
-        * inversion HX'. apply In_singleton.
-      + inversion HX. subst X.
-        unfold Add. apply Union_intror. apply In_singleton.
-    
-    - exact Hadd_card.
   Qed.
 
   (* ========================================================================= *)
   (* Inductive Step for DilworthB                                              *)
   (* ========================================================================= *)
 
-  (** Every element of sub is comparable to some element of la,
-      hence lies in Above(la) or Below(la). *)
   Lemma sub_in_above_or_below : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Union A (Above R la) (Below R la)).
@@ -234,50 +262,31 @@ Section DilworthBackward.
       { intro Hin'. apply Hnin. apply Union_introl. exact Hin'. }
       assert (Hnot_below : ~ In A (Below R la) x).
       { intro Hin'. apply Hnin. apply Union_intror. exact Hin'. }
-      (* x ∉ la: if x ∈ la then R x x witnesses x ∈ Above(la) *)
       assert (Hx_notin_la : ~ In A la x).
-      {
-        intro Hx_la.
-        apply Hnot_above.
-        unfold Above. exists x. split; [exact Hx_la | apply poset_refl].
-      }
-      (* Build Add A la x as an antichain of size w+1 in sub *)
+      { intro Hx_la. apply Hnot_above.
+        unfold Above. exists x. split; [exact Hx_la | apply poset_refl]. }
       assert (Hla'_anti : IsAntichain R (Add A la x)).
-      {
-        split.
+      { split.
         - destruct Hinhab as [a Ha].
-          apply Inhabited_intro with a.
-          unfold Add. apply Union_introl. exact Ha.
+          apply Inhabited_intro with a. unfold Add. apply Union_introl. exact Ha.
         - intros z1 z2 Hz1 Hz2 Hcomp.
           unfold Add in Hz1, Hz2.
           inversion Hz1 as [z1' Hz1' | z1' Hz1']; inversion Hz2 as [z2' Hz2' | z2' Hz2']; subst.
-          + (* Both in la *)
-            apply Hanti_incompat; assumption.
-          + (* z1 ∈ la, z2 = x *)
-            inversion Hz2'. subst.
+          + apply Hanti_incompat; assumption.
+          + inversion Hz2'. subst.
             destruct Hcomp as [Hc | Hc].
-            * exfalso. apply Hnot_above.
-              unfold Above. exists z1. split; [exact Hz1' | exact Hc].
-            * exfalso. apply Hnot_below.
-              unfold Below. exists z1. split; [exact Hz1' | exact Hc].
-          + (* z1 = x, z2 ∈ la *)
-            inversion Hz1'. subst.
+            * exfalso. apply Hnot_above. unfold Above. exists z1. split; [exact Hz1' | exact Hc].
+            * exfalso. apply Hnot_below. unfold Below. exists z1. split; [exact Hz1' | exact Hc].
+          + inversion Hz1'. subst.
             destruct Hcomp as [Hc | Hc].
-            * exfalso. apply Hnot_below.
-              unfold Below. exists z2. split; [exact Hz2' | exact Hc].
-            * exfalso. apply Hnot_above.
-              unfold Above. exists z2. split; [exact Hz2' | exact Hc].
-          + (* Both = x *)
-            inversion Hz1'. inversion Hz2'. subst. reflexivity.
-      }
+            * exfalso. apply Hnot_below. unfold Below. exists z2. split; [exact Hz2' | exact Hc].
+            * exfalso. apply Hnot_above. unfold Above. exists z2. split; [exact Hz2' | exact Hc].
+          + inversion Hz1'. inversion Hz2'. subst. reflexivity. }
       assert (Hla'_incl : Included A (Add A la x) sub).
-      {
-        intros z Hz.
-        unfold Add in Hz.
+      { intros z Hz. unfold Add in Hz.
         inversion Hz as [z' Hz' | z' Hz']; subst.
         - apply Hincl. exact Hz'.
-        - inversion Hz'. subst. exact Hx.
-      }
+        - inversion Hz'. subst. exact Hx. }
       assert (Hla'_card : cardinal A (Add A la x) (S w)).
       { apply card_add; assumption. }
       assert (Hle : S w <= w).
@@ -285,7 +294,6 @@ Section DilworthBackward.
       lia.
   Qed.
 
-  (** la is a largest antichain within (Above la) ∩ sub. *)
   Lemma la_largest_in_above : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     IsLargestAntichain R (Intersection A (Above R la) sub) la w.
@@ -294,20 +302,16 @@ Section DilworthBackward.
     destruct Hla as [Hanti Hincl Hcard Hmax].
     constructor.
     - exact Hanti.
-    - intros x Hx.
-      apply Intersection_intro.
+    - intros x Hx. apply Intersection_intro.
       + exact (la_in_Above la Hanti x Hx).
       + exact (Hincl x Hx).
     - exact Hcard.
     - intros s n Hs Hincl_s Hcard_s.
       apply (Hmax s n Hs).
-      + intros x Hx.
-        apply Hincl_s in Hx.
-        inversion Hx; assumption.
+      + intros x Hx. apply Hincl_s in Hx. inversion Hx; assumption.
       + exact Hcard_s.
   Qed.
 
-  (** la is a largest antichain within (Below la) ∩ sub. *)
   Lemma la_largest_in_below : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     IsLargestAntichain R (Intersection A (Below R la) sub) la w.
@@ -316,20 +320,16 @@ Section DilworthBackward.
     destruct Hla as [Hanti Hincl Hcard Hmax].
     constructor.
     - exact Hanti.
-    - intros x Hx.
-      apply Intersection_intro.
+    - intros x Hx. apply Intersection_intro.
       + exact (la_in_Below la Hanti x Hx).
       + exact (Hincl x Hx).
     - exact Hcard.
     - intros s n Hs Hincl_s Hcard_s.
       apply (Hmax s n Hs).
-      + intros x Hx.
-        apply Hincl_s in Hx.
-        inversion Hx; assumption.
+      + intros x Hx. apply Hincl_s in Hx. inversion Hx; assumption.
       + exact Hcard_s.
   Qed.
 
-  (** la is no larger than sub. *)
   Lemma la_card_le_sub : forall (sub la : Ensemble A) n w,
     cardinal A sub n ->
     IsLargestAntichain R sub la w ->
@@ -337,33 +337,23 @@ Section DilworthBackward.
   Proof.
     intros sub la n w Hcard Hla.
     destruct Hla as [_ Hincl Hcard_la _].
-    (* Generalise over sub and n so induction on Hcard_la goes through *)
     revert sub n Hcard Hincl.
     induction Hcard_la as [| la0 w0 Hcard_la0 IH a Ha_notin]; intros sub n Hcard Hincl.
     - lia.
-    - (* la = Add A la0 a, |la| = S w0 *)
-      assert (Ha_in_sub : In A sub a).
+    - assert (Ha_in_sub : In A sub a).
       { apply Hincl. unfold Add. apply Union_intror. apply In_singleton. }
       destruct n as [| n0].
-      + (* sub is empty but a ∈ sub — contradiction *)
-        inversion Hcard. subst. inversion Ha_in_sub.
-      + (* |sub| = S n0; remove a to get |sub \ {a}| = n0 *)
-        assert (Hcard_minus : cardinal A (fun y => In A sub y /\ y <> a) n0).
+      + inversion Hcard. subst. inversion Ha_in_sub.
+      + assert (Hcard_minus : cardinal A (fun y => In A sub y /\ y <> a) n0).
         { apply cardinal_remove; assumption. }
         assert (Hincl0 : Included A la0 (fun y => In A sub y /\ y <> a)).
-        {
-          intros x Hx. split.
+        { intros x Hx. split.
           - apply Hincl. unfold Add. apply Union_introl. exact Hx.
-          - intro Heq. subst. exact (Ha_notin Hx).
-        }
+          - intro Heq. subst. exact (Ha_notin Hx). }
         assert (w0 <= n0) by exact (IH _ _ Hcard_minus Hincl0).
         lia.
   Qed.
 
-  (** When n > w and sub is not entirely contained in Above la,
-      (Above la) ∩ sub has cardinality strictly less than n.
-      The extra hypothesis ~ Included A sub (Above R la) witnesses a strict
-      subset, from which na < n follows by finite-set cardinality. *)
   Lemma above_card_lt : forall (sub la : Ensemble A) n w,
     cardinal A sub n ->
     w < n ->
@@ -373,50 +363,29 @@ Section DilworthBackward.
   Proof.
     intros sub la n w Hcard Hwn_lt Hla Hnotincl.
     destruct n as [| n']. { exfalso; lia. }
-    (* Step 1: build the Prop-level witness x ∈ sub, x ∉ Above(la).
-       We keep this as a Prop assert so we can destruct it freely. *)
     assert (Hex : exists x : A, In A sub x /\ ~ In A (Above R la) x).
     { apply not_all_ex_not in Hnotincl.
-      destruct Hnotincl as [x Hx].
-      apply imply_to_and in Hx.
+      destruct Hnotincl as [x Hx]. apply imply_to_and in Hx.
       exact (ex_intro _ x Hx). }
-    (* Step 2: lift the Prop existential to a Set-level sigma via CID *)
     destruct (constructive_indefinite_description _ Hex) as [x [Hx_sub Hx_not_above]].
-    (* Step 3: cardinal A (sub \ {x}) = n' *)
     assert (Hcard_minus : cardinal A (fun y => In A sub y /\ y <> x) n').
     { apply cardinal_remove; assumption. }
-    (* Step 4: Intersection ⊆ sub \ {x} since x ∉ Above(la) *)
     assert (Hincl_inter : Included A (Intersection A (Above R la) sub)
                                      (fun y => In A sub y /\ y <> x)).
-    { intros z Hz. inversion Hz.
-      split.
-      - assumption.
-      - intro Heq. subst. contradiction. }
-    (* Step 5: Prop-level existential giving the cardinality bound *)
+    { intros z Hz. inversion Hz. split; [assumption | intro Heq; subst; contradiction]. }
     assert (Hprop : exists na,
         cardinal A (Intersection A (Above R la) sub) na /\ na < S n').
-    { assert (Hfin_sub : Finite A sub)
-        by exact (cardinal_finite A sub (S n') Hcard).
+    { assert (Hfin_sub : Finite A sub) by exact (cardinal_finite A sub (S n') Hcard).
       assert (Hfin_inter : Finite A (Intersection A (Above R la) sub)).
       { apply (Finite_downward_closed A sub Hfin_sub).
         intros z Hz. inversion Hz. assumption. }
-      destruct (finite_cardinal A (Intersection A (Above R la) sub) Hfin_inter)
-        as [na Hna].
+      destruct (finite_cardinal A (Intersection A (Above R la) sub) Hfin_inter) as [na Hna].
       exists na. split. exact Hna.
       assert (Hle : na <= n')
-        by exact (incl_card_le A
-                   (Intersection A (Above R la) sub)
-                   (fun y => In A sub y /\ y <> x)
-                   na n' Hna Hcard_minus Hincl_inter).
-      lia. }
-    (* Step 6: lift the cardinality Prop existential to Set *)
+        by exact (incl_card_le A _ _ na n' Hna Hcard_minus Hincl_inter). lia. }
     exact (constructive_indefinite_description _ Hprop).
   Qed.
 
-  (** When n > w and sub is not entirely contained in Below la,
-      (Below la) ∩ sub has cardinality strictly less than n.
-      The extra hypothesis ~ Included A sub (Below R la) witnesses a strict
-      subset, from which nb < n follows by finite-set cardinality. *)
   Lemma below_card_lt : forall (sub la : Ensemble A) n w,
     cardinal A sub n ->
     w < n ->
@@ -428,264 +397,85 @@ Section DilworthBackward.
     destruct n as [| n']. { exfalso; lia. }
     assert (Hex : exists x : A, In A sub x /\ ~ In A (Below R la) x).
     { apply not_all_ex_not in Hnotincl.
-      destruct Hnotincl as [x Hx].
-      apply imply_to_and in Hx.
+      destruct Hnotincl as [x Hx]. apply imply_to_and in Hx.
       exact (ex_intro _ x Hx). }
     destruct (constructive_indefinite_description _ Hex) as [x [Hx_sub Hx_not_below]].
     assert (Hcard_minus : cardinal A (fun y => In A sub y /\ y <> x) n').
     { apply cardinal_remove; assumption. }
     assert (Hincl_inter : Included A (Intersection A (Below R la) sub)
                                      (fun y => In A sub y /\ y <> x)).
-    { intros z Hz. inversion Hz.
-      split.
-      - assumption.
-      - intro Heq. subst. contradiction. }
+    { intros z Hz. inversion Hz. split; [assumption | intro Heq; subst; contradiction]. }
     assert (Hprop : exists nb,
         cardinal A (Intersection A (Below R la) sub) nb /\ nb < S n').
-    { assert (Hfin_sub : Finite A sub)
-        by exact (cardinal_finite A sub (S n') Hcard).
+    { assert (Hfin_sub : Finite A sub) by exact (cardinal_finite A sub (S n') Hcard).
       assert (Hfin_inter : Finite A (Intersection A (Below R la) sub)).
       { apply (Finite_downward_closed A sub Hfin_sub).
         intros z Hz. inversion Hz. assumption. }
-      destruct (finite_cardinal A (Intersection A (Below R la) sub) Hfin_inter)
-        as [nb Hnb].
+      destruct (finite_cardinal A (Intersection A (Below R la) sub) Hfin_inter) as [nb Hnb].
       exists nb. split. exact Hnb.
       assert (Hle : nb <= n')
-        by exact (incl_card_le A
-                   (Intersection A (Below R la) sub)
-                   (fun y => In A sub y /\ y <> x)
-                   nb n' Hnb Hcard_minus Hincl_inter).
-      lia. }
+        by exact (incl_card_le A _ _ nb n' Hnb Hcard_minus Hincl_inter). lia. }
     exact (constructive_indefinite_description _ Hprop).
   Qed.
 
-  (** Any finite set can be covered by singleton chains. *)
   Lemma singleton_chain_cover : forall (s : Ensemble A) n,
     cardinal A s n ->
     { cover : Ensemble (Ensemble A) | IsChainCover R s cover /\ cardinal (Ensemble A) cover n }.
   Proof.
     intros s n Hcard.
-    (* Provide the cover explicitly: the set of all singletons of elements of s.
-       Both goals (IsChainCover and cardinal) are then Prop-valued, so induction on
-       Hcard is permitted for the cardinal part. *)
     exists (fun C => exists x, In A s x /\ C = Singleton A x).
     split.
-    - (* IsChainCover *)
-      constructor.
-      + (* chain_cover_chains: each singleton is a chain *)
-        intros C [x [Hx_in Heq_C]]. subst C.
-        split.
+    - constructor.
+      + intros C [x [Hx_in Heq_C]]. subst C. split.
         * apply Inhabited_intro with x. apply In_singleton.
         * intros a b Ha Hb. inversion Ha. inversion Hb. subst. left. apply poset_refl.
-      + (* chain_cover_included: {x} ⊆ s since x ∈ s *)
-        intros C [x [Hx_in Heq_C]]. subst C.
-        intros y Hy. inversion Hy. subst y. exact Hx_in.
-      + (* chain_cover_covers: y is covered by {y} *)
-        intros y Hy.
-        exists (Singleton A y). split.
+      + intros C [x [Hx_in Heq_C]]. subst C. intros y Hy. inversion Hy. subst y. exact Hx_in.
+      + intros y Hy. exists (Singleton A y). split.
         * exists y. split; [exact Hy | reflexivity].
         * apply In_singleton.
-    - (* cardinal: goal is Prop-valued, so induction on Hcard is allowed *)
-      induction Hcard as [| s0 m0 Hcard0 IH x Hx_notin].
-      + (* n = 0: s = Empty_set, so singletons(s) = Empty_set *)
-        assert (Hempty : (fun C => exists z, In A (Empty_set A) z /\ C = Singleton A z) =
+    - induction Hcard as [| s0 m0 Hcard0 IH x Hx_notin].
+      + assert (Hempty : (fun C => exists z, In A (Empty_set A) z /\ C = Singleton A z) =
                           Empty_set (Ensemble A)).
         { apply Extensionality_Ensembles. intro C. split.
           - intros [z [Hz _]]. inversion Hz.
           - intro HC. inversion HC. }
         rewrite Hempty. apply card_empty.
-      + (* n = S m0: s = Add s0 x; singletons(Add s0 x) = Add (singletons s0) (Singleton A x) *)
-        assert (Hset_eq :
+      + assert (Hset_eq :
           (fun C => exists z, In A (Add A s0 x) z /\ C = Singleton A z) =
           Add (Ensemble A) (fun C => exists z, In A s0 z /\ C = Singleton A z) (Singleton A x)).
         { apply Extensionality_Ensembles. intro C. split.
-          - intros [z [Hz Heq_C]]. subst C.
+          - intros [z [Hz Hc]]. subst C.
             unfold Add in Hz.
             inversion Hz as [z' Hz' | z' Hz']; subst.
             + unfold Add. apply Union_introl. exists z. split; [exact Hz' | reflexivity].
-            + inversion Hz'. subst z.
-              unfold Add. apply Union_intror. apply In_singleton.
+            + inversion Hz'. subst z. unfold Add. apply Union_intror. apply In_singleton.
           - intro HC. unfold Add in HC.
-            inversion HC as [C' HC' | C' HC']; subst.
-            + destruct HC' as [z [Hz Heq_C]]. subst C.
-              exists z. split.
-              * unfold Add. apply Union_introl. exact Hz.
-              * reflexivity.
-            + inversion HC'. subst C.
-              exists x. split.
-              * unfold Add. apply Union_intror. apply In_singleton.
-              * reflexivity. }
+            inversion HC as [z Hz | z Hz]; subst z.
+            + destruct Hz as [a [Ha Heq_C]]. subst C.
+              exists a. split; [unfold Add; apply Union_introl; exact Ha | reflexivity].
+            + inversion Hz. subst C.
+              exists x. split; [unfold Add; apply Union_intror; apply In_singleton | reflexivity]. }
         rewrite Hset_eq.
         apply card_add.
         * exact IH.
-        * (* Singleton A x ∉ singletons(s0): injectivity of Singleton *)
-          intros [z [Hz Heq_z]].
+        * intros [z [Hz Heq_z]].
           assert (Hx_in_sz : In A (Singleton A z) x).
           { rewrite <- Heq_z. apply In_singleton. }
-          inversion Hx_in_sz; subst.
-          exact (Hx_notin Hz).
+          inversion Hx_in_sz; subst. exact (Hx_notin Hz).
   Qed.
 
-  (** When sub is an antichain of size w = n, cover it with w singleton chains. *)
   Lemma antichain_singleton_cover : forall (sub la : Ensemble A) n,
     cardinal A sub n ->
     IsLargestAntichain R sub la n ->
     { cover : Ensemble (Ensemble A) | IsChainCover R sub cover /\ cardinal (Ensemble A) cover n }.
   Proof.
-    intros sub la n Hcard _.
-    exact (singleton_chain_cover sub n Hcard).
+    intros sub la n Hcard _. exact (singleton_chain_cover sub n Hcard).
   Qed.
 
-  (** In a chain contained in Below R la, the la-element (if any) is the maximum
-      of that chain, since any element above the la-element would have to lie
-      above two la-elements, forcing them equal by the antichain condition. *)
-  Lemma chain_la_is_max : forall (la C : Ensemble A) a y,
-    IsAntichain R la ->
-    IsChain R C ->
-    Included A C (Below R la) ->
-    In A C a ->
-    In A la a ->
-    In A C y ->
-    R y a.
-  Proof.
-    intros la C a y Hanti Hchain Hincl Ha_C Ha_la Hy_C.
-    destruct Hanti as [_ Hincompat].
-    destruct Hchain as [_ Hcomp].
-    assert (Hy_below : In A (Below R la) y) by exact (Hincl y Hy_C).
-    destruct Hy_below as [b [Hb_la Hyb]].
-    destruct (Hcomp a y Ha_C Hy_C) as [Ray | Rya].
-    - assert (Hab : a = b).
-      { apply Hincompat; [exact Ha_la | exact Hb_la | left].
-        exact (poset_trans a y b Ray Hyb). }
-      subst b. exact Hyb.
-    - exact Rya.
-  Qed.
+  (* ========================================================================= *)
+  (* Antichain Lower Bound for Chain Covers                                    *)
+  (* ========================================================================= *)
 
-  (** Elements of sub that are above a and have a as their unique la-ancestor
-      form a chain.  If two such elements x, y were incomparable then
-      {x, y} ∪ (la \ {a}) would be an antichain of size w+1 in sub,
-      contradicting the maximality of la. *)
-  Lemma above_unique_la_is_chain : forall (sub la : Ensemble A) w a,
-    IsLargestAntichain R sub la w ->
-    In A la a ->
-    IsChain R (fun x => In A sub x /\ R a x /\ forall b, In A la b -> R b x -> b = a).
-  Proof.
-    intros sub la w a Hla Ha_la.
-    destruct Hla as [Hanti Hincl_la Hcard_la Hmax].
-    destruct Hanti as [_ Hincompat].
-    constructor.
-    - (* a itself belongs to the set *)
-      apply Inhabited_intro with a.
-      refine (conj (Hincl_la a Ha_la) (conj (poset_refl a) _)).
-      intros b Hb_la Hba.
-      exact (Hincompat b a Hb_la Ha_la (or_introl Hba)).
-    - intros x y [Hx_sub [Hax Hx_uniq]] [Hy_sub [Hay Hy_uniq]].
-      destruct (classic (R x y \/ R y x)) as [Hcomp | Hincomp]; [exact Hcomp |].
-      exfalso.
-      assert (Hne : x <> y).
-      { intro Heq. subst. apply Hincomp. left. apply poset_refl. }
-      (* x is incomparable to every c ∈ la \ {a} *)
-      assert (Hx_incomp : forall c, In A la c -> c <> a -> ~ R x c /\ ~ R c x).
-      { intros c Hc_la Hca. split.
-        - intro Hxc.
-          assert (Hac : a = c).
-          { apply Hincompat; [exact Ha_la | exact Hc_la | left].
-            exact (poset_trans a x c Hax Hxc). }
-          exact (Hca (eq_sym Hac)).
-        - intro Hcx.
-          exact (Hca (Hx_uniq c Hc_la Hcx)). }
-      (* y is incomparable to every c ∈ la \ {a} *)
-      assert (Hy_incomp : forall c, In A la c -> c <> a -> ~ R y c /\ ~ R c y).
-      { intros c Hc_la Hca. split.
-        - intro Hyc.
-          assert (Hac : a = c).
-          { apply Hincompat; [exact Ha_la | exact Hc_la | left].
-            exact (poset_trans a y c Hay Hyc). }
-          exact (Hca (eq_sym Hac)).
-        - intro Hcy.
-          exact (Hca (Hy_uniq c Hc_la Hcy)). }
-      (* Get w = S w' to work with la \ {a} of cardinality w' *)
-      destruct w as [| w'].
-      { inversion Hcard_la; subst. inversion Ha_la. }
-      assert (Hcard_minus : cardinal A (fun z => In A la z /\ z <> a) w').
-      { apply cardinal_remove; assumption. }
-      (* x ∉ la \ {a}: if x ∈ la then R a x forces a = x (antichain) *)
-      assert (Hx_nla : ~ In A (fun z => In A la z /\ z <> a) x).
-      { intros [Hx_la Hxa].
-        assert (Hax' : a = x).
-        { apply Hincompat; [exact Ha_la | exact Hx_la | left; exact Hax]. }
-        exact (Hxa (eq_sym Hax')). }
-      (* y ∉ Add (la \ {a}) x *)
-      assert (Hy_nadd : ~ In A (Add A (fun z => In A la z /\ z <> a) x) y).
-      { intro Hyin.
-        inversion Hyin as [zz Hzz | zz Hzz]; subst zz.
-        - destruct Hzz as [Hy_la Hya].
-          assert (Hay' : a = y).
-          { apply Hincompat; [exact Ha_la | exact Hy_la | left; exact Hay]. }
-          exact (Hya (eq_sym Hay')).
-        - inversion Hzz; subst. exact (Hne eq_refl). }
-      (* Build the antichain {x, y} ∪ (la \ {a}) of size w'+2 = w+1 *)
-      pose (antich := Add A (Add A (fun z => In A la z /\ z <> a) x) y).
-      assert (Hcard_antich : cardinal A antich (S (S w'))).
-      { unfold antich. apply card_add; [apply card_add |]; assumption. }
-      assert (Hantich_anti : IsAntichain R antich).
-      { constructor.
-        - apply Inhabited_intro with y.
-          unfold antich. apply Union_intror. apply In_singleton.
-        - intros z1 z2 Hz1 Hz2 Hrel.
-          assert (Hc1 : (In A la z1 /\ z1 <> a) \/ z1 = x \/ z1 = y).
-          { unfold antich in Hz1.
-            inversion Hz1 as [zz1 Hzz1 | zz1 Hzz1]; subst zz1.
-            - inversion Hzz1 as [zz1' Hzz1' | zz1' Hzz1']; subst zz1'.
-              + left. exact Hzz1'.
-              + inversion Hzz1'; subst. right. left. reflexivity.
-            - inversion Hzz1; subst. right. right. reflexivity. }
-          assert (Hc2 : (In A la z2 /\ z2 <> a) \/ z2 = x \/ z2 = y).
-          { unfold antich in Hz2.
-            inversion Hz2 as [zz2 Hzz2 | zz2 Hzz2]; subst zz2.
-            - inversion Hzz2 as [zz2' Hzz2' | zz2' Hzz2']; subst zz2'.
-              + left. exact Hzz2'.
-              + inversion Hzz2'; subst. right. left. reflexivity.
-            - inversion Hzz2; subst. right. right. reflexivity. }
-          destruct Hc1 as [[Hz1_la Hz1_ne] | [Hz1x | Hz1y]];
-          destruct Hc2 as [[Hz2_la Hz2_ne] | [Hz2x | Hz2y]].
-          + exact (Hincompat z1 z2 Hz1_la Hz2_la Hrel).
-          + subst z2. exfalso. destruct Hrel as [Hr | Hr].
-            * exact (proj2 (Hx_incomp z1 Hz1_la Hz1_ne) Hr).
-            * exact (proj1 (Hx_incomp z1 Hz1_la Hz1_ne) Hr).
-          + subst z2. exfalso. destruct Hrel as [Hr | Hr].
-            * exact (proj2 (Hy_incomp z1 Hz1_la Hz1_ne) Hr).
-            * exact (proj1 (Hy_incomp z1 Hz1_la Hz1_ne) Hr).
-          + subst z1. exfalso. destruct Hrel as [Hr | Hr].
-            * exact (proj1 (Hx_incomp z2 Hz2_la Hz2_ne) Hr).
-            * exact (proj2 (Hx_incomp z2 Hz2_la Hz2_ne) Hr).
-          + subst z1 z2. reflexivity.
-          + subst z1 z2. exfalso. destruct Hrel as [Hr | Hr].
-            * exact (Hincomp (or_introl Hr)).
-            * exact (Hincomp (or_intror Hr)).
-          + subst z1. exfalso. destruct Hrel as [Hr | Hr].
-            * exact (proj1 (Hy_incomp z2 Hz2_la Hz2_ne) Hr).
-            * exact (proj2 (Hy_incomp z2 Hz2_la Hz2_ne) Hr).
-          + subst z1 z2. exfalso. destruct Hrel as [Hr | Hr].
-            * exact (Hincomp (or_intror Hr)).
-            * exact (Hincomp (or_introl Hr)).
-          + subst z1 z2. reflexivity. }
-      assert (Hantich_incl : Included A antich sub).
-      { intros z Hz.
-        unfold antich in Hz.
-        inversion Hz as [zz Hzz | zz Hzz]; subst zz.
-        - inversion Hzz as [zz' Hzz' | zz' Hzz']; subst zz'.
-          + exact (Hincl_la z (proj1 Hzz')).
-          + inversion Hzz'; subst. exact Hx_sub.
-        - inversion Hzz; subst. exact Hy_sub. }
-      assert (Hle : S (S w') <= S w').
-      { exact (Hmax antich (S (S w')) Hantich_anti Hantich_incl Hcard_antich). }
-      lia.
-  Qed.
-
-  (** Any chain cover of sub has cardinality ≥ w: the w elements of la must
-      land in distinct chains (they are mutually incomparable), giving an
-      injection la → cover.  The injection principle then yields w ≤ |cover|. *)
   Lemma antichain_lb_for_chain_cover : forall (sub la : Ensemble A) w n
       (cover : Ensemble (Ensemble A)),
     IsLargestAntichain R sub la w ->
@@ -700,18 +490,18 @@ Section DilworthBackward.
     apply (InjectionPrinciple.cardinal_injection_principle_poly
              A (Ensemble A) la cover (fun a c => In A c a) w n);
     [| | exact Hcard_la | exact Hcard_cov].
-    - (* Totality: each a ∈ la lies in some chain of cover *)
-      intros a Ha_la.
+    - intros a Ha_la.
       destruct (Hcovers a (Hincl_la a Ha_la)) as [c [Hc_cov Hca]].
       exact (ex_intro _ c (conj Hc_cov Hca)).
-    - (* Injectivity: if a, b ∈ la are both in chain c, then a = b *)
-      intros a b c Ha_la Hb_la Hc_cov Hca Hcb.
+    - intros a b c Ha_la Hb_la Hc_cov Hca Hcb.
       destruct (Hchains c Hc_cov) as [_ Hcomp].
       exact (Hincompat a b Ha_la Hb_la (Hcomp a b Hca Hcb)).
   Qed.
 
-  (** The w fibers {x ∈ sub | f x = a} for a ∈ la form a cover set of
-      cardinality w, provided f fixes every la-element (f a = a for a ∈ la). *)
+  (* ========================================================================= *)
+  (* Fiber Cover Cardinality                                                   *)
+  (* ========================================================================= *)
+
   Lemma below_fiber_cover_cardinal : forall (sub la : Ensemble A) w (f : A -> A),
     cardinal A la w ->
     Included A la sub ->
@@ -723,14 +513,12 @@ Section DilworthBackward.
     intros sub la w f Hcard.
     induction Hcard as [| la' w' Hcard' IH a0 Ha0_notin];
     intros Hincl Hfxa.
-    - (* la = ∅: the fiber set is empty *)
-      apply (cardinal_extensional_poly (Ensemble A) (Empty_set (Ensemble A)) _ 0).
+    - apply (cardinal_extensional_poly (Ensemble A) (Empty_set (Ensemble A)) _ 0).
       + intro C. split.
         * intro Hbot. inversion Hbot.
         * intros [a [Ha _]]. inversion Ha.
       + apply card_empty.
-    - (* la = Add la' a0 *)
-      assert (Hincl' : Included A la' sub).
+    - assert (Hincl' : Included A la' sub).
       { intros x Hx. apply Hincl. unfold Add. apply Union_introl. exact Hx. }
       assert (Hfxa' : forall a, In A la' a -> f a = a).
       { intros a Ha. apply Hfxa. unfold Add. apply Union_introl. exact Ha. }
@@ -738,7 +526,6 @@ Section DilworthBackward.
       { apply Hincl. unfold Add. apply Union_intror. apply In_singleton. }
       assert (Ha0_f : f a0 = a0).
       { apply Hfxa. unfold Add. apply Union_intror. apply In_singleton. }
-      (* Rewrite the fiber set as Add cover' fiber_{a0} *)
       assert (Heq_cov :
         (fun C => exists a, In A (Add A la' a0) a /\
                   C = (fun x => In A sub x /\ f x = a)) =
@@ -749,10 +536,8 @@ Section DilworthBackward.
         - intros [a [Ha Heq_C]].
           unfold Add in Ha.
           inversion Ha as [z Hz | z Hz]; subst z.
-          + apply Union_introl.
-            exact (ex_intro _ a (conj Hz Heq_C)).
-          + inversion Hz. subst a. subst C.
-            apply Union_intror. apply In_singleton.
+          + apply Union_introl. exact (ex_intro _ a (conj Hz Heq_C)).
+          + inversion Hz. subst a. subst C. apply Union_intror. apply In_singleton.
         - intro HC. unfold Add in HC.
           inversion HC as [z Hz | z Hz]; subst z.
           + destruct Hz as [a [Ha Heq_C]].
@@ -768,21 +553,19 @@ Section DilworthBackward.
       + intro C. rewrite <- Heq_cov. tauto.
       + apply card_add.
         * exact (IH Hincl' Hfxa').
-        * (* fiber_{a0} ∉ cover': if it were, then a0 = some b ∈ la', contradiction *)
-          intros [b [Hb_la' Heq_fiber]].
+        * intros [b [Hb_la' Heq_fiber]].
           assert (HRHS : In A sub a0 /\ f a0 = b) by
             exact (eq_rect _ (fun h : A -> Prop => h a0)
                      (conj Ha0_sub Ha0_f) _ Heq_fiber).
           assert (Ha0_b : a0 = b) by
             exact (eq_trans (eq_sym Ha0_f) (proj2 HRHS)).
-          subst b.
-          exact (Ha0_notin Hb_la').
+          subst b. exact (Ha0_notin Hb_la').
   Qed.
 
-  (** The hard matching core for the Above case: Hall's theorem / matching argument.
-      There exists an assignment f mapping each x ∈ sub to some f(x) ∈ la
-      with R (f(x)) x (la-ancestor), such that each fiber {x ∈ sub | f(x) = a}
-      is a chain. *)
+  (* ========================================================================= *)
+  (* Assignment Lemmas (Hall's Marriage Theorem)                               *)
+  (* ========================================================================= *)
+
   Lemma above_chain_assignment_exists : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Above R la) ->
@@ -792,9 +575,6 @@ Section DilworthBackward.
   Proof.
   Admitted.
 
-  (** The hard constructive core for the Above case: use above_chain_assignment_exists
-      to assign each element of sub to a la-ancestor fiber chain.  The number of
-      chains equals w because there are exactly w la-elements. *)
   Lemma chain_cover_above_existence : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Above R la) ->
@@ -810,19 +590,15 @@ Section DilworthBackward.
     destruct (constructive_indefinite_description _
                (above_chain_assignment_exists sub la w Hla' Habove))
       as [f [Hf_assign Hf_chain]].
-    (* f fixes la-elements: R (f a) a with a, f(a) ∈ la, antichain ⇒ f a = a *)
     assert (Hfxa : forall a, In A la a -> f a = a).
     { intros a Ha_la.
       destruct (Hf_assign a (Hincl_la a Ha_la)) as [Hfa_la Hfa_R].
       exact (Hincompat (f a) a Hfa_la Ha_la (or_introl Hfa_R)). }
-    (* Build the fiber cover *)
     pose (cover := fun C => exists a, In A la a /\ C = (fun x => In A sub x /\ f x = a)).
     assert (Hcov : IsChainCover R sub cover).
     { constructor.
-      - intros C HC. destruct HC as [a [Ha_la Heq_C]]. subst C.
-        exact (Hf_chain a Ha_la).
-      - intros C HC. destruct HC as [a [Ha_la Heq_C]]. subst C.
-        intros x [Hx_sub _]. exact Hx_sub.
+      - intros C HC. destruct HC as [a [Ha_la Heq_C]]. subst C. exact (Hf_chain a Ha_la).
+      - intros C HC. destruct HC as [a [Ha_la Heq_C]]. subst C. intros x [Hx_sub _]. exact Hx_sub.
       - intros x Hx_sub.
         destruct (Hf_assign x Hx_sub) as [Hfx_la _].
         exact (ex_intro _ (fun y => In A sub y /\ f y = f x)
@@ -830,12 +606,9 @@ Section DilworthBackward.
                        (conj Hx_sub eq_refl))). }
     assert (Hcard_cov : cardinal (Ensemble A) cover w).
     { exact (below_fiber_cover_cardinal sub la w f Hcard_la Hincl_la Hfxa). }
-    exact (exist _ (cover, w)
-             (conj Hcov (conj Hcard_cov (Nat.le_refl w)))).
+    exact (exist _ (cover, w) (conj Hcov (conj Hcard_cov (Nat.le_refl w)))).
   Qed.
 
-  (** chain_cover_of_above follows: chain_cover_above_existence gives a cover
-      with n ≤ w chains; antichain_lb_for_chain_cover gives w ≤ n; so n = w. *)
   Lemma chain_cover_of_above : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Above R la) ->
@@ -846,135 +619,10 @@ Section DilworthBackward.
     simpl in *.
     assert (Hge : w <= n) by
       exact (antichain_lb_for_chain_cover sub la w n cover Hla Hcover Hcard).
-    assert (Heq : n = w) by lia.
-    subst n.
+    assert (Heq : n = w) by lia. subst n.
     exact (exist _ cover (conj Hcover Hcard)).
   Qed.
 
-  (** Elements of sub that are below a and have a as their unique la-successor
-      form a chain.  Symmetric to above_unique_la_is_chain: if x, y were
-      incomparable then {x, y} ∪ (la \ {a}) would be an antichain of size w+1. *)
-  Lemma below_unique_la_is_chain : forall (sub la : Ensemble A) w a,
-    IsLargestAntichain R sub la w ->
-    In A la a ->
-    IsChain R (fun x => In A sub x /\ R x a /\ forall b, In A la b -> R x b -> b = a).
-  Proof.
-    intros sub la w a Hla Ha_la.
-    destruct Hla as [Hanti Hincl_la Hcard_la Hmax].
-    destruct Hanti as [_ Hincompat].
-    constructor.
-    - (* a itself belongs to the set *)
-      apply Inhabited_intro with a.
-      refine (conj (Hincl_la a Ha_la) (conj (poset_refl a) _)).
-      intros b Hb_la Hab.
-      exact (eq_sym (Hincompat a b Ha_la Hb_la (or_introl Hab))).
-    - intros x y [Hx_sub [Hxa Hx_uniq]] [Hy_sub [Hya Hy_uniq]].
-      destruct (classic (R x y \/ R y x)) as [Hcomp | Hincomp]; [exact Hcomp |].
-      exfalso.
-      assert (Hne : x <> y).
-      { intro Heq. subst. apply Hincomp. left. apply poset_refl. }
-      (* x is incomparable to every c ∈ la \ {a} *)
-      assert (Hx_incomp : forall c, In A la c -> c <> a -> ~ R x c /\ ~ R c x).
-      { intros c Hc_la Hca. split.
-        - intro Hxc.
-          exact (Hca (Hx_uniq c Hc_la Hxc)).
-        - intro Hcx.
-          assert (Hca' : c = a).
-          { apply Hincompat; [exact Hc_la | exact Ha_la | left].
-            exact (poset_trans c x a Hcx Hxa). }
-          exact (Hca Hca'). }
-      (* y is incomparable to every c ∈ la \ {a} *)
-      assert (Hy_incomp : forall c, In A la c -> c <> a -> ~ R y c /\ ~ R c y).
-      { intros c Hc_la Hca. split.
-        - intro Hyc.
-          exact (Hca (Hy_uniq c Hc_la Hyc)).
-        - intro Hcy.
-          assert (Hca' : c = a).
-          { apply Hincompat; [exact Hc_la | exact Ha_la | left].
-            exact (poset_trans c y a Hcy Hya). }
-          exact (Hca Hca'). }
-      (* Get w = S w' to work with la \ {a} of cardinality w' *)
-      destruct w as [| w'].
-      { inversion Hcard_la; subst. inversion Ha_la. }
-      assert (Hcard_minus : cardinal A (fun z => In A la z /\ z <> a) w').
-      { apply cardinal_remove; assumption. }
-      (* x ∉ la \ {a}: if x ∈ la then R x a forces x = a (antichain) *)
-      assert (Hx_nla : ~ In A (fun z => In A la z /\ z <> a) x).
-      { intros [Hx_la Hxa'].
-        assert (Hax' : x = a).
-        { apply Hincompat; [exact Hx_la | exact Ha_la | left; exact Hxa]. }
-        exact (Hxa' Hax'). }
-      (* y ∉ Add (la \ {a}) x *)
-      assert (Hy_nadd : ~ In A (Add A (fun z => In A la z /\ z <> a) x) y).
-      { intro Hyin.
-        inversion Hyin as [zz Hzz | zz Hzz]; subst zz.
-        - destruct Hzz as [Hy_la Hya'].
-          assert (Hay' : y = a).
-          { apply Hincompat; [exact Hy_la | exact Ha_la | left; exact Hya]. }
-          exact (Hya' Hay').
-        - inversion Hzz; subst. exact (Hne eq_refl). }
-      (* Build the antichain {x, y} ∪ (la \ {a}) of size w'+2 = w+1 *)
-      pose (antich := Add A (Add A (fun z => In A la z /\ z <> a) x) y).
-      assert (Hcard_antich : cardinal A antich (S (S w'))).
-      { unfold antich. apply card_add; [apply card_add |]; assumption. }
-      assert (Hantich_anti : IsAntichain R antich).
-      { constructor.
-        - apply Inhabited_intro with y.
-          unfold antich. apply Union_intror. apply In_singleton.
-        - intros z1 z2 Hz1 Hz2 Hrel.
-          assert (Hc1 : (In A la z1 /\ z1 <> a) \/ z1 = x \/ z1 = y).
-          { unfold antich in Hz1.
-            inversion Hz1 as [zz1 Hzz1 | zz1 Hzz1]; subst zz1.
-            - inversion Hzz1 as [zz1' Hzz1' | zz1' Hzz1']; subst zz1'.
-              + left. exact Hzz1'.
-              + inversion Hzz1'; subst. right. left. reflexivity.
-            - inversion Hzz1; subst. right. right. reflexivity. }
-          assert (Hc2 : (In A la z2 /\ z2 <> a) \/ z2 = x \/ z2 = y).
-          { unfold antich in Hz2.
-            inversion Hz2 as [zz2 Hzz2 | zz2 Hzz2]; subst zz2.
-            - inversion Hzz2 as [zz2' Hzz2' | zz2' Hzz2']; subst zz2'.
-              + left. exact Hzz2'.
-              + inversion Hzz2'; subst. right. left. reflexivity.
-            - inversion Hzz2; subst. right. right. reflexivity. }
-          destruct Hc1 as [[Hz1_la Hz1_ne] | [Hz1x | Hz1y]];
-          destruct Hc2 as [[Hz2_la Hz2_ne] | [Hz2x | Hz2y]].
-          + exact (Hincompat z1 z2 Hz1_la Hz2_la Hrel).
-          + subst z2. exfalso. destruct Hrel as [Hr | Hr].
-            * exact (proj2 (Hx_incomp z1 Hz1_la Hz1_ne) Hr).
-            * exact (proj1 (Hx_incomp z1 Hz1_la Hz1_ne) Hr).
-          + subst z2. exfalso. destruct Hrel as [Hr | Hr].
-            * exact (proj2 (Hy_incomp z1 Hz1_la Hz1_ne) Hr).
-            * exact (proj1 (Hy_incomp z1 Hz1_la Hz1_ne) Hr).
-          + subst z1. exfalso. destruct Hrel as [Hr | Hr].
-            * exact (proj1 (Hx_incomp z2 Hz2_la Hz2_ne) Hr).
-            * exact (proj2 (Hx_incomp z2 Hz2_la Hz2_ne) Hr).
-          + subst z1 z2. reflexivity.
-          + subst z1 z2. exfalso. destruct Hrel as [Hr | Hr].
-            * exact (Hincomp (or_introl Hr)).
-            * exact (Hincomp (or_intror Hr)).
-          + subst z1. exfalso. destruct Hrel as [Hr | Hr].
-            * exact (proj1 (Hy_incomp z2 Hz2_la Hz2_ne) Hr).
-            * exact (proj2 (Hy_incomp z2 Hz2_la Hz2_ne) Hr).
-          + subst z1 z2. exfalso. destruct Hrel as [Hr | Hr].
-            * exact (Hincomp (or_intror Hr)).
-            * exact (Hincomp (or_introl Hr)).
-          + subst z1 z2. reflexivity. }
-      assert (Hantich_incl : Included A antich sub).
-      { intros z Hz.
-        unfold antich in Hz.
-        inversion Hz as [zz Hzz | zz Hzz]; subst zz.
-        - inversion Hzz as [zz' Hzz' | zz' Hzz']; subst zz'.
-          + exact (Hincl_la z (proj1 Hzz')).
-          + inversion Hzz'; subst. exact Hx_sub.
-        - inversion Hzz; subst. exact Hy_sub. }
-      assert (Hle : S (S w') <= S w').
-      { exact (Hmax antich (S (S w')) Hantich_anti Hantich_incl Hcard_antich). }
-      lia.
-  Qed.
-
-  (** The hard matching core: Hall's theorem / matching argument.
-      There exists an assignment f mapping each x ∈ sub to some f(x) ∈ la
-      with R x (f(x)), such that each fiber {x ∈ sub | f(x) = a} is a chain. *)
   Lemma below_chain_assignment_exists : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Below R la) ->
@@ -984,40 +632,27 @@ Section DilworthBackward.
   Proof.
   Admitted.
 
-  (** chain_cover_below_extend: proved by constructing the fiber cover from
-      below_chain_assignment_exists, with cardinality from below_fiber_cover_cardinal.
-      The cov_la parameter is unused — it was needed only for below_chain_cover_existence. *)
-  Lemma chain_cover_below_extend : forall (sub la : Ensemble A) w
-      (cov_la : Ensemble (Ensemble A)),
+  Lemma chain_cover_of_below : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Below R la) ->
-    IsChainCover R la cov_la ->
-    cardinal (Ensemble A) cov_la w ->
-    { p : Ensemble (Ensemble A) * nat |
-        IsChainCover R sub (fst p) /\
-        cardinal (Ensemble A) (fst p) (snd p) /\
-        (snd p) <= w }.
+    { cover : Ensemble (Ensemble A) | IsChainCover R sub cover /\ cardinal (Ensemble A) cover w }.
   Proof.
-    intros sub la w cov_la Hla Hbelow _ _.
+    intros sub la w Hla Hbelow.
     assert (Hla' := Hla).
     destruct Hla as [Hanti Hincl_la Hcard_la Hmax].
     destruct Hanti as [_ Hincompat].
     destruct (constructive_indefinite_description _
                (below_chain_assignment_exists sub la w Hla' Hbelow))
       as [f [Hf_assign Hf_chain]].
-    (* f fixes la-elements: R a (f a) with a,f(a) ∈ la, antichain ⇒ f a = a *)
     assert (Hfxa : forall a, In A la a -> f a = a).
     { intros a Ha_la.
       destruct (Hf_assign a (Hincl_la a Ha_la)) as [Hfa_la Hfa_R].
       exact (eq_sym (Hincompat a (f a) Ha_la Hfa_la (or_introl Hfa_R))). }
-    (* Build the fiber cover *)
     pose (cover := fun C => exists a, In A la a /\ C = (fun x => In A sub x /\ f x = a)).
     assert (Hcov : IsChainCover R sub cover).
     { constructor.
-      - intros C HC. destruct HC as [a [Ha_la Heq_C]]. subst C.
-        exact (Hf_chain a Ha_la).
-      - intros C HC. destruct HC as [a [Ha_la Heq_C]]. subst C.
-        intros x [Hx_sub _]. exact Hx_sub.
+      - intros C HC. destruct HC as [a [Ha_la Heq_C]]. subst C. exact (Hf_chain a Ha_la).
+      - intros C HC. destruct HC as [a [Ha_la Heq_C]]. subst C. intros x [Hx_sub _]. exact Hx_sub.
       - intros x Hx_sub.
         destruct (Hf_assign x Hx_sub) as [Hfx_la _].
         exact (ex_intro _ (fun y => In A sub y /\ f y = f x)
@@ -1025,45 +660,9 @@ Section DilworthBackward.
                        (conj Hx_sub eq_refl))). }
     assert (Hcard_cov : cardinal (Ensemble A) cover w).
     { exact (below_fiber_cover_cardinal sub la w f Hcard_la Hincl_la Hfxa). }
-    exact (exist _ (cover, w)
-             (conj Hcov (conj Hcard_cov (Nat.le_refl w)))).
+    exact (exist _ cover (conj Hcov Hcard_cov)).
   Qed.
 
-  (** chain_cover_below_existence: start with the w-singleton cover of la
-      (from singleton_chain_cover), then extend via chain_cover_below_extend. *)
-  Lemma chain_cover_below_existence : forall (sub la : Ensemble A) w,
-    IsLargestAntichain R sub la w ->
-    Included A sub (Below R la) ->
-    { p : Ensemble (Ensemble A) * nat |
-        IsChainCover R sub (fst p) /\
-        cardinal (Ensemble A) (fst p) (snd p) /\
-        (snd p) <= w }.
-  Proof.
-    intros sub la w Hla Hbelow.
-    assert (Hcard_la : cardinal A la w) by (destruct Hla; assumption).
-    destruct (singleton_chain_cover la w Hcard_la) as [cov_la [Hcov_la Hcard_cov]].
-    exact (chain_cover_below_extend sub la w cov_la Hla Hbelow Hcov_la Hcard_cov).
-  Qed.
-
-  (** chain_cover_of_below follows by the same counting argument:
-      chain_cover_below_existence gives n ≤ w; antichain_lb gives w ≤ n. *)
-  Lemma chain_cover_of_below : forall (sub la : Ensemble A) w,
-    IsLargestAntichain R sub la w ->
-    Included A sub (Below R la) ->
-    { cover : Ensemble (Ensemble A) | IsChainCover R sub cover /\ cardinal (Ensemble A) cover w }.
-  Proof.
-    intros sub la w Hla Hbelow.
-    destruct (chain_cover_below_existence sub la w Hla Hbelow) as [[cover n] [Hcover [Hcard Hle]]].
-    simpl in *.
-    assert (Hge : w <= n) by
-      exact (antichain_lb_for_chain_cover sub la w n cover Hla Hcover Hcard).
-    assert (Heq : n = w) by lia.
-    subst n.
-    exact (exist _ cover (conj Hcover Hcard)).
-  Qed.
-
-  (** When sub ⊆ Above(la) the input cover_b is not needed: we delegate
-      directly to chain_cover_of_above which builds the cover from scratch. *)
   Lemma extend_cover_above : forall (sub la : Ensemble A) w
       (cover_b : Ensemble (Ensemble A)),
     IsLargestAntichain R sub la w ->
@@ -1076,7 +675,6 @@ Section DilworthBackward.
     exact (chain_cover_of_above sub la w Hla Habove).
   Qed.
 
-  (** Symmetric. *)
   Lemma extend_cover_below : forall (sub la : Ensemble A) w
       (cover_a : Ensemble (Ensemble A)),
     IsLargestAntichain R sub la w ->
@@ -1089,8 +687,10 @@ Section DilworthBackward.
     exact (chain_cover_of_below sub la w Hla Hbelow).
   Qed.
 
-  (** A chain cover of (Above la ∩ sub) and a chain cover of (Below la ∩ sub),
-      each of size w, can be interleaved at la into a chain cover of sub of size w. *)
+  (* ========================================================================= *)
+  (* The Merge Lemma                                                           *)
+  (* ========================================================================= *)
+
   Lemma merge_above_below_covers : forall (sub la : Ensemble A) w
       (cover_a cover_b : Ensemble (Ensemble A)),
     IsLargestAntichain R sub la w ->
@@ -1101,7 +701,227 @@ Section DilworthBackward.
     cardinal (Ensemble A) cover_b w ->
     { cover : Ensemble (Ensemble A) | IsChainCover R sub cover /\ cardinal (Ensemble A) cover w }.
   Proof.
-  Admitted.
+    intros sub la w cover_a cover_b Hla Hunion Hcov_a Hcard_a Hcov_b Hcard_b.
+    destruct Hla as [Hanti Hincl_la Hcard_la Hmax].
+    destruct Hanti as [Hinhab Hincompat].
+    assert (Hla_above : forall a, In A la a -> In A (Intersection A (Above R la) sub) a).
+    { intros a Ha. apply Intersection_intro.
+      - exists a. split; [exact Ha | apply poset_refl].
+      - exact (Hincl_la a Ha). }
+    assert (Hla_below : forall a, In A la a -> In A (Intersection A (Below R la) sub) a).
+    { intros a Ha. apply Intersection_intro.
+      - exists a. split; [exact Ha | apply poset_refl].
+      - exact (Hincl_la a Ha). }
+    assert (HCa_above : forall Ca, In (Ensemble A) cover_a Ca ->
+              Included A Ca (Above R la)).
+    { intros Ca HCa z Hz.
+      destruct (chain_cover_included R (IsChainCover := Hcov_a) Ca HCa z Hz). assumption. }
+    assert (HCb_below : forall Cb, In (Ensemble A) cover_b Cb ->
+              Included A Cb (Below R la)).
+    { intros Cb HCb z Hz.
+      destruct (chain_cover_included R (IsChainCover := Hcov_b) Cb HCb z Hz). assumption. }
+    (* Use choice to get functions ca : A -> Ensemble A and cb : A -> Ensemble A *)
+    assert (Hca_exists : forall a, In A la a ->
+              exists Ca, In (Ensemble A) cover_a Ca /\ In A Ca a).
+    { intros a Ha.
+      exact (chain_cover_covers R (IsChainCover := Hcov_a) a (Hla_above a Ha)). }
+    assert (Hcb_exists : forall a, In A la a ->
+              exists Cb, In (Ensemble A) cover_b Cb /\ In A Cb a).
+    { intros a Ha.
+      exact (chain_cover_covers R (IsChainCover := Hcov_b) a (Hla_below a Ha)). }
+    (* Extract functions using epsilon *)
+    pose (ca := fun a => epsilon (inhabits (Empty_set A))
+                  (fun Ca => In (Ensemble A) cover_a Ca /\ In A Ca a)).
+    pose (cb := fun a => epsilon (inhabits (Empty_set A))
+                  (fun Cb => In (Ensemble A) cover_b Cb /\ In A Cb a)).
+    assert (Hca_spec : forall a, In A la a ->
+              In (Ensemble A) cover_a (ca a) /\ In A (ca a) a).
+    { intros a Ha. unfold ca. apply epsilon_spec. exact (Hca_exists a Ha). }
+    assert (Hcb_spec : forall a, In A la a ->
+              In (Ensemble A) cover_b (cb a) /\ In A (cb a) a).
+    { intros a Ha. unfold cb. apply epsilon_spec. exact (Hcb_exists a Ha). }
+    (* ca is injective on la *)
+    assert (Hca_inj : forall a1 a2, In A la a1 -> In A la a2 ->
+              ca a1 = ca a2 -> a1 = a2).
+    { intros a1 a2 Ha1 Ha2 Heq.
+      destruct (Hca_spec a1 Ha1) as [HCa1 Ha1_Ca].
+      destruct (Hca_spec a2 Ha2) as [HCa2 Ha2_Ca].
+      rewrite Heq in Ha1_Ca.
+      assert (Hchain : IsChain R (ca a2))
+        by exact (chain_cover_chains R (IsChainCover := Hcov_a) (ca a2) HCa2).
+      destruct Hchain as [_ Hcomp].
+      exact (Hincompat a1 a2 Ha1 Ha2 (Hcomp a1 a2 Ha1_Ca Ha2_Ca)). }
+    (* ca is surjective onto cover_a *)
+    assert (Hca_surj : forall Ca, In (Ensemble A) cover_a Ca ->
+              exists a, In A la a /\ ca a = Ca).
+    { intros Ca HCa.
+      destruct (classic (exists a, In A la a /\ ca a = Ca)) as [Hex | Hnex].
+      - exact Hex.
+      - exfalso.
+        (* Ca is not in the range of ca|_la. So ca maps la into cover_a \ {Ca}. *)
+        assert (Hno_hit : forall a, In A la a -> ca a <> Ca).
+        { intros a Ha Heq. apply Hnex. exact (ex_intro _ a (conj Ha Heq)). }
+        (* cover_a \ {Ca} has cardinality w - 1 *)
+        destruct w as [| w'].
+        { (* w = 0: la empty, but la is inhabited *)
+          destruct Hinhab as [a Ha]. inversion Hcard_la. subst. inversion Ha. }
+        assert (Hcard_minus : cardinal (Ensemble A)
+                  (fun D => In (Ensemble A) cover_a D /\ D <> Ca) w').
+        { apply cardinal_remove; assumption. }
+        (* The injection la → cover_a \ {Ca} gives S w' ≤ w', contradiction *)
+        assert (Habs : S w' <= w').
+        { apply (InjectionPrinciple.cardinal_injection_principle_poly
+                   A (Ensemble A) la
+                   (fun D => In (Ensemble A) cover_a D /\ D <> Ca)
+                   (fun a D => ca a = D) (S w') w').
+          - intros a Ha.
+            destruct (Hca_spec a Ha) as [HCa_a _].
+            exists (ca a). split.
+            + split; [exact HCa_a | exact (Hno_hit a Ha)].
+            + reflexivity.
+          - intros a1 a2 D Ha1 Ha2 _ Heq1 Heq2.
+            apply (Hca_inj a1 a2 Ha1 Ha2). rewrite Heq1. symmetry. exact Heq2.
+          - exact Hcard_la.
+          - exact Hcard_minus. }
+        lia. }
+    (* cb is surjective onto cover_b (same argument) *)
+    assert (Hcb_surj : forall Cb, In (Ensemble A) cover_b Cb ->
+              exists a, In A la a /\ cb a = Cb).
+    { intros Cb HCb.
+      destruct (classic (exists a, In A la a /\ cb a = Cb)) as [Hex | Hnex].
+      - exact Hex.
+      - exfalso.
+        assert (Hno_hit : forall a, In A la a -> cb a <> Cb).
+        { intros a Ha Heq. apply Hnex. exact (ex_intro _ a (conj Ha Heq)). }
+        destruct w as [| w'].
+        { destruct Hinhab as [a Ha]. inversion Hcard_la. subst. inversion Ha. }
+        assert (Hcard_minus : cardinal (Ensemble A)
+                  (fun D => In (Ensemble A) cover_b D /\ D <> Cb) w').
+        { apply cardinal_remove; assumption. }
+        assert (Habs : S w' <= w').
+        { apply (InjectionPrinciple.cardinal_injection_principle_poly
+                   A (Ensemble A) la
+                   (fun D => In (Ensemble A) cover_b D /\ D <> Cb)
+                   (fun a D => cb a = D) (S w') w').
+          - intros a Ha.
+            destruct (Hcb_spec a Ha) as [HCb_a _].
+            exists (cb a). split.
+            + split; [exact HCb_a | exact (Hno_hit a Ha)].
+            + reflexivity.
+          - intros a1 a2 D Ha1 Ha2 _ Heq1 Heq2.
+            destruct (Hcb_spec a1 Ha1) as [HCb1 Ha1_Cb].
+            destruct (Hcb_spec a2 Ha2) as [HCb2 Ha2_Cb].
+            assert (Hcb_eq : cb a1 = cb a2) by (rewrite Heq1; symmetry; exact Heq2).
+            rewrite Hcb_eq in Ha1_Cb.
+            assert (Hchain : IsChain R (cb a2))
+              by exact (chain_cover_chains R (IsChainCover := Hcov_b) (cb a2) HCb2).
+            destruct Hchain as [_ Hcomp].
+            exact (Hincompat a1 a2 Ha1 Ha2 (Hcomp a1 a2 Ha1_Cb Ha2_Cb)).
+          - exact Hcard_la.
+          - exact Hcard_minus. }
+        lia. }
+    (* Define merged as the image of la under the merge function *)
+    pose (merged := fun E : Ensemble A =>
+      exists a, In A la a /\ E = Union A (ca a) (cb a)).
+    exists merged.
+    (* Part 1: merged is a chain cover of sub *)
+    assert (Hmerged_cov : IsChainCover R sub merged).
+    { constructor.
+      - (* Each merged chain is a chain *)
+        intros E HE. destruct HE as [a [Ha_la Heq_E]]. subst E.
+        destruct (Hca_spec a Ha_la) as [HCa Ha_Ca].
+        destruct (Hcb_spec a Ha_la) as [HCb Ha_Cb].
+        assert (chain_Ca : IsChain R (ca a))
+          by exact (chain_cover_chains R (IsChainCover := Hcov_a) (ca a) HCa).
+        assert (chain_Cb : IsChain R (cb a))
+          by exact (chain_cover_chains R (IsChainCover := Hcov_b) (cb a) HCb).
+        constructor.
+        + apply Inhabited_intro with a. apply Union_introl. exact Ha_Ca.
+        + intros x y Hx Hy.
+          inversion Hx as [x' Hx' | x' Hx']; subst x';
+          inversion Hy as [y' Hy' | y' Hy']; subst y'.
+          * exact (chain_comparable R (IsChain := chain_Ca) x y Hx' Hy').
+          * right. apply (poset_trans y a x).
+            -- exact (chain_la_is_max R la (cb a) a y
+                 (Build_IsAntichain R la Hinhab Hincompat) chain_Cb
+                 (HCb_below (cb a) HCb) Ha_Cb Ha_la Hy').
+            -- exact (chain_la_is_min R la (ca a) a x
+                 (Build_IsAntichain R la Hinhab Hincompat) chain_Ca
+                 (HCa_above (ca a) HCa) Ha_Ca Ha_la Hx').
+          * left. apply (poset_trans x a y).
+            -- exact (chain_la_is_max R la (cb a) a x
+                 (Build_IsAntichain R la Hinhab Hincompat) chain_Cb
+                 (HCb_below (cb a) HCb) Ha_Cb Ha_la Hx').
+            -- exact (chain_la_is_min R la (ca a) a y
+                 (Build_IsAntichain R la Hinhab Hincompat) chain_Ca
+                 (HCa_above (ca a) HCa) Ha_Ca Ha_la Hy').
+          * exact (chain_comparable R (IsChain := chain_Cb) x y Hx' Hy').
+      - (* Each merged chain is included in sub *)
+        intros E HE. destruct HE as [a [Ha_la Heq_E]]. subst E.
+        destruct (Hca_spec a Ha_la) as [HCa _].
+        destruct (Hcb_spec a Ha_la) as [HCb _].
+        intros x Hx.
+        inversion Hx as [x' Hx' | x' Hx']; subst x'.
+        + destruct (chain_cover_included R (IsChainCover := Hcov_a) (ca a) HCa x Hx').
+          assumption.
+        + destruct (chain_cover_included R (IsChainCover := Hcov_b) (cb a) HCb x Hx').
+          assumption.
+      - (* merged covers sub *)
+        intros x Hx.
+        pose proof (Hunion x Hx) as Hx_union.
+        destruct Hx_union as [x0 Hx_ab | x0 Hx_ab].
+        + (* x ∈ Above(la) *)
+          assert (Hx_inter : In A (Intersection A (Above R la) sub) x0)
+            by exact (Intersection_intro _ _ _ x0 Hx_ab Hx).
+          destruct (chain_cover_covers R (IsChainCover := Hcov_a) x0 Hx_inter)
+            as [Ca' [HCa' Hx_Ca']].
+          (* By surjectivity, Ca' = ca(a') for some a' ∈ la *)
+          destruct (Hca_surj Ca' HCa') as [a' [Ha'_la Hca_eq]].
+          exists (Union A (ca a') (cb a')). split.
+          { exists a'. exact (conj Ha'_la eq_refl). }
+          { apply Union_introl. rewrite Hca_eq. exact Hx_Ca'. }
+        + (* x ∈ Below(la) *)
+          assert (Hx_inter : In A (Intersection A (Below R la) sub) x0)
+            by exact (Intersection_intro _ _ _ x0 Hx_ab Hx).
+          destruct (chain_cover_covers R (IsChainCover := Hcov_b) x0 Hx_inter)
+            as [Cb' [HCb' Hx_Cb']].
+          (* By surjectivity, Cb' = cb(a') for some a' ∈ la *)
+          destruct (Hcb_surj Cb' HCb') as [a' [Ha'_la Hcb_eq]].
+          exists (Union A (ca a') (cb a')). split.
+          { exists a'. exact (conj Ha'_la eq_refl). }
+          { apply Union_intror. rewrite Hcb_eq. exact Hx_Cb'. } }
+    split; [exact Hmerged_cov |].
+    (* Part 2: |merged| = w *)
+    assert (Hla_full : IsLargestAntichain R sub la w).
+    { constructor; [constructor; [exact Hinhab | exact Hincompat]
+      | exact Hincl_la | exact Hcard_la | exact Hmax]. }
+    (* merged is the image of la under (fun a => Union (ca a) (cb a)) *)
+    (* So |merged| ≤ |la| = w by image_cardinal_le *)
+    pose (f := fun a => Union A (ca a) (cb a)).
+    assert (Hmerged_eq : forall E, In (Ensemble A) merged E <->
+              exists a, In A la a /\ E = f a).
+    { intros E. split; intros [a [Ha Heq]]; exists a; exact (conj Ha Heq). }
+    assert (Hmerged_ext : merged = (fun E => exists a, In A la a /\ E = f a)).
+    { apply Extensionality_Ensembles. intro E. split.
+      - intro HE. exact (proj1 (Hmerged_eq E) HE).
+      - intro HE. exact (proj2 (Hmerged_eq E) HE). }
+    destruct (image_cardinal_le la f w Hcard_la) as [m [Hcard_img Hm_le]].
+    (* The image set equals merged *)
+    assert (Himg_eq : (fun y : Ensemble A => exists x, In A la x /\ y = f x) = merged).
+    { apply Extensionality_Ensembles. intro E. split.
+      - intros [a [Ha Heq]]. exists a. exact (conj Ha Heq).
+      - intros [a [Ha Heq]]. exists a. exact (conj Ha Heq). }
+    rewrite Himg_eq in Hcard_img.
+    assert (Hge : w <= m).
+    { exact (antichain_lb_for_chain_cover sub la w m merged
+               Hla_full Hmerged_cov Hcard_img). }
+    assert (Heq : m = w) by lia.
+    subst m. exact Hcard_img.
+  Qed.
+
+  (* ========================================================================= *)
+  (* The Inductive Step                                                        *)
+  (* ========================================================================= *)
 
   Lemma dilworth_inductive_step : forall n (sub la : Ensemble A) (w : nat),
     cardinal A sub n ->
@@ -1115,46 +935,36 @@ Section DilworthBackward.
     { cover : Ensemble (Ensemble A) | IsChainCover R sub cover /\ cardinal (Ensemble A) cover w }.
   Proof.
     intros n sub la w Hcard Hwge2 Hla IH.
-    (* w ≤ n *)
     assert (Hwn : w <= n) by exact (la_card_le_sub sub la n w Hcard Hla).
-    (* If w = n then sub itself is an antichain, covered by w singleton chains *)
     destruct (Nat.eq_dec w n) as [Hwn_eq | Hwn_ne].
     { subst n. exact (antichain_singleton_cover sub la w Hcard Hla). }
     assert (Hwn_lt : w < n) by lia.
-    (* Case split on Above / Below inclusions *)
     destruct (excluded_middle_informative (Included A sub (Above R la))) as [Habove | Hnotabove].
     { destruct (excluded_middle_informative (Included A sub (Below R la))) as [Hbelow | Hnotbelow].
-      { (* Case D: sub ⊆ Above ∧ sub ⊆ Below → sub ⊆ la → n ≤ w, contradicts w < n *)
-        exfalso.
+      { exfalso.
         destruct Hla as [Hanti Hincl_la Hcard_la _].
         destruct Hanti as [_ Hanti_incompat].
         assert (Hsub_la : Included A sub la).
         { intros x Hx.
-          assert (Hx_above : In A (Above R la) x) by exact (Habove x Hx).
-          assert (Hx_below : In A (Below R la) x) by exact (Hbelow x Hx).
-          unfold Above in Hx_above. destruct Hx_above as [a [Ha_la Hra_x]].
-          unfold Below in Hx_below. destruct Hx_below as [b [Hb_la Hrx_b]].
+          destruct (Habove x Hx) as [a [Ha_la Hra_x]].
+          destruct (Hbelow x Hx) as [b [Hb_la Hrx_b]].
           assert (Hrab : R a b) by exact (poset_trans a x b Hra_x Hrx_b).
           assert (Hab : a = b) by exact (Hanti_incompat a b Ha_la Hb_la (or_introl Hrab)).
-          subst b.
-          rewrite (poset_antisym x a Hrx_b Hra_x). exact Ha_la. }
+          subst b. rewrite (poset_antisym x a Hrx_b Hra_x). exact Ha_la. }
         assert (Hle : n <= w) by exact (incl_card_le A sub la n w Hcard Hcard_la Hsub_la).
         lia. }
-      { (* Case B: sub ⊆ Above R la, sub ⊄ Below R la *)
-        destruct (below_card_lt sub la n w Hcard Hwn_lt Hla Hnotbelow) as [nb [Hnb_card Hnb_lt]].
+      { destruct (below_card_lt sub la n w Hcard Hwn_lt Hla Hnotbelow) as [nb [Hnb_card Hnb_lt]].
         destruct (IH nb (Intersection A (Below R la) sub) la w Hnb_lt Hnb_card
                       (la_largest_in_below sub la w Hla))
           as [cover_b [Hcover_b Hcard_b]].
         exact (extend_cover_above sub la w cover_b Hla Habove Hcover_b Hcard_b). } }
     { destruct (excluded_middle_informative (Included A sub (Below R la))) as [Hbelow | Hnotbelow].
-      { (* Case C: sub ⊄ Above R la, sub ⊆ Below R la *)
-        destruct (above_card_lt sub la n w Hcard Hwn_lt Hla Hnotabove) as [na [Hna_card Hna_lt]].
+      { destruct (above_card_lt sub la n w Hcard Hwn_lt Hla Hnotabove) as [na [Hna_card Hna_lt]].
         destruct (IH na (Intersection A (Above R la) sub) la w Hna_lt Hna_card
                       (la_largest_in_above sub la w Hla))
           as [cover_a [Hcover_a Hcard_a]].
         exact (extend_cover_below sub la w cover_a Hla Hbelow Hcover_a Hcard_a). }
-      { (* Case A: sub ⊄ Above ∧ sub ⊄ Below *)
-        destruct (above_card_lt sub la n w Hcard Hwn_lt Hla Hnotabove) as [na [Hna_card Hna_lt]].
+      { destruct (above_card_lt sub la n w Hcard Hwn_lt Hla Hnotabove) as [na [Hna_card Hna_lt]].
         destruct (below_card_lt sub la n w Hcard Hwn_lt Hla Hnotbelow) as [nb [Hnb_card Hnb_lt]].
         destruct (IH na (Intersection A (Above R la) sub) la w Hna_lt Hna_card
                       (la_largest_in_above sub la w Hla))
@@ -1181,48 +991,40 @@ Section DilworthBackward.
       IsLargestAntichain R sub la w ->
       { cover : Ensemble (Ensemble A) | IsChainCover R sub cover /\ cardinal (Ensemble A) cover w })
       (fun n IH sub w la Hcard_n Hla => _)).
-    
     destruct w as [| w'].
-    - (* w = 0: empty antichain - contradiction *)
-      exfalso.
+    - exfalso.
       apply (empty_antichain_contradiction la).
       + destruct Hla; assumption.
       + destruct Hla; assumption.
-      
-    - (* w = S w' *)
-      destruct w' as [| w''].
-      + (* w = 1: singleton antichain *)
-        exists (Singleton (Ensemble A) sub).
+    - destruct w' as [| w''].
+      + exists (Singleton (Ensemble A) sub).
         destruct Hla as [Hanti Hincl_la Hcard_w Hmax].
         split.
         * constructor.
           -- intros c Hc. inversion Hc. subst c.
              apply (width_one_implies_chain sub la).
              constructor; [exact Hanti | exact Hincl_la | exact Hcard_w | exact Hmax].
-          -- intros c Hc. inversion Hc. subst c.
-             intros x Hx. exact Hx.
-          -- intros x Hx.
-             exists sub. split.
+          -- intros c Hc. inversion Hc. subst c. intros x Hx. exact Hx.
+          -- intros x Hx. exists sub. split.
              ++ apply In_singleton.
              ++ exact Hx.
         * replace 1 with (S 0) by reflexivity.
-          apply (cardinal_extensional_poly (Ensemble A) (Add (Ensemble A) (Empty_set (Ensemble A)) sub) (Singleton (Ensemble A) sub) 1).
+          apply (cardinal_extensional_poly (Ensemble A)
+            (Add (Ensemble A) (Empty_set (Ensemble A)) sub)
+            (Singleton (Ensemble A) sub) 1).
           -- intro X. split; intro HX.
              ++ unfold Add in HX. inversion HX as [X' HX' | X' HX']; subst.
                 ** inversion HX'.
                 ** inversion HX'. apply In_singleton.
              ++ inversion HX. subst X. unfold Add. apply Union_intror. apply In_singleton.
-          -- apply card_add; [apply card_empty; intros X HX; inversion HX | intro Hcontra; inversion Hcontra].
-          
-      + (* w = S (S w''): use inductive step *)
-        eapply dilworth_inductive_step.
+          -- apply card_add;
+             [apply card_empty; intros X HX; inversion HX | intro Hcontra; inversion Hcontra].
+      + eapply dilworth_inductive_step.
         * exact Hcard_n.
         * lia.
         * exact Hla.
         * intros n' sub' la' w_prime Hn_prime Hcard_n' Hla'.
           apply (IH n' Hn_prime sub' w_prime la' Hcard_n' Hla').
   Qed.
-
-
 
 End DilworthBackward.
