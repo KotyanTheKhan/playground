@@ -480,3 +480,8 @@ Section Hall.
   Qed.
 
 End Hall.
+
+Arguments set_neighbors {L R}.
+Arguments HallCondition {L R}.
+Arguments IsPerfectMatching {L R}.
+Arguments hall_marriage_theorem {L R}.
