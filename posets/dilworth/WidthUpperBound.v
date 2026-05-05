@@ -1,7 +1,7 @@
 From Stdlib Require Import Ensembles Finite_sets Classical Lia Arith Wf_nat.
 From Stdlib Require Import Finite_sets_facts ClassicalEpsilon ClassicalChoice.
 From Posets Require Import PosetClasses.
-From Dilworth Require Import CardinalArithmetic Definitions InjectionPrinciple CardinalLemmas WidthLowerBound Helpers Hall upper_bound.Slices.
+From Dilworth Require Import CardinalArithmetic Definitions InjectionPrinciple CardinalLemmas WidthLowerBound Helpers Hall upper_bound.Slices upper_bound.HallDefect.
 
 Local Lemma Nat_le_of_succ_le (n m : nat) : Datatypes.S n <= m -> n <= m.
 Proof. lia. Qed.
@@ -10,134 +10,8 @@ Section DilworthBackward.
   Context {A : Type}.
   Context (R : A -> A -> Prop) `{IsPoset A R}.
 
-  Lemma min_elements_eq_la : forall (sub la : Ensemble A) w,
-    IsLargestAntichain R sub la w ->
-    Included A sub (Above R la) ->
-    forall x, In A sub x ->
-      ((forall y, In A sub y -> R y x -> y = x) <-> In A la x).
-  Proof.
-    intros sub la w Hla Habove x Hx.
-    destruct Hla as [Hanti Hincl_la Hcard_la Hmax].
-    destruct Hanti as [_ Hincompat].
-    split.
-    - intro Hmin.
-      destruct (Habove x Hx) as [a [Ha_la Hax]].
-      assert (Ha_sub : In A sub a) by exact (Hincl_la a Ha_la).
-      assert (Haeqx : a = x) by exact (Hmin a Ha_sub Hax).
-      subst a. exact Ha_la.
-    - intro Hx_la.
-      intros y Hy_sub Hyx.
-      destruct (Habove y Hy_sub) as [b [Hb_la Hby]].
-      assert (Hbx : R b x) by exact (poset_trans b y x Hby Hyx).
-      assert (Hbeqx : b = x) by exact (Hincompat b x Hb_la Hx_la (or_introl Hbx)).
-      subst b.
-      exact (poset_antisym y x Hyx Hby).
-  Qed.
-
-  Definition StrictSucc (sub S : Ensemble A) : Ensemble A :=
-    fun y => In A sub y /\ exists x, In A S x /\ R x y /\ x <> y.
-
-  Definition StrictPred (sub S : Ensemble A) : Ensemble A :=
-    fun y => In A sub y /\ exists x, In A S x /\ R y x /\ x <> y.
-
-  Lemma dilworth_hall_defect : forall (sub la : Ensemble A) w,
-    IsLargestAntichain R sub la w ->
-    forall S ns nn,
-      Included A S sub ->
-      cardinal A S ns ->
-      cardinal A (StrictSucc sub S) nn ->
-      ns <= nn + w.
-  Proof.
-    intros sub la w Hla S ns nn HinclS HcardS HcardNS.
-    destruct Hla as [_ Hincl_la Hcard_la Hmax].
-    pose (M := fun x => In A S x /\ ~ In A (StrictSucc sub S) x).
-    assert (HfinS : Finite A S) by exact (cardinal_finite A S ns HcardS).
-    assert (HfinM : Finite A M).
-    { apply (Finite_downward_closed A S HfinS). intros x [HxS _]. exact HxS. }
-    destruct (finite_cardinal A M HfinM) as [m HcardM].
-    assert (Hincl_S : Included A S (Union A M (StrictSucc sub S))).
-    { intros x HxS.
-      destruct (classic (In A (StrictSucc sub S) x)) as [Hxin | Hxout].
-      - apply Union_intror. exact Hxin.
-      - apply Union_introl. exact (conj HxS Hxout). }
-    assert (HdisM : forall x, In A M x -> ~ In A (StrictSucc sub S) x).
-    { intros x [_ Hxout]. exact Hxout. }
-    assert (HcardMN : cardinal A (Union A M (StrictSucc sub S)) (m + nn)).
-    { exact (cardinal_disjoint_union_gen A M (StrictSucc sub S) m nn HdisM HcardM HcardNS). }
-    assert (Hns_le : ns <= m + nn).
-    { exact (incl_card_le A S (Union A M (StrictSucc sub S)) ns (m + nn)
-               HcardS HcardMN Hincl_S). }
-    assert (HM_le_w : m <= w).
-    { destruct m as [| m'].
-      - lia.
-      - assert (HinhM : Inhabited A M).
-        { inversion HcardM as [| M' n' Hcard' x Hx_notin]. subst.
-          apply Inhabited_intro with x. apply Union_intror. apply In_singleton. }
-        assert (HincompM : forall x y, In A M x -> In A M y -> (R x y \/ R y x) -> x = y).
-        { intros x y [HxS HxnN] [HyS HynN] Hcomp.
-          destruct Hcomp as [Hxy | Hyx].
-          - destruct (classic (x = y)) as [Heq | Hneq]; [exact Heq |].
-            exfalso. apply HynN.
-            exact (conj (HinclS y HyS) (ex_intro _ x (conj HxS (conj Hxy Hneq)))).
-          - destruct (classic (x = y)) as [Heq | Hneq]; [exact Heq |].
-            exfalso. apply HxnN.
-            exact (conj (HinclS x HxS)
-                        (ex_intro _ y (conj HyS (conj Hyx (fun h => Hneq (eq_sym h)))))). }
-        exact (Hmax M _ (Build_IsAntichain R M HinhM HincompM)
-                        (fun x HxM => HinclS x (proj1 HxM))
-                        HcardM). }
-    lia.
-  Qed.
-
-  Lemma dilworth_hall_defect_pred : forall (sub la : Ensemble A) w,
-    IsLargestAntichain R sub la w ->
-    Included A sub (Above R la) ->
-    forall S ns nn,
-      Included A S sub ->
-      cardinal A S ns ->
-      cardinal A (StrictPred sub S) nn ->
-      ns <= nn + w.
-  Proof.
-    intros sub la w Hla Habove S ns nn HinclS HcardS HcardNS.
-    destruct Hla as [_ Hincl_la Hcard_la Hmax].
-    pose (M := fun x => In A S x /\ ~ In A (StrictPred sub S) x).
-    assert (HfinS : Finite A S) by exact (cardinal_finite A S ns HcardS).
-    assert (HfinM : Finite A M).
-    { apply (Finite_downward_closed A S HfinS). intros x [HxS _]. exact HxS. }
-    destruct (finite_cardinal A M HfinM) as [m HcardM].
-    assert (Hincl_S : Included A S (Union A M (StrictPred sub S))).
-    { intros x HxS.
-      destruct (classic (In A (StrictPred sub S) x)) as [Hxin | Hxout].
-      - apply Union_intror. exact Hxin.
-      - apply Union_introl. exact (conj HxS Hxout). }
-    assert (HdisM : forall x, In A M x -> ~ In A (StrictPred sub S) x).
-    { intros x [_ Hxout]. exact Hxout. }
-    assert (HcardMN : cardinal A (Union A M (StrictPred sub S)) (m + nn)).
-    { exact (cardinal_disjoint_union_gen A M (StrictPred sub S) m nn HdisM HcardM HcardNS). }
-    assert (Hns_le : ns <= m + nn).
-    { exact (incl_card_le A S (Union A M (StrictPred sub S)) ns (m + nn)
-               HcardS HcardMN Hincl_S). }
-    assert (HM_le_w : m <= w).
-    { destruct m as [| m'].
-      - lia.
-      - assert (HinhM : Inhabited A M).
-        { inversion HcardM as [| M' n' Hcard' x Hx_notin]. subst.
-          apply Inhabited_intro with x. apply Union_intror. apply In_singleton. }
-        assert (HincompM : forall x y, In A M x -> In A M y -> (R x y \/ R y x) -> x = y).
-        { intros x y [HxS HxnN] [HyS HynN] Hcomp.
-          destruct Hcomp as [Hxy | Hyx].
-          - destruct (classic (x = y)) as [Heq | Hneq]; [exact Heq |].
-            exfalso. apply HxnN.
-            exact (conj (HinclS x HxS) (ex_intro _ y (conj HyS (conj Hxy (fun h => Hneq (eq_sym h)))))).
-          - destruct (classic (x = y)) as [Heq | Hneq]; [exact Heq |].
-            exfalso. apply HynN.
-            exact (conj (HinclS y HyS)
-                        (ex_intro _ x (conj HxS (conj Hyx Hneq)))). }
-        exact (Hmax M _ (Build_IsAntichain R M HinhM HincompM)
-                        (fun x HxM => HinclS x (proj1 HxM))
-                        HcardM). }
-    lia.
-  Qed.
+  Local Notation StrictSucc := (HallDefect.StrictSucc R).
+  Local Notation StrictPred := (HallDefect.StrictPred R).
 
   (* ========================================================================= *)
   (* Chain root auxiliary functions                                            *)
@@ -519,13 +393,13 @@ Section DilworthBackward.
             (fun z => match z with inl _ => False | inr a => In A la a end)).
       { apply Extensionality_Ensembles. intro z. split.
         - intros [x [Hx Hz]]. unfold nbrs_aug in Hz. destruct z as [y | a].
-          + apply Union_introl. unfold StrictPred.
+          + apply Union_introl. unfold HallDefect.StrictPred.
             exact (conj (proj1 Hz) (ex_intro _ x (conj Hx (conj (proj1 (proj2 Hz)) (fun h => proj2 (proj2 Hz) (eq_sym h)))))).
           + apply Union_intror. exact Hz.
         - intro Hz.
           inversion Hz as [z' Hz' | z' Hz']; subst.
           + destruct z as [y | a]. 2: exact (False_rect _ Hz').
-            simpl in Hz'. unfold StrictPred in Hz'.
+            simpl in Hz'. unfold HallDefect.StrictPred in Hz'.
             destruct Hz' as [Hy [x [Hx [HRyx Hne]]]].
             exists x. split. exact Hx. unfold nbrs_aug.
             exact (conj Hy (conj HRyx (fun h => Hne (eq_sym h)))).
@@ -605,7 +479,7 @@ Section DilworthBackward.
           + exact HcardUnion. }
       (* Apply dilworth_hall_defect_pred *)
       assert (Hns_le : Datatypes.S ns' <= nP + w).
-      { apply (dilworth_hall_defect_pred sub la w Hla' Habove S (Datatypes.S ns') nP).
+      { apply (dilworth_hall_defect_pred R sub la w Hla' Habove S (Datatypes.S ns') nP).
         - exact HinclS.
         - exact HcardS.
         - exact HcardSP. }
@@ -630,7 +504,7 @@ Section DilworthBackward.
         destruct Hm_in as [Hy_sub [HRya Hyne]].
         exfalso.
         assert (Hmin : forall z, In A sub z -> R z a -> z = a).
-        { apply (min_elements_eq_la sub la w Hla' Habove a Ha_sub). exact Ha. }
+        { apply (min_elements_eq_la R sub la w Hla' Habove a Ha_sub). exact Ha. }
         exact (Hyne (Hmin y Hy_sub HRya)).
       - exact (ex_intro _ k (conj Hm_in eq_refl)).
     }
@@ -1462,12 +1336,12 @@ Section DilworthBackward.
             (fun z => match z with inl _ => False | inr a => In A la a end)).
       { apply Extensionality_Ensembles. intro z. split.
         - intros [x [Hx Hz]]. unfold nbrs_aug in Hz. destruct z as [y | a].
-          + apply Union_introl. unfold StrictSucc.
+          + apply Union_introl. unfold HallDefect.StrictSucc.
             exact (conj (proj1 Hz) (ex_intro _ x (conj Hx (conj (proj1 (proj2 Hz)) (proj2 (proj2 Hz)))))).
           + apply Union_intror. exact Hz.
         - intro Hz. inversion Hz as [z' Hz' | z' Hz']; subst.
           + destruct z as [y | a]. 2: exact (False_rect _ Hz').
-            simpl in Hz'. unfold StrictSucc in Hz'.
+            simpl in Hz'. unfold HallDefect.StrictSucc in Hz'.
             destruct Hz' as [Hy [x [Hx [HRxy Hne]]]].
             exists x. split. exact Hx. unfold nbrs_aug.
             exact (conj Hy (conj HRxy Hne)).
@@ -1594,7 +1468,7 @@ Section DilworthBackward.
          but looking at the proof: `destruct Hla as [_ Hincl_la Hcard_la Hmax]` and never uses Habove. *)
       (* So we can use dilworth_hall_defect directly! *)
       assert (Hns_le : Datatypes.S ns' <= nS + w).
-      { apply (dilworth_hall_defect sub la w Hla' S (Datatypes.S ns') nS).
+      { apply (dilworth_hall_defect R sub la w Hla' S (Datatypes.S ns') nS).
         - exact HinclS.
         - exact HcardS.
         - exact HcardSS. }

@@ -117,4 +117,46 @@ Section CardinalLemmas.
       apply card_add; assumption.
   Qed.
 
+  (** Generic disjoint-union cardinality. *)
+  Lemma cardinal_disjoint_union_gen : forall (U : Type) (S T : Ensemble U) n m,
+    (forall x, In U S x -> ~ In U T x) ->
+    cardinal U S n ->
+    cardinal U T m ->
+    cardinal U (Union U S T) (n + m).
+  Proof.
+    intros U S T n m Hdisj HcardS HcardT.
+    revert T m Hdisj HcardT.
+    induction HcardS as [| S' n' HcardS' IH a Ha_notin]; intros T m Hdisj HcardT.
+    - simpl.
+      apply (cardinal_extensional_poly U T); [| exact HcardT].
+      intros x. split.
+      + intro Hx. apply Union_intror. exact Hx.
+      + intro Hx. inversion Hx as [z Hz | z Hz]; subst.
+        * inversion Hz.
+        * exact Hz.
+    - simpl.
+      apply (cardinal_extensional_poly U (Add U (Union U S' T) a)).
+      + intros x. split.
+        * intro Hx.
+          inversion Hx as [z Hz | z Hz]; subst.
+          -- inversion Hz as [w Hw | w Hw]; subst.
+             ++ apply Union_introl. apply Union_introl. exact Hw.
+             ++ apply Union_intror. exact Hw.
+          -- inversion Hz. subst. apply Union_introl. apply Union_intror. apply In_singleton.
+        * intro Hx.
+          inversion Hx as [z Hz | z Hz]; subst.
+          -- inversion Hz as [w Hw | w Hw]; subst.
+             ++ apply Union_introl. apply Union_introl. exact Hw.
+             ++ inversion Hw. subst. apply Union_intror. apply In_singleton.
+          -- apply Union_introl. apply Union_intror. exact Hz.
+      + apply card_add.
+        * apply IH.
+          -- intros x Hx. exact (Hdisj x (Union_introl _ _ _ _ Hx)).
+          -- exact HcardT.
+        * intro Hcontra.
+          inversion Hcontra as [z Hz | z Hz]; subst.
+          -- exact (Ha_notin Hz).
+          -- exact (Hdisj a (Union_intror _ _ _ _ (In_singleton _ _)) Hz).
+  Qed.
+
 End CardinalLemmas.
