@@ -6,7 +6,7 @@
 From Stdlib Require Import Ensembles Finite_sets Classical Lia.
 From Stdlib Require Import Finite_sets_facts.
 From Posets Require Import PosetClasses.
-From Dilworth Require Import CardinalArithmetic Definitions InjectionPrinciple CardinalLemmas.
+From Dilworth Require Import CardinalArithmetic Definitions InjectionPrinciple CardinalLemmas Hall.
 
 Section HallDefect.
   Context {A : Type}.
