@@ -313,6 +313,285 @@ Section HallKernel.
     subst z. exact Ha.
   Qed.
 
+  (* Iterating the matching from any sub-element reaches la within nx steps,
+     and the final element relates to the start via R. *)
+  Lemma chain_terminates : forall (sub la : Ensemble A) w (m_aug : A -> sum A A) nx,
+    IsLargestAntichain R sub la w ->
+    Included A sub (Above R la) ->
+    cardinal A sub nx ->
+    (forall x, In A sub x ->
+      match m_aug x with
+      | inl y => In A sub y /\ R y x /\ y <> x
+      | inr a => In A la a
+      end) ->
+    (forall x y, In A sub x -> In A sub y -> m_aug x = m_aug y -> x = y) ->
+    (forall a, In A la a -> exists k, In A la k /\ m_aug a = inr k) ->
+    forall x, In A sub x ->
+    In A la (chain_root_aux m_aug nx x) /\ R (chain_root_aux m_aug nx x) x.
+  Proof.
+    intros sub la w m_aug nx Hla Habove Hcard_sub Hstep_R Hm_inj Hla_dummy.
+    assert (Hincl_la : Included A la sub)
+      by exact (@largest_antichain_included A R sub la w Hla).
+    (* Replicate kernel-local helpers. *)
+    assert (Hsteps_in_sub : forall k x, In A sub x -> k <= nx ->
+        In A sub (chain_root_aux m_aug k x)).
+    {
+      intro k. induction k as [| k' IHk].
+      - intros x Hx _. simpl. exact Hx.
+      - intros x Hx Hle. simpl.
+        destruct (m_aug x) as [y | d] eqn:Hx_case.
+        + assert (Hm_in := Hstep_R x Hx). rewrite Hx_case in Hm_in.
+          exact (IHk y (proj1 Hm_in) (Nat_le_of_succ_le _ _ Hle)).
+        + exact Hx.
+    }
+    assert (Hdummy_means_la : forall z, In A sub z -> (exists d, m_aug z = inr d) -> In A la z)
+      by exact (dummy_target_in_la sub la w m_aug
+                  (@largest_antichain_cardinality A R sub la w Hla)
+                  Hincl_la Hstep_R Hm_inj Hla_dummy).
+    set (step := fun z => match m_aug z with inl y => y | inr _ => z end).
+    assert (Hiter_eq2 : forall k x0, In A sub x0 ->
+        chain_root_aux m_aug k x0 = Nat.iter k step x0).
+    {
+      intro k. induction k as [| k' IHk].
+      - intros x0 _. reflexivity.
+      - intros x0 Hx0. simpl chain_root_aux.
+        rewrite Nat.iter_succ_r.
+        destruct (m_aug x0) as [y | d] eqn:Hx0_m.
+        + assert (Hy_sub : In A sub y).
+          { assert (Hm_in := Hstep_R x0 Hx0). rewrite Hx0_m in Hm_in. exact (proj1 Hm_in). }
+          assert (Hstep_x0 : step x0 = y) by (unfold step; rewrite Hx0_m; reflexivity).
+          rewrite Hstep_x0. exact (IHk y Hy_sub).
+        + assert (Hstep_x0 : step x0 = x0) by (unfold step; rewrite Hx0_m; reflexivity).
+          rewrite Hstep_x0. symmetry.
+          clear IHk. induction k' as [| k'' IHk''].
+          * reflexivity.
+          * rewrite Nat.iter_succ_r, Hstep_x0. exact IHk''.
+    }
+    intro x. intro Hx.
+    (* Body lifted from kernel's Hf_assign. *)
+    (* We prove the chain doesn't reach la in at most nx steps, or rather DOES reach la *)
+    (* Strategy: if it doesn't reach la in nx steps, we get nx+1 distinct sub-elements *)
+
+    assert (Hiter_sub : forall k, k <= nx -> In A sub (Nat.iter k step x)).
+    {
+      intro k. rewrite <- Hiter_eq2 by exact Hx.
+      exact (Hsteps_in_sub k x Hx).
+    }
+
+    rewrite (Hiter_eq2 nx x Hx).
+
+    assert (Hfixed : forall z, match m_aug z with inr _ => True | inl _ => False end ->
+        step z = z).
+    { intros z Hz. unfold step. destruct (m_aug z) as [y | d].
+      - exact (False_rect _ Hz).
+      - reflexivity. }
+
+    assert (Hstable : forall k j, k <= nx ->
+        match m_aug (Nat.iter k step x) with inr _ => True | inl _ => False end ->
+        Nat.iter (k + j) step x = Nat.iter k step x).
+    {
+      intros k j Hk_le Hstop.
+      induction j as [| j' IHj].
+      - rewrite Nat.add_0_r. reflexivity.
+      - rewrite Nat.add_succ_r.
+        rewrite Nat.iter_succ.
+        rewrite IHj.
+        exact (Hfixed (Nat.iter k step x) Hstop).
+    }
+
+    assert (Hdecrease : forall k, k < nx ->
+        match m_aug (Nat.iter k step x) with
+        | inl _ => R (Nat.iter (k+1) step x) (Nat.iter k step x) /\
+                   Nat.iter (k+1) step x <> Nat.iter k step x
+        | inr _ => True
+        end).
+    {
+      intros k Hk.
+      assert (Hzk_sub : In A sub (Nat.iter k step x)) by exact (Hiter_sub k (Nat.lt_le_incl _ _ Hk)).
+      assert (Hstep_info := Hstep_R (Nat.iter k step x) Hzk_sub).
+      replace (k + 1) with (Datatypes.S k) by lia.
+      rewrite Nat.iter_succ.
+      destruct (m_aug (Nat.iter k step x)) as [y | d] eqn:Hm_zk.
+      - destruct Hstep_info as [Hy_sub [HRyx Hne]].
+        assert (Hstep_val : step (Nat.iter k step x) = y).
+        { unfold step at 1. rewrite Hm_zk. reflexivity. }
+        rewrite Hstep_val. split; assumption.
+      - exact I.
+    }
+
+    destruct (classic (exists k, k <= nx /\ match m_aug (Nat.iter k step x) with inr _ => True | inl _ => False end)) as [Hstop | Hnostop].
+    {
+      destruct Hstop as [k0 [Hk0_le Hstop]].
+      assert (Hk0_plus : nx = k0 + (nx - k0)) by lia.
+      rewrite Hk0_plus.
+      rewrite (Hstable k0 (nx - k0) Hk0_le Hstop).
+      assert (Hk0_sub : In A sub (Nat.iter k0 step x)) by exact (Hiter_sub k0 Hk0_le).
+      assert (Hm_k0 := Hstep_R (Nat.iter k0 step x) Hk0_sub).
+      destruct (m_aug (Nat.iter k0 step x)) as [y | a] eqn:Heq_k0.
+      - exact (False_rect _ Hstop).
+      - split.
+        { exact (Hdummy_means_la (Nat.iter k0 step x) Hk0_sub (ex_intro _ a Heq_k0)). }
+        assert (Hlocal : forall j m, j + m <= nx ->
+            R (Nat.iter (j + m) step x) (Nat.iter j step x)).
+        {
+          intros j m. induction m as [| m' IHm].
+          - intros _. rewrite Nat.add_0_r. apply poset_refl.
+          - intro Hle.
+            assert (Hjm'_le : j + m' <= nx) by lia.
+            assert (Hiter_sub' : In A sub (Nat.iter (j + m') step x))
+              by exact (Hiter_sub (j + m') Hjm'_le).
+            assert (Hstep_info' := Hstep_R (Nat.iter (j + m') step x) Hiter_sub').
+            replace (j + Datatypes.S m') with (Datatypes.S (j + m')) by lia.
+            rewrite Nat.iter_succ.
+            destruct (m_aug (Nat.iter (j + m') step x)) as [y' | d'] eqn:Hm'.
+            + assert (Hstep_val' : step (Nat.iter (j + m') step x) = y').
+              { unfold step at 1. rewrite Hm'. reflexivity. }
+              rewrite Hstep_val'.
+              apply (poset_trans y' (Nat.iter (j + m') step x) (Nat.iter j step x)).
+              * exact (proj1 (proj2 Hstep_info')).
+              * exact (IHm Hjm'_le).
+            + assert (Hstep_val' : step (Nat.iter (j + m') step x) = Nat.iter (j + m') step x).
+              { unfold step at 1. rewrite Hm'. reflexivity. }
+              rewrite Hstep_val'. exact (IHm Hjm'_le).
+        }
+        assert (Hdesc : forall k, k <= k0 -> R (Nat.iter k0 step x) (Nat.iter k step x)).
+        {
+          intros k Hk_le.
+          replace k0 with (k + (k0 - k)) by lia.
+          apply Hlocal. lia.
+        }
+        exact (Hdesc 0 (Nat.le_0_l k0)).
+    }
+    {
+      exfalso.
+      assert (Hallnotfixed : forall k, k <= nx ->
+          match m_aug (Nat.iter k step x) with inl _ => True | inr _ => False end).
+      {
+        intros k Hk.
+        destruct (classic (match m_aug (Nat.iter k step x) with inr _ => True | inl _ => False end)) as [Hfx | Hnfx].
+        - exfalso. apply Hnostop. exists k. split. exact Hk. exact Hfx.
+        - destruct (m_aug (Nat.iter k step x)) as [y | d].
+          + exact I.
+          + exfalso. apply Hnfx. exact I.
+      }
+      assert (Hdistinct_succ : forall k, k < nx ->
+          Nat.iter (k+1) step x <> Nat.iter k step x).
+      {
+        intros k Hk.
+        assert (Hfixed_k := Hallnotfixed k (Nat.lt_le_incl _ _ Hk)).
+        replace (k + 1) with (Datatypes.S k) by lia.
+        rewrite Nat.iter_succ. unfold step at 1.
+        assert (Hzk_sub : In A sub (Nat.iter k step x))
+          by exact (Hiter_sub k (Nat.lt_le_incl _ _ Hk)).
+        assert (Hstep_k := Hstep_R (Nat.iter k step x) Hzk_sub).
+        destruct (m_aug (Nat.iter k step x)) as [y | d] eqn:Hm_k.
+        - exact (proj2 (proj2 Hstep_k)).
+        - exact (False_rect _ Hfixed_k).
+      }
+      assert (HRdesc_succ : forall k, k < nx ->
+          R (Nat.iter (k+1) step x) (Nat.iter k step x) /\
+          Nat.iter (k+1) step x <> Nat.iter k step x).
+      {
+        intros k Hk.
+        assert (Hzk_sub : In A sub (Nat.iter k step x))
+          by exact (Hiter_sub k (Nat.lt_le_incl _ _ Hk)).
+        assert (Hstep_k := Hstep_R (Nat.iter k step x) Hzk_sub).
+        replace (k + 1) with (Datatypes.S k) by lia.
+        rewrite Nat.iter_succ. unfold step at 1.
+        assert (Hfixed_k := Hallnotfixed k (Nat.lt_le_incl _ _ Hk)).
+        destruct (m_aug (Nat.iter k step x)) as [y | d] eqn:Hm_k.
+        - assert (Hstep_val : step (Nat.iter k step x) = y).
+          { unfold step at 1. rewrite Hm_k. reflexivity. }
+          rewrite Hstep_val. split.
+          + exact (proj1 (proj2 Hstep_k)).
+          + exact (proj2 (proj2 Hstep_k)).
+        - exact (False_rect _ Hfixed_k).
+      }
+      assert (Hdistinct : forall i j, i < j -> j <= nx ->
+          Nat.iter i step x <> Nat.iter j step x).
+      {
+        intros i j Hi_lt_j Hj_le.
+        intro Heq.
+        revert i Hi_lt_j Hj_le Heq.
+        induction j as [| j'].
+        - intros i Hi_lt _. lia.
+        - intros i Hi_lt_Sj' HSj'_le Heq.
+          destruct (Nat.eq_dec i j') as [Heq_ij | Hne_ij].
+          + subst j'. rewrite <- Nat.add_1_r in Heq.
+            exact (Hdistinct_succ i HSj'_le (eq_sym Heq)).
+          + assert (Hi_lt_j' : i < j') by lia.
+            assert (Hj'_le : j' <= nx) by lia.
+            assert (Hne_succ : Nat.iter (j'+1) step x <> Nat.iter j' step x)
+              by exact (Hdistinct_succ j' HSj'_le).
+            rewrite <- Nat.add_1_r in Heq.
+            assert (HR_down : forall a b, a < b -> b <= nx ->
+                R (Nat.iter b step x) (Nat.iter a step x)).
+            { intros a b Hab Hb_le.
+              induction b as [| b'].
+              - lia.
+              - destruct (Nat.eq_dec a b') as [Hab' | Hab'].
+                + subst b'. rewrite <- Nat.add_1_r. exact (proj1 (HRdesc_succ a Hb_le)).
+                + assert (Ha_lt_b' : a < b') by lia.
+                  assert (Hb'_le : b' <= nx) by lia.
+                  apply (poset_trans (Nat.iter (S b') step x) (Nat.iter b' step x) (Nat.iter a step x)).
+                  * rewrite <- Nat.add_1_r. exact (proj1 (HRdesc_succ b' Hb_le)).
+                  * exact (IHb' Ha_lt_b' Hb'_le). }
+            assert (Hi_lt_j1 : i < j' + 1) by lia.
+            assert (Hj1_le : j' + 1 <= nx) by lia.
+            assert (HR_j1_i : R (Nat.iter (j'+1) step x) (Nat.iter i step x))
+              by exact (HR_down i (j'+1) Hi_lt_j1 Hj1_le).
+            assert (HR_i1_i : R (Nat.iter (i+1) step x) (Nat.iter i step x))
+              by exact (proj1 (HRdesc_succ i (Nat.lt_le_trans _ _ _ Hi_lt_Sj' HSj'_le))).
+            assert (Hj1_gt_i1 : i + 1 < j' + 1) by lia.
+            assert (HR_j1_i1 : R (Nat.iter (j'+1) step x) (Nat.iter (i+1) step x))
+              by exact (HR_down (i+1) (j'+1) Hj1_gt_i1 Hj1_le).
+            rewrite <- Heq in HR_j1_i1.
+            assert (Heq_i_i1 : Nat.iter i step x = Nat.iter (i+1) step x)
+              by exact (poset_antisym _ _ HR_j1_i1 HR_i1_i).
+            exact (Hdistinct_succ i
+              (Nat.lt_le_trans _ _ _ Hi_lt_Sj' HSj'_le)
+              (eq_sym Heq_i_i1)).
+      }
+      assert (HcardRange : cardinal nat (fun k => k <= nx) (S nx)).
+      { clear. induction nx as [| nx' IH].
+        - apply (cardinal_extensional_poly nat (Add nat (Empty_set nat) 0)).
+          + intro k. split.
+            * intro Hk. inversion Hk as [z' Hz' | z' Hz']; subst.
+              -- contradiction.
+              -- inversion Hz'; subst. apply Nat.le_refl.
+            * intro Hk. destruct k as [| k'].
+              -- apply Union_intror. apply In_singleton.
+              -- inversion Hk.
+          + apply card_add. apply card_empty. intro H. inversion H.
+        - apply (cardinal_extensional_poly nat (Add nat (fun k => k <= nx') (S nx'))).
+          + intro k. split.
+            * intro Hk. inversion Hk as [z Hz | z Hz]; subst.
+              -- exact (le_S _ _ Hz).
+              -- inversion Hz; subst. apply Nat.le_refl.
+            * intro Hk. inversion Hk; subst.
+              -- apply Union_intror. apply In_singleton.
+              -- apply Union_introl. assumption.
+          + apply card_add. exact IH.
+            intro Hcontra.
+            exact (Nat.lt_irrefl nx' (Nat.lt_le_trans _ _ _ (Nat.lt_succ_diag_r nx') Hcontra)). }
+      assert (Hle : S nx <= nx).
+      { apply (InjectionPrinciple.cardinal_injection_principle_poly
+                 nat A (fun k => k <= nx) sub
+                 (fun k y => y = Nat.iter k step x) (S nx) nx).
+        - intros k Hk. exists (Nat.iter k step x). split.
+          + exact (Hiter_sub k Hk).
+          + reflexivity.
+        - intros i j y Hi Hj Hy_sub Heqi Heqj. subst.
+          destruct (Nat.lt_trichotomy i j) as [Hij | [Hij | Hij]].
+          + exact (False_rect _ (Hdistinct i j Hij Hj Heqj)).
+          + exact Hij.
+          + exact (False_rect _ (Hdistinct j i Hij Hi (eq_sym Heqj))).
+        - exact HcardRange.
+        - exact Hcard_sub. }
+      exact (Nat.lt_irrefl nx (Nat.lt_le_trans _ _ _ (Nat.lt_succ_diag_r nx) Hle)).
+    }
+  Qed.
+
   Lemma chain_assignment_kernel : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Above R la) ->
@@ -457,312 +736,9 @@ Section HallKernel.
     (* Assignment: f(x) ∈ la and R(f(x)) x *)
     assert (Hf_assign : forall x, In A sub x -> In A la (f x) /\ R (f x) x).
     {
-      intro x. intro Hx.
-      unfold f.
-      (* We prove the chain doesn't reach la in at most nx steps, or rather DOES reach la *)
-      (* Strategy: if it doesn't reach la in nx steps, we get nx+1 distinct sub-elements *)
-
-      (* The sequence is: z_k = Nat.iter k step x for k = 0, ..., nx *)
-      (* z_0 = x, z_{k+1} = step z_k *)
-      (* As long as m_aug z_k = inl _, z_{k+1} ≠ z_k and R z_{k+1} z_k *)
-      (* All z_k ∈ sub (by Hsteps_in_sub and Hiter_eq2) *)
-
-      assert (Hiter_sub : forall k, k <= nx -> In A sub (Nat.iter k step x)).
-      {
-        intro k. rewrite <- Hiter_eq2 by exact Hx.
-        exact (Hsteps_in_sub k x Hx).
-      }
-
-      (* The final element chain_root_aux nx x = Nat.iter nx step x *)
-      rewrite (Hiter_eq2 nx x Hx).
-
-      (* Case: does the chain reach la? *)
-      (* The sequence must reach a fixed point (an inr element) within nx steps,
-         otherwise we have nx+1 distinct elements in sub (of size nx), contradiction. *)
-
-      (* Define: "hits_la k" := m_aug (Nat.iter k step x) = inr _ *)
-      (* If hits_la k for some k ≤ nx-1, then Nat.iter k step x ∈ la,
-         and the sequence stabilizes: Nat.iter (k+j) step x = Nat.iter k step x.
-         So Nat.iter nx step x = Nat.iter k step x ∈ la.
-         And R(Nat.iter nx step x)(x) by transitivity of the descending chain. *)
-
-      (* First establish: if m_aug z = inr _, then step z = z *)
-      assert (Hfixed : forall z, match m_aug z with inr _ => True | inl _ => False end ->
-          step z = z).
-      { intros z Hz. unfold step. destruct (m_aug z) as [y | d].
-        - exact (False_rect _ Hz).
-        - reflexivity. }
-
-      (* Establish: if m_aug (iter k x) = inr _, then iter (k+j) x = iter k x *)
-      assert (Hstable : forall k j, k <= nx ->
-          match m_aug (Nat.iter k step x) with inr _ => True | inl _ => False end ->
-          Nat.iter (k + j) step x = Nat.iter k step x).
-      {
-        intros k j Hk_le Hstop.
-        induction j as [| j' IHj].
-        - rewrite Nat.add_0_r. reflexivity.
-        - rewrite Nat.add_succ_r.
-          rewrite Nat.iter_succ.
-          rewrite IHj.
-          exact (Hfixed (Nat.iter k step x) Hstop).
-      }
-
-      (* Establish strict decrease: if m_aug (iter k x) = inl _, then
-         R (iter (k+1) x) (iter k x) and iter (k+1) x ≠ iter k x *)
-      assert (Hdecrease : forall k, k < nx ->
-          match m_aug (Nat.iter k step x) with
-          | inl _ => R (Nat.iter (k+1) step x) (Nat.iter k step x) /\
-                     Nat.iter (k+1) step x <> Nat.iter k step x
-          | inr _ => True
-          end).
-      {
-        intros k Hk.
-        assert (Hzk_sub : In A sub (Nat.iter k step x)) by exact (Hiter_sub k (Nat.lt_le_incl _ _ Hk)).
-        assert (Hstep_info := Hstep_R (Nat.iter k step x) Hzk_sub).
-        replace (k + 1) with (Datatypes.S k) by lia.
-        rewrite Nat.iter_succ.
-        destruct (m_aug (Nat.iter k step x)) as [y | d] eqn:Hm_zk.
-        - destruct Hstep_info as [Hy_sub [HRyx Hne]].
-          assert (Hstep_val : step (Nat.iter k step x) = y).
-          { unfold step at 1. rewrite Hm_zk. reflexivity. }
-          rewrite Hstep_val. split; assumption.
-        - exact I.
-      }
-
-      (* Now: either ∃ k < nx with m_aug(iter k x) = inr _, or all k ≤ nx-1 have inl *)
-      destruct (classic (exists k, k <= nx /\ match m_aug (Nat.iter k step x) with inr _ => True | inl _ => False end)) as [Hstop | Hnostop].
-      {
-        (* There's a first stopping point *)
-        destruct Hstop as [k0 [Hk0_le Hstop]].
-        (* iter nx x = iter k0 x (stable) *)
-        assert (Hk0_plus : nx = k0 + (nx - k0)) by lia.
-        rewrite Hk0_plus.
-        rewrite (Hstable k0 (nx - k0) Hk0_le Hstop).
-        (* iter k0 x ∈ la *)
-        assert (Hk0_sub : In A sub (Nat.iter k0 step x)) by exact (Hiter_sub k0 Hk0_le).
-        assert (Hm_k0 : In (sum A A) (nbrs_aug (Nat.iter k0 step x)) (m_aug (Nat.iter k0 step x)))
-          by exact (Hm_nbrs (Nat.iter k0 step x) Hk0_sub).
-        unfold nbrs_aug in Hm_k0.
-        destruct (m_aug (Nat.iter k0 step x)) as [y | a] eqn:Heq_k0.
-        - exact (False_rect _ Hstop).
-        - split.
-          { exact (Hdummy_means_la (Nat.iter k0 step x) Hk0_sub (ex_intro _ a Heq_k0)). }
-          (* R (iter k0 x) x: by transitivity of the chain *)
-          (* Prove: R (iter k x) (iter (k-1) x) for all k in the chain,
-             then by transitivity R (iter k0 x) x = R (iter k0 x) (iter 0 x) *)
-          (* Need to show: for all k ≤ k0, R (iter k0 x) (iter k x) *)
-          (* Prove R (iter k0 x) (iter k x) for k ≤ k0, by showing
-             R (iter (j+m) x) (iter j x) for all j+m ≤ nx, via induction on m *)
-          assert (Hlocal : forall j m, j + m <= nx ->
-              R (Nat.iter (j + m) step x) (Nat.iter j step x)).
-          {
-            intros j m. induction m as [| m' IHm].
-            - intros _. rewrite Nat.add_0_r. apply poset_refl.
-            - intro Hle.
-              assert (Hjm'_le : j + m' <= nx) by lia.
-              assert (Hiter_sub' : In A sub (Nat.iter (j + m') step x))
-                by exact (Hiter_sub (j + m') Hjm'_le).
-              assert (Hstep_info' := Hstep_R (Nat.iter (j + m') step x) Hiter_sub').
-              replace (j + Datatypes.S m') with (Datatypes.S (j + m')) by lia.
-              rewrite Nat.iter_succ.
-              destruct (m_aug (Nat.iter (j + m') step x)) as [y' | d'] eqn:Hm'.
-              + assert (Hstep_val' : step (Nat.iter (j + m') step x) = y').
-                { unfold step at 1. rewrite Hm'. reflexivity. }
-                rewrite Hstep_val'.
-                apply (poset_trans y' (Nat.iter (j + m') step x) (Nat.iter j step x)).
-                * exact (proj1 (proj2 Hstep_info')).
-                * exact (IHm Hjm'_le).
-              + assert (Hstep_val' : step (Nat.iter (j + m') step x) = Nat.iter (j + m') step x).
-                { unfold step at 1. rewrite Hm'. reflexivity. }
-                rewrite Hstep_val'. exact (IHm Hjm'_le).
-          }
-          assert (Hdesc : forall k, k <= k0 -> R (Nat.iter k0 step x) (Nat.iter k step x)).
-          {
-            intros k Hk_le.
-            replace k0 with (k + (k0 - k)) by lia.
-            apply Hlocal. lia.
-          }
-          exact (Hdesc 0 (Nat.le_0_l k0)).
-      }
-      {
-        (* No stopping point: all k ≤ nx have inl *)
-        exfalso.
-        assert (Hallnotfixed : forall k, k <= nx ->
-            match m_aug (Nat.iter k step x) with inl _ => True | inr _ => False end).
-        {
-          intros k Hk.
-          destruct (classic (match m_aug (Nat.iter k step x) with inr _ => True | inl _ => False end)) as [Hfx | Hnfx].
-          - exfalso. apply Hnostop. exists k. split. exact Hk. exact Hfx.
-          - destruct (m_aug (Nat.iter k step x)) as [y | d].
-            + exact I.
-            + exfalso. apply Hnfx. exact I.
-        }
-        (* All z_0, ..., z_nx are in sub and are distinct *)
-        (* z_{k+1} ≠ z_k for k < nx *)
-        assert (Hdistinct_succ : forall k, k < nx ->
-            Nat.iter (k+1) step x <> Nat.iter k step x).
-        {
-          intros k Hk.
-          assert (Hfixed_k := Hallnotfixed k (Nat.lt_le_incl _ _ Hk)).
-          replace (k + 1) with (Datatypes.S k) by lia.
-          rewrite Nat.iter_succ. unfold step at 1.
-          assert (Hzk_sub : In A sub (Nat.iter k step x))
-            by exact (Hiter_sub k (Nat.lt_le_incl _ _ Hk)).
-          assert (Hstep_k := Hstep_R (Nat.iter k step x) Hzk_sub).
-          destruct (m_aug (Nat.iter k step x)) as [y | d] eqn:Hm_k.
-          - exact (proj2 (proj2 Hstep_k)).
-          - exact (False_rect _ Hfixed_k).
-        }
-        (* All z_0, ..., z_nx are distinct (by transitivity of distinctness + strictness) *)
-        (* More precisely: they are STRICTLY DECREASING: R z_{k+1} z_k and ≠ *)
-        assert (HRdesc_succ : forall k, k < nx ->
-            R (Nat.iter (k+1) step x) (Nat.iter k step x) /\
-            Nat.iter (k+1) step x <> Nat.iter k step x).
-        {
-          intros k Hk.
-          assert (Hzk_sub : In A sub (Nat.iter k step x))
-            by exact (Hiter_sub k (Nat.lt_le_incl _ _ Hk)).
-          assert (Hstep_k := Hstep_R (Nat.iter k step x) Hzk_sub).
-          replace (k + 1) with (Datatypes.S k) by lia.
-          rewrite Nat.iter_succ. unfold step at 1.
-          assert (Hfixed_k := Hallnotfixed k (Nat.lt_le_incl _ _ Hk)).
-          destruct (m_aug (Nat.iter k step x)) as [y | d] eqn:Hm_k.
-          - assert (Hstep_val : step (Nat.iter k step x) = y).
-            { unfold step at 1. rewrite Hm_k. reflexivity. }
-            rewrite Hstep_val. split.
-            + exact (proj1 (proj2 Hstep_k)).
-            + exact (proj2 (proj2 Hstep_k)).
-          - exact (False_rect _ Hfixed_k).
-        }
-        (* z_i ≠ z_j for i < j ≤ nx: by the strict decrease *)
-        assert (Hdistinct : forall i j, i < j -> j <= nx ->
-            Nat.iter i step x <> Nat.iter j step x).
-        {
-          intros i j Hi_lt_j Hj_le.
-          intro Heq.
-          (* We have a strictly decreasing chain z_i > z_{i+1} > ... > z_j = z_i *)
-          (* Contradiction: R z_j z_i and R z_i z_{i+1} → R z_j z_{i+1}, but z_j = z_i implies
-             R z_i z_{i+1} and by antisymm would need z_i = z_{i+1}, contradicting Hdistinct_succ *)
-          (* More carefully: R z_{i+1} z_i and ... and R z_j z_{j-1} *)
-          (* So R z_j z_i (by transitivity) *)
-          (* But z_j = z_i, so R z_i z_i ✓ (refl), hmm that doesn't help directly *)
-          (* Better: R z_{i+1} z_i and R z_i = z_j. So R z_{i+1} z_i.
-             And z_{i+1} ≠ z_i. But also step goes from z_i downward.
-             So we need the full chain to get a contradiction. *)
-          (* The injection {0,...,nx} → sub is not injective since z_i = z_j *)
-          (* Actually the simplest: use that the map k ↦ z_k from {0,...,nx} to sub
-             has z_i = z_j, so it's not injective on this (nx+1)-element domain.
-             But we want an injection from a (nx+1)-element set to an nx-element set,
-             which is impossible by InjectionPrinciple. *)
-          (* Let's use: all z_k are in sub. Since |sub| = nx and there are nx+1 iterates,
-             two must be equal. But the strict decrease implies all distinct. *)
-          (* Strategy: prove z_i ≠ z_j for i < j by induction on j - i. *)
-          (* Induction *)
-          revert i Hi_lt_j Hj_le Heq.
-          induction j as [| j'].
-          - intros i Hi_lt _. lia.
-          - intros i Hi_lt_Sj' HSj'_le Heq.
-            destruct (Nat.eq_dec i j') as [Heq_ij | Hne_ij].
-            + (* i = j': z_i = z_{i+1} contradicts Hdistinct_succ i *)
-              subst j'. rewrite <- Nat.add_1_r in Heq.
-              exact (Hdistinct_succ i HSj'_le (eq_sym Heq)).
-            + (* i < j' *)
-              assert (Hi_lt_j' : i < j') by lia.
-              assert (Hj'_le : j' <= nx) by lia.
-              (* z_{j'+1} ≠ z_{j'} (by Hdistinct_succ j') *)
-              assert (Hne_succ : Nat.iter (j'+1) step x <> Nat.iter j' step x)
-                by exact (Hdistinct_succ j' HSj'_le).
-              rewrite <- Nat.add_1_r in Heq.
-              (* z_i = z_{j'+1}, and we also have (by IH) z_i ≠ z_{j'} *)
-              (* Hmm, we need to use IH on (i, j'): z_i ≠ z_{j'} *)
-              (* Actually: R z_{j'+1} z_{j'} and z_{j'+1} = z_i *)
-              (* and R z_{j'} z_{j'-1} ... R z_{i+1} z_i *)
-              (* So R z_i z_{j'} (downward from j' to i, wait this is upward) *)
-              (* z_{i} > z_{i+1} > ... > z_{j'} > z_{j'+1} = z_i *)
-              (* So R z_{j'+1} z_{j'} and R z_{j'} ... z_{i+1} z_i *)
-              (* By transitivity: R z_{j'+1} z_i = R z_i z_i *)
-              (* This is fine (reflexivity). Hmm that doesn't give contradiction. *)
-              (* But also R z_{i+1} z_i (from Hdistinct_succ i), and z_{i+1} ≠ z_i *)
-              (* And by transitivity of the downward chain: R z_{j'+1} z_{i+1} *)
-              (* z_{j'+1} = z_i, so R z_i z_{i+1} *)
-              (* But R z_{i+1} z_i and R z_i z_{i+1} → z_i = z_{i+1} (antisymm) *)
-              (* That contradicts Hdistinct_succ i! *)
-              assert (HR_down : forall a b, a < b -> b <= nx ->
-                  R (Nat.iter b step x) (Nat.iter a step x)).
-              { intros a b Hab Hb_le.
-                induction b as [| b'].
-                - lia.
-                - destruct (Nat.eq_dec a b') as [Hab' | Hab'].
-                  + subst b'. rewrite <- Nat.add_1_r. exact (proj1 (HRdesc_succ a Hb_le)).
-                  + assert (Ha_lt_b' : a < b') by lia.
-                    assert (Hb'_le : b' <= nx) by lia.
-                    apply (poset_trans (Nat.iter (S b') step x) (Nat.iter b' step x) (Nat.iter a step x)).
-                    * rewrite <- Nat.add_1_r. exact (proj1 (HRdesc_succ b' Hb_le)).
-                    * exact (IHb' Ha_lt_b' Hb'_le). }
-              (* R z_{j'+1} z_i: since j'+1 > i *)
-              assert (Hi_lt_j1 : i < j' + 1) by lia.
-              assert (Hj1_le : j' + 1 <= nx) by lia.
-              assert (HR_j1_i : R (Nat.iter (j'+1) step x) (Nat.iter i step x))
-                by exact (HR_down i (j'+1) Hi_lt_j1 Hj1_le).
-              (* R z_{i+1} z_i: since i+1 > i *)
-              assert (HR_i1_i : R (Nat.iter (i+1) step x) (Nat.iter i step x))
-                by exact (proj1 (HRdesc_succ i (Nat.lt_le_trans _ _ _ Hi_lt_Sj' HSj'_le))).
-              (* z_{j'+1} = z_i, so R z_i z_i ✓ *)
-              (* But R z_i z_{i+1}: z_{j'+1} = z_i, so R z_i z_{i+1} = R z_{j'+1} z_{i+1} *)
-              (* z_{i+1}: from HR_down, R z_{j'+1} z_{i+1} since j'+1 > i+1 (since j' > i) *)
-              assert (Hj1_gt_i1 : i + 1 < j' + 1) by lia.
-              assert (HR_j1_i1 : R (Nat.iter (j'+1) step x) (Nat.iter (i+1) step x))
-                by exact (HR_down (i+1) (j'+1) Hj1_gt_i1 Hj1_le).
-              (* z_{j'+1} = z_i, so R z_i z_{i+1} *)
-              rewrite <- Heq in HR_j1_i1.
-              (* R z_{i+1} z_i and R z_i z_{i+1} → z_i = z_{i+1} by antisymm *)
-              assert (Heq_i_i1 : Nat.iter i step x = Nat.iter (i+1) step x)
-                by exact (poset_antisym _ _ HR_j1_i1 HR_i1_i).
-              (* But z_i ≠ z_{i+1} *)
-              exact (Hdistinct_succ i
-                (Nat.lt_le_trans _ _ _ Hi_lt_Sj' HSj'_le)
-                (eq_sym Heq_i_i1)).
-        }
-        (* Now: the map k ↦ iter k step x is injective from {0,...,nx} to sub *)
-        (* But |{0,...,nx}| = nx+1 > nx = |sub|, contradiction *)
-        assert (HcardRange : cardinal nat (fun k => k <= nx) (S nx)).
-        { clear. induction nx as [| nx' IH].
-          - apply (cardinal_extensional_poly nat (Add nat (Empty_set nat) 0)).
-            + intro k. split.
-              * intro Hk. inversion Hk as [z' Hz' | z' Hz']; subst.
-                -- contradiction.
-                -- inversion Hz'; subst. apply Nat.le_refl.
-              * intro Hk. destruct k as [| k'].
-                -- apply Union_intror. apply In_singleton.
-                -- inversion Hk.
-            + apply card_add. apply card_empty. intro H. inversion H.
-          - apply (cardinal_extensional_poly nat (Add nat (fun k => k <= nx') (S nx'))).
-            + intro k. split.
-              * intro Hk. inversion Hk as [z Hz | z Hz]; subst.
-                -- exact (le_S _ _ Hz).
-                -- inversion Hz; subst. apply Nat.le_refl.
-              * intro Hk. inversion Hk; subst.
-                -- apply Union_intror. apply In_singleton.
-                -- apply Union_introl. assumption.
-            + apply card_add. exact IH.
-              intro Hcontra.
-              exact (Nat.lt_irrefl nx' (Nat.lt_le_trans _ _ _ (Nat.lt_succ_diag_r nx') Hcontra)). }
-        assert (Hle : S nx <= nx).
-        { apply (InjectionPrinciple.cardinal_injection_principle_poly
-                   nat A (fun k => k <= nx) sub
-                   (fun k y => y = Nat.iter k step x) (S nx) nx).
-          - intros k Hk. exists (Nat.iter k step x). split.
-            + exact (Hiter_sub k Hk).
-            + reflexivity.
-          - intros i j y Hi Hj Hy_sub Heqi Heqj. subst.
-            destruct (Nat.lt_trichotomy i j) as [Hij | [Hij | Hij]].
-            + exact (False_rect _ (Hdistinct i j Hij Hj Heqj)).
-            + exact Hij.
-            + exact (False_rect _ (Hdistinct j i Hij Hi (eq_sym Heqj))).
-          - exact HcardRange.
-          - exact Hcard_sub. }
-        exact (Nat.lt_irrefl nx (Nat.lt_le_trans _ _ _ (Nat.lt_succ_diag_r nx) Hle)).
-      }
+      pose proof (chain_terminates sub la w m_aug nx Hla' Habove Hcard_sub
+                    Hm_match Hm_inj Hla_dummy) as Hct.
+      intros x Hx. unfold f. exact (Hct x Hx).
     }
 
     (* Chain property *)
