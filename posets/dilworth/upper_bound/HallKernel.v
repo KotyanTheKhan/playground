@@ -592,6 +592,251 @@ Section HallKernel.
     }
   Qed.
 
+  (* Two sub-elements assigned to the same la-target are R-comparable. *)
+  Lemma fiber_chain : forall (sub la : Ensemble A) w (m_aug : A -> sum A A) nx,
+    IsLargestAntichain R sub la w ->
+    Included A sub (Above R la) ->
+    cardinal A sub nx ->
+    (forall x, In A sub x ->
+      match m_aug x with
+      | inl y => In A sub y /\ R y x /\ y <> x
+      | inr a => In A la a
+      end) ->
+    (forall x y, In A sub x -> In A sub y -> m_aug x = m_aug y -> x = y) ->
+    (forall a, In A la a -> exists k, In A la k /\ m_aug a = inr k) ->
+    (forall a, In A la a -> chain_root_aux m_aug nx a = a) ->
+    (forall x, In A sub x ->
+       In A la (chain_root_aux m_aug nx x) /\ R (chain_root_aux m_aug nx x) x) ->
+    forall a, In A la a ->
+    IsChain R (fun x => In A sub x /\ chain_root_aux m_aug nx x = a).
+  Proof.
+    intros sub la w m_aug nx Hla Habove Hcard_sub Hstep_R Hm_inj Hla_dummy Hf_la Hf_assign a Ha.
+    assert (Hincl_la : Included A la sub)
+      by exact (@largest_antichain_included A R sub la w Hla).
+    (* Local helpers replicated from kernel. *)
+    set (step := fun z => match m_aug z with inl y => y | inr _ => z end).
+    assert (Hiter_eq2 : forall k x0, In A sub x0 ->
+        chain_root_aux m_aug k x0 = Nat.iter k step x0).
+    {
+      intro k. induction k as [| k' IHk].
+      - intros x0 _. reflexivity.
+      - intros x0 Hx0. simpl chain_root_aux.
+        rewrite Nat.iter_succ_r.
+        destruct (m_aug x0) as [y | d] eqn:Hx0_m.
+        + assert (Hy_sub : In A sub y).
+          { assert (Hm_in := Hstep_R x0 Hx0). rewrite Hx0_m in Hm_in. exact (proj1 Hm_in). }
+          assert (Hstep_x0 : step x0 = y) by (unfold step; rewrite Hx0_m; reflexivity).
+          rewrite Hstep_x0. exact (IHk y Hy_sub).
+        + assert (Hstep_x0 : step x0 = x0) by (unfold step; rewrite Hx0_m; reflexivity).
+          rewrite Hstep_x0. symmetry.
+          clear IHk. induction k' as [| k'' IHk''].
+          * reflexivity.
+          * rewrite Nat.iter_succ_r, Hstep_x0. exact IHk''.
+    }
+    assert (Hdummy_means_la : forall z, In A sub z -> (exists d, m_aug z = inr d) -> In A la z)
+      by exact (dummy_target_in_la sub la w m_aug
+                  (@largest_antichain_cardinality A R sub la w Hla)
+                  Hincl_la Hstep_R Hm_inj Hla_dummy).
+    set (f := fun x => chain_root_aux m_aug nx x).
+    (* Begin lifted Hf_chain body. *)
+    split.
+    - apply Inhabited_intro with a.
+      split. exact (Hincl_la a Ha).
+      unfold f. exact (Hf_la a Ha).
+    - intros x y [Hx_sub Hx_f] [Hy_sub Hy_f].
+      unfold f in Hx_f, Hy_f.
+      set (depth := fun z => depth_aux m_aug nx z).
+
+      assert (Hdepth_inr : forall k z,
+          match m_aug z with inr _ => True | inl _ => False end ->
+          depth_aux m_aug k z = 0).
+      { intros k. induction k as [| k' IHk].
+        - intros z _. reflexivity.
+        - intros z Hz. simpl. destruct (m_aug z) as [z' | d].
+          + exact (False_rect _ Hz).
+          + reflexivity. }
+
+      assert (Hdepth_inl : forall k z z',
+          m_aug z = inl z' ->
+          depth_aux m_aug (S k) z = S (depth_aux m_aug k z')).
+      { intros k z z' Hmz. simpl. rewrite Hmz. reflexivity. }
+
+      assert (Hroot_depth : forall k z, In A sub z ->
+          depth_aux m_aug k z <= k ->
+          chain_root_aux m_aug (depth_aux m_aug k z) z = chain_root_aux m_aug k z).
+      { intro k. induction k as [| k' IHk].
+        - intros z _ _. reflexivity.
+        - intros z Hz Hle. simpl.
+          destruct (m_aug z) as [p | d] eqn:Hzm.
+          + simpl depth_aux.
+            assert (Hp_sub : In A sub p).
+            { assert (Hm_in := Hstep_R z Hz). rewrite Hzm in Hm_in. exact (proj1 Hm_in). }
+            assert (Hle' : depth_aux m_aug k' p <= k').
+            { assert (Hdeq : depth_aux m_aug (S k') z = S (depth_aux m_aug k' p))
+                by (simpl depth_aux; rewrite Hzm; reflexivity).
+              lia. }
+            transitivity (chain_root_aux m_aug (depth_aux m_aug k' p) p).
+            * simpl chain_root_aux. rewrite Hzm. simpl. reflexivity.
+            * exact (IHk p Hp_sub Hle').
+          + simpl depth_aux. reflexivity. }
+
+      assert (Hdepth_le_gen : forall k (z : A), depth_aux m_aug k z <= k).
+      { intro k. induction k as [| k' IHk].
+        - intro z. simpl. apply Nat.le_refl.
+        - intro z. simpl. destruct (m_aug z) as [p | d].
+          + exact (le_n_S _ _ (IHk p)).
+          + apply Nat.le_0_l. }
+      assert (Hdepth_le : forall z, In A sub z -> depth z <= nx).
+      { intros z _. unfold depth. exact (Hdepth_le_gen nx z). }
+
+      assert (Hstep_to_pred : forall z, In A sub z ->
+          chain_root_aux m_aug nx z = a ->
+          match m_aug z with
+          | inl y => In A sub y /\ chain_root_aux m_aug nx y = a /\ R y z /\ y <> z
+          | inr _ => In A la z
+          end).
+      { intros z Hz Hfz.
+        assert (Hm_info := Hstep_R z Hz).
+        destruct (m_aug z) as [p | d] eqn:Hzm.
+        - simpl in Hm_info.
+          split. exact (proj1 Hm_info).
+          split.
+          + destruct nx as [| nx'] eqn:Hnx.
+            * inversion Hcard_sub. subst. inversion Hz.
+            * simpl chain_root_aux in Hfz. rewrite Hzm in Hfz.
+              assert (Hp_sub : In A sub p) by exact (proj1 Hm_info).
+              rewrite (Hiter_eq2 (S nx') p Hp_sub).
+              rewrite Nat.iter_succ.
+              rewrite <- (Hiter_eq2 nx' p Hp_sub).
+              rewrite Hfz.
+              destruct (Hla_dummy a Ha) as [k_a [_ Hma]].
+              unfold step. rewrite Hma. reflexivity.
+          + exact (proj2 Hm_info).
+        - exact (Hdummy_means_la z Hz (ex_intro _ d Hzm)). }
+
+      assert (Hdepth_stable : forall k (z : A), In A sub z ->
+          chain_root_aux m_aug k z = a ->
+          depth_aux m_aug k z = depth_aux m_aug (S k) z).
+      { intro k. induction k as [| k' IHk].
+        - intros z Hz Hcr. simpl chain_root_aux in Hcr. subst z.
+          destruct (Hla_dummy a Ha) as [ka [_ Hma]].
+          simpl depth_aux. rewrite Hma. reflexivity.
+        - intros z Hz Hcr. simpl chain_root_aux in Hcr.
+          destruct (m_aug z) as [z' | d] eqn:Hzm.
+          + assert (Hz'_sub : In A sub z').
+            { assert (Hm_in := Hstep_R z Hz). rewrite Hzm in Hm_in. exact (proj1 Hm_in). }
+            simpl depth_aux. rewrite Hzm.
+            rewrite (IHk z' Hz'_sub Hcr). reflexivity.
+          + simpl depth_aux. rewrite Hzm. reflexivity. }
+
+      assert (Hfiber_depth_pred : forall z pz, In A sub z ->
+          chain_root_aux m_aug nx z = a ->
+          m_aug z = inl pz -> In A sub pz ->
+          depth z = S (depth pz)).
+      { intros z pz Hz Hcrz Hmz Hpz_sub.
+        unfold depth.
+        destruct nx as [| nx_prev] eqn:Hnx.
+        - simpl chain_root_aux in Hcrz. subst z.
+          destruct (Hla_dummy a Ha) as [ka [_ Hma]]. rewrite Hma in Hmz. discriminate Hmz.
+        - assert (Hcrpz : chain_root_aux m_aug nx_prev pz = a).
+          { simpl chain_root_aux in Hcrz. rewrite Hmz in Hcrz. exact Hcrz. }
+          rewrite (Hdepth_inl nx_prev z pz Hmz).
+          rewrite <- (Hdepth_stable nx_prev pz Hpz_sub Hcrpz).
+          reflexivity. }
+
+      assert (Hclaim : forall k v, In A sub v -> chain_root_aux m_aug nx v = a ->
+          depth v = k ->
+          forall u, In A sub u -> chain_root_aux m_aug nx u = a ->
+          depth u <= k -> R u v).
+      { intro k. induction k as [| k' IHk].
+        - intros v Hv Hfv Hdv u Hu Hfu Hdu.
+          assert (Hv_la : In A la v).
+          { unfold depth in Hdv.
+            destruct nx as [| nx'].
+            - simpl in Hfv. subst v. exact Ha.
+            - simpl in Hdv. destruct (m_aug v) as [z' | d] eqn:Hvm.
+              + discriminate Hdv.
+              + exact (Hdummy_means_la v Hv (ex_intro _ d Hvm)). }
+          assert (Hveqa : v = a).
+          { rewrite (Hiter_eq2 nx v Hv) in Hfv.
+            assert (Hstep_v : step v = v).
+            { unfold step. destruct (Hla_dummy v Hv_la) as [k_v [_ Hmv]]. rewrite Hmv. reflexivity. }
+            assert (Hiter_v : forall j, Nat.iter j step v = v).
+            { intro j. induction j. reflexivity. rewrite Nat.iter_succ. rewrite IHj. exact Hstep_v. }
+            rewrite Hiter_v in Hfv. exact Hfv. }
+          subst v.
+          assert (Hu_la : In A la u).
+          { unfold depth in Hdu.
+            destruct nx as [| nx''].
+            - simpl in Hfu. subst u. exact Ha.
+            - simpl in Hdu. destruct (m_aug u) as [z'' | d''] eqn:Hum.
+              + lia.
+              + exact (Hdummy_means_la u Hu (ex_intro _ d'' Hum)). }
+          assert (Hueqa : u = a).
+          { rewrite (Hiter_eq2 nx u Hu) in Hfu.
+            assert (Hstep_u : step u = u).
+            { unfold step. destruct (Hla_dummy u Hu_la) as [k_u [_ Hmu]]. rewrite Hmu. reflexivity. }
+            assert (Hiter_u : forall j, Nat.iter j step u = u).
+            { intro j. induction j. reflexivity. rewrite Nat.iter_succ. rewrite IHj. exact Hstep_u. }
+            rewrite Hiter_u in Hfu. exact Hfu. }
+          subst u. apply poset_refl.
+        - intros v Hv Hfv Hdv u Hu Hfu Hdu.
+          assert (Hstep_v := Hstep_to_pred v Hv Hfv).
+          assert (Hstep_u := Hstep_to_pred u Hu Hfu).
+          unfold depth in Hdv.
+          destruct (m_aug v) as [pv | dv] eqn:Hvm.
+          + destruct Hstep_v as [Hpv_sub [Hpv_f [HRpv_v Hpvne]]].
+            assert (Hd_pv : depth pv = k').
+            { assert (Hfdp := Hfiber_depth_pred v pv Hv Hfv Hvm Hpv_sub).
+              unfold depth in Hfdp. rewrite Hfdp in Hdv.
+              injection Hdv as Hdv'. unfold depth. exact Hdv'. }
+            unfold depth in Hdu.
+            destruct (m_aug u) as [pu | du] eqn:Hum.
+            * destruct Hstep_u as [Hpu_sub [Hpu_f [HRpu_u Hpune]]].
+              assert (Hd_pu : depth pu <= k').
+              { assert (Hfdpu := Hfiber_depth_pred u pu Hu Hfu Hum Hpu_sub).
+                unfold depth in Hfdpu. rewrite Hfdpu in Hdu.
+                unfold depth. lia. }
+              destruct (Nat.eq_dec (depth_aux m_aug nx u) (S k')) as [Heq_du | Hne_du].
+              -- assert (Hd_pu_eq : depth pu = k').
+                 { assert (Hfdpu := Hfiber_depth_pred u pu Hu Hfu Hum Hpu_sub).
+                   unfold depth in Hfdpu.
+                   assert (Heq_pu : S (depth_aux m_aug nx pu) = S k') by congruence.
+                   injection Heq_pu as Heq'. unfold depth. exact Heq'. }
+                 assert (HR_pu_pv : R pu pv) by exact (IHk pv Hpv_sub Hpv_f Hd_pv pu Hpu_sub Hpu_f Hd_pu).
+                 assert (HR_pv_pu : R pv pu).
+                 { apply (IHk pu Hpu_sub Hpu_f Hd_pu_eq pv Hpv_sub Hpv_f).
+                   rewrite Hd_pv. apply Nat.le_refl. }
+                 assert (Hpu_eq_pv : pu = pv) by exact (poset_antisym pu pv HR_pu_pv HR_pv_pu).
+                 assert (Hm_eq : m_aug u = m_aug v) by (rewrite Hum, Hvm, Hpu_eq_pv; reflexivity).
+                 assert (Huv : u = v) by exact (Hm_inj u v Hu Hv Hm_eq).
+                 subst v. apply poset_refl.
+              -- assert (Hdu_le_k' : depth_aux m_aug nx u <= k').
+                 { lia. }
+                 assert (HR_u_pv : R u pv) by exact (IHk pv Hpv_sub Hpv_f Hd_pv u Hu Hfu Hdu_le_k').
+                 exact (poset_trans u pv v HR_u_pv HRpv_v).
+            * assert (Hu_la : In A la u) by exact (Hdummy_means_la u Hu (ex_intro _ du Hum)).
+              assert (Hueqa : u = a).
+              { rewrite (Hiter_eq2 nx u Hu) in Hfu.
+                assert (Hstep_u' : step u = u).
+                { unfold step. destruct (Hla_dummy u Hu_la) as [k_u [_ Hmu]]. rewrite Hmu. reflexivity. }
+                assert (Hiter_u : forall j, Nat.iter j step u = u).
+                { intro j. induction j. reflexivity. rewrite Nat.iter_succ. rewrite IHj. exact Hstep_u'. }
+                rewrite Hiter_u in Hfu. exact Hfu. }
+              subst u.
+              assert (Hrfv := proj2 (Hf_assign v Hv)).
+              unfold f in Hrfv. rewrite Hfv in Hrfv. exact Hrfv.
+          + assert (Hv_inr : match m_aug v with inr _ => True | inl _ => False end)
+              by (rewrite Hvm; exact I).
+            rewrite (Hdepth_inr nx v Hv_inr) in Hdv. discriminate Hdv.
+      }
+
+      destruct (classic (depth x <= depth y)) as [Hdxy | Hlt].
+      + left. exact (Hclaim (depth y) y Hy_sub Hy_f eq_refl x Hx_sub Hx_f Hdxy).
+      + right. assert (Hdxy : depth y < depth x) by lia.
+        exact (Hclaim (depth x) x Hx_sub Hx_f eq_refl y Hy_sub Hy_f (Nat.lt_le_incl _ _ Hdxy)).
+  Qed.
+
   Lemma chain_assignment_kernel : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Above R la) ->
@@ -742,221 +987,8 @@ Section HallKernel.
     }
 
     (* Chain property *)
-    assert (Hf_chain : forall a, In A la a ->
-        IsChain R (fun x => In A sub x /\ f x = a)).
-    {
-      intros a Ha.
-      split.
-      - apply Inhabited_intro with a.
-        split. exact (Hincl_la a Ha).
-        unfold f. exact (Hf_la a Ha).
-      - intros x y [Hx_sub Hx_f] [Hy_sub Hy_f].
-        unfold f in Hx_f, Hy_f.
-        (* We need R x y or R y x *)
-        (* Use depth-based argument *)
-        (* depth(z) = depth_aux m_aug nx z *)
-        set (depth := fun z => depth_aux m_aug nx z).
-
-        (* Key properties of depth_aux *)
-        assert (Hdepth_inr : forall k z,
-            match m_aug z with inr _ => True | inl _ => False end ->
-            depth_aux m_aug k z = 0).
-        { intros k. induction k as [| k' IHk].
-          - intros z _. reflexivity.
-          - intros z Hz. simpl. destruct (m_aug z) as [z' | d].
-            + exact (False_rect _ Hz).
-            + reflexivity. }
-
-        assert (Hdepth_inl : forall k z z',
-            m_aug z = inl z' ->
-            depth_aux m_aug (S k) z = S (depth_aux m_aug k z')).
-        { intros k z z' Hmz. simpl. rewrite Hmz. reflexivity. }
-
-        (* chain_root_aux with depth fuel reaches la *)
-        assert (Hroot_depth : forall k z, In A sub z ->
-            depth_aux m_aug k z <= k ->
-            chain_root_aux m_aug (depth_aux m_aug k z) z = chain_root_aux m_aug k z).
-        { intro k. induction k as [| k' IHk].
-          - intros z _ _. reflexivity.
-          - intros z Hz Hle. simpl.
-            destruct (m_aug z) as [p | d] eqn:Hzm.
-            + simpl depth_aux.
-              assert (Hp_sub : In A sub p).
-              { assert (Hm_in : In (sum A A) (nbrs_aug z) (m_aug z)) by exact (Hm_nbrs z Hz).
-                rewrite Hzm in Hm_in. exact (proj1 Hm_in). }
-              assert (Hle' : depth_aux m_aug k' p <= k').
-              { assert (Hdeq : depth_aux m_aug (S k') z = S (depth_aux m_aug k' p))
-                  by (simpl depth_aux; rewrite Hzm; reflexivity).
-                lia. }
-              transitivity (chain_root_aux m_aug (depth_aux m_aug k' p) p).
-              * simpl chain_root_aux. rewrite Hzm. simpl. reflexivity.
-              * exact (IHk p Hp_sub Hle').
-            + simpl depth_aux. reflexivity. }
-
-        (* depth ≤ nx *)
-        assert (Hdepth_le_gen : forall k (z : A), depth_aux m_aug k z <= k).
-        { intro k. induction k as [| k' IHk].
-          - intro z. simpl. apply Nat.le_refl.
-          - intro z. simpl. destruct (m_aug z) as [p | d].
-            + exact (le_n_S _ _ (IHk p)).
-            + apply Nat.le_0_l. }
-        assert (Hdepth_le : forall z, In A sub z -> depth z <= nx).
-        { intros z _. unfold depth. exact (Hdepth_le_gen nx z). }
-
-        (* For z in fiber(a): chain_root_aux nx z = a implies depth-based stepping works *)
-        (* Prove: forall z ∈ sub with f z = a, depth z steps reaches a *)
-        assert (Hstep_to_pred : forall z, In A sub z ->
-            chain_root_aux m_aug nx z = a ->
-            match m_aug z with
-            | inl y => In A sub y /\ chain_root_aux m_aug nx y = a /\ R y z /\ y <> z
-            | inr _ => In A la z
-            end).
-        { intros z Hz Hfz.
-          assert (Hm_info := Hstep_R z Hz).
-          destruct (m_aug z) as [p | d] eqn:Hzm.
-          - simpl in Hm_info.
-            split. exact (proj1 Hm_info).
-            split.
-            + destruct nx as [| nx'] eqn:Hnx.
-              * inversion Hcard_sub. subst. inversion Hz.
-              * simpl chain_root_aux in Hfz. rewrite Hzm in Hfz.
-                (* Hfz : chain_root_aux m_aug nx' p = a, goal: chain_root_aux m_aug (S nx') p = a *)
-                assert (Hp_sub : In A sub p) by exact (proj1 Hm_info).
-                rewrite (Hiter_eq2 (S nx') p Hp_sub).
-                rewrite Nat.iter_succ.
-                rewrite <- (Hiter_eq2 nx' p Hp_sub).
-                rewrite Hfz.
-                destruct (Hla_dummy a Ha) as [k_a [_ Hma]].
-                unfold step. rewrite Hma. reflexivity.
-            + exact (proj2 Hm_info).
-          - exact (Hdummy_means_la z Hz (ex_intro _ d Hzm)). }
-
-        (* depth_aux is stable under +1 fuel for fiber elements *)
-        assert (Hdepth_stable : forall k (z : A), In A sub z ->
-            chain_root_aux m_aug k z = a ->
-            depth_aux m_aug k z = depth_aux m_aug (S k) z).
-        { intro k. induction k as [| k' IHk].
-          - intros z Hz Hcr. simpl chain_root_aux in Hcr. subst z.
-            destruct (Hla_dummy a Ha) as [ka [_ Hma]].
-            simpl depth_aux. rewrite Hma. reflexivity.
-          - intros z Hz Hcr. simpl chain_root_aux in Hcr.
-            destruct (m_aug z) as [z' | d] eqn:Hzm.
-            + assert (Hz'_sub : In A sub z').
-              { assert (Hm_in : In (sum A A) (nbrs_aug z) (m_aug z)) by exact (Hm_nbrs z Hz).
-                rewrite Hzm in Hm_in. exact (proj1 Hm_in). }
-              simpl depth_aux. rewrite Hzm.
-              rewrite (IHk z' Hz'_sub Hcr). reflexivity.
-            + simpl depth_aux. rewrite Hzm. reflexivity. }
-
-        (* depth of successor = depth of element - 1 for fiber elements *)
-        assert (Hfiber_depth_pred : forall z pz, In A sub z ->
-            chain_root_aux m_aug nx z = a ->
-            m_aug z = inl pz -> In A sub pz ->
-            depth z = S (depth pz)).
-        { intros z pz Hz Hcrz Hmz Hpz_sub.
-          unfold depth.
-          destruct nx as [| nx_prev] eqn:Hnx.
-          - simpl chain_root_aux in Hcrz. subst z.
-            destruct (Hla_dummy a Ha) as [ka [_ Hma]]. rewrite Hma in Hmz. discriminate Hmz.
-          - assert (Hcrpz : chain_root_aux m_aug nx_prev pz = a).
-            { simpl chain_root_aux in Hcrz. rewrite Hmz in Hcrz. exact Hcrz. }
-            rewrite (Hdepth_inl nx_prev z pz Hmz).
-            rewrite <- (Hdepth_stable nx_prev pz Hpz_sub Hcrpz).
-            reflexivity. }
-
-        (* Main chain property: prove by induction on depth *)
-        assert (Hclaim : forall k v, In A sub v -> chain_root_aux m_aug nx v = a ->
-            depth v = k ->
-            forall u, In A sub u -> chain_root_aux m_aug nx u = a ->
-            depth u <= k -> R u v).
-        { intro k. induction k as [| k' IHk].
-          - intros v Hv Hfv Hdv u Hu Hfu Hdu.
-            assert (Hv_la : In A la v).
-            { unfold depth in Hdv.
-              destruct nx as [| nx'].
-              - simpl in Hfv. subst v. exact Ha.
-              - simpl in Hdv. destruct (m_aug v) as [z' | d] eqn:Hvm.
-                + discriminate Hdv.
-                + exact (Hdummy_means_la v Hv (ex_intro _ d Hvm)). }
-            assert (Hveqa : v = a).
-            { rewrite (Hiter_eq2 nx v Hv) in Hfv.
-              assert (Hstep_v : step v = v).
-              { unfold step. destruct (Hla_dummy v Hv_la) as [k_v [_ Hmv]]. rewrite Hmv. reflexivity. }
-              assert (Hiter_v : forall j, Nat.iter j step v = v).
-              { intro j. induction j. reflexivity. rewrite Nat.iter_succ. rewrite IHj. exact Hstep_v. }
-              rewrite Hiter_v in Hfv. exact Hfv. }
-            subst v.
-            assert (Hu_la : In A la u).
-            { unfold depth in Hdu.
-              destruct nx as [| nx''].
-              - simpl in Hfu. subst u. exact Ha.
-              - simpl in Hdu. destruct (m_aug u) as [z'' | d''] eqn:Hum.
-                + lia.
-                + exact (Hdummy_means_la u Hu (ex_intro _ d'' Hum)). }
-            assert (Hueqa : u = a).
-            { rewrite (Hiter_eq2 nx u Hu) in Hfu.
-              assert (Hstep_u : step u = u).
-              { unfold step. destruct (Hla_dummy u Hu_la) as [k_u [_ Hmu]]. rewrite Hmu. reflexivity. }
-              assert (Hiter_u : forall j, Nat.iter j step u = u).
-              { intro j. induction j. reflexivity. rewrite Nat.iter_succ. rewrite IHj. exact Hstep_u. }
-              rewrite Hiter_u in Hfu. exact Hfu. }
-            subst u. apply poset_refl.
-          - intros v Hv Hfv Hdv u Hu Hfu Hdu.
-            assert (Hstep_v := Hstep_to_pred v Hv Hfv).
-            assert (Hstep_u := Hstep_to_pred u Hu Hfu).
-            unfold depth in Hdv.
-            destruct (m_aug v) as [pv | dv] eqn:Hvm.
-            + destruct Hstep_v as [Hpv_sub [Hpv_f [HRpv_v Hpvne]]].
-              assert (Hd_pv : depth pv = k').
-              { assert (Hfdp := Hfiber_depth_pred v pv Hv Hfv Hvm Hpv_sub).
-                unfold depth in Hfdp. rewrite Hfdp in Hdv.
-                injection Hdv as Hdv'. unfold depth. exact Hdv'. }
-              unfold depth in Hdu.
-              destruct (m_aug u) as [pu | du] eqn:Hum.
-              * destruct Hstep_u as [Hpu_sub [Hpu_f [HRpu_u Hpune]]].
-                assert (Hd_pu : depth pu <= k').
-                { assert (Hfdpu := Hfiber_depth_pred u pu Hu Hfu Hum Hpu_sub).
-                  unfold depth in Hfdpu. rewrite Hfdpu in Hdu.
-                  unfold depth. lia. }
-                destruct (Nat.eq_dec (depth_aux m_aug nx u) (S k')) as [Heq_du | Hne_du].
-                -- assert (Hd_pu_eq : depth pu = k').
-                   { assert (Hfdpu := Hfiber_depth_pred u pu Hu Hfu Hum Hpu_sub).
-                     unfold depth in Hfdpu.
-                     assert (Heq_pu : S (depth_aux m_aug nx pu) = S k') by congruence.
-                     injection Heq_pu as Heq'. unfold depth. exact Heq'. }
-                   assert (HR_pu_pv : R pu pv) by exact (IHk pv Hpv_sub Hpv_f Hd_pv pu Hpu_sub Hpu_f Hd_pu).
-                   assert (HR_pv_pu : R pv pu).
-                   { apply (IHk pu Hpu_sub Hpu_f Hd_pu_eq pv Hpv_sub Hpv_f).
-                     rewrite Hd_pv. apply Nat.le_refl. }
-                   assert (Hpu_eq_pv : pu = pv) by exact (poset_antisym pu pv HR_pu_pv HR_pv_pu).
-                   assert (Hm_eq : m_aug u = m_aug v) by (rewrite Hum, Hvm, Hpu_eq_pv; reflexivity).
-                   assert (Huv : u = v) by exact (Hm_inj u v Hu Hv Hm_eq).
-                   subst v. apply poset_refl.
-                -- assert (Hdu_le_k' : depth_aux m_aug nx u <= k').
-                   { lia. }
-                   assert (HR_u_pv : R u pv) by exact (IHk pv Hpv_sub Hpv_f Hd_pv u Hu Hfu Hdu_le_k').
-                   exact (poset_trans u pv v HR_u_pv HRpv_v).
-              * assert (Hu_la : In A la u) by exact (Hdummy_means_la u Hu (ex_intro _ du Hum)).
-                assert (Hueqa : u = a).
-                { rewrite (Hiter_eq2 nx u Hu) in Hfu.
-                  assert (Hstep_u' : step u = u).
-                  { unfold step. destruct (Hla_dummy u Hu_la) as [k_u [_ Hmu]]. rewrite Hmu. reflexivity. }
-                  assert (Hiter_u : forall j, Nat.iter j step u = u).
-                  { intro j. induction j. reflexivity. rewrite Nat.iter_succ. rewrite IHj. exact Hstep_u'. }
-                  rewrite Hiter_u in Hfu. exact Hfu. }
-                subst u.
-                assert (Hrfv := proj2 (Hf_assign v Hv)).
-                unfold f in Hrfv. rewrite Hfv in Hrfv. exact Hrfv.
-            + assert (Hv_inr : match m_aug v with inr _ => True | inl _ => False end)
-                by (rewrite Hvm; exact I).
-              rewrite (Hdepth_inr nx v Hv_inr) in Hdv. discriminate Hdv.
-        }
-
-        destruct (classic (depth x <= depth y)) as [Hdxy | Hlt].
-        + left. exact (Hclaim (depth y) y Hy_sub Hy_f eq_refl x Hx_sub Hx_f Hdxy).
-        + right. assert (Hdxy : depth y < depth x) by lia.
-          exact (Hclaim (depth x) x Hx_sub Hx_f eq_refl y Hy_sub Hy_f (Nat.lt_le_incl _ _ Hdxy)).
-    }
+    pose proof (fiber_chain sub la w m_aug nx Hla' Habove Hcard_sub
+                  Hm_match Hm_inj Hla_dummy Hf_la Hf_assign) as Hf_chain.
 
     exact (ex_intro _ f (conj Hf_assign Hf_chain)).
   Qed.
