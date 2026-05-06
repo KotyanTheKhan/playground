@@ -869,13 +869,6 @@ Section HallKernel.
     (* Y is finite *)
     assert (HfinY : Finite (sum A A) Y).
     {
-      (* Helper: lift cardinal through inl/inr injections *)
-      assert (HcardInl : cardinal (sum A A)
-          (fun z => match z with inl y => In A sub y | inr _ => False end) nx)
-        by exact (inl_image_cardinal sub nx Hcard_sub).
-      assert (HcardInr : cardinal (sum A A)
-          (fun z => match z with inl _ => False | inr a => In A la a end) w)
-        by exact (inr_image_cardinal la w Hcard_la).
       pose proof (Y_cardinal sub la nx w Hcard_sub Hcard_la) as HcardY.
       exact (cardinal_finite (sum A A) Y (nx + w) HcardY).
     }
@@ -925,57 +918,6 @@ Section HallKernel.
       destruct nx as [| nx'].
       - simpl. reflexivity.
       - simpl. rewrite Hma. reflexivity.
-    }
-
-    (* Key: steps in sub *)
-    assert (Hsteps_in_sub : forall k x, In A sub x -> k <= nx ->
-        In A sub (chain_root_aux m_aug k x)).
-    {
-      intro k. induction k as [| k' IHk].
-      - intros x Hx _. simpl. exact Hx.
-      - intros x Hx Hle. simpl.
-        destruct (m_aug x) as [y | d] eqn:Hx_case.
-        + assert (Hm_in : In (sum A A) (nbrs_aug x) (m_aug x)) by exact (Hm_nbrs x Hx).
-          rewrite Hx_case in Hm_in. unfold nbrs_aug in Hm_in.
-          exact (IHk y (proj1 Hm_in) (Nat_le_of_succ_le _ _ Hle)).
-        + exact Hx.
-    }
-
-    (* Key: step strictly reduces - if m_aug z = inl y then R y z and y ≠ z and y ∈ sub *)
-    assert (Hstep_R : forall z, In A sub z ->
-        match m_aug z with
-        | inl y => In A sub y /\ R y z /\ y <> z
-        | inr _ => True
-        end).
-    {
-      intros z Hz.
-      assert (Hm_in : In (sum A A) (nbrs_aug z) (m_aug z)) by exact (Hm_nbrs z Hz).
-      unfold nbrs_aug in Hm_in.
-      destruct (m_aug z) as [y | d].
-      - exact Hm_in.
-      - exact I.
-    }
-
-    set (step := fun z => match m_aug z with inl y => y | inr _ => z end).
-
-    assert (Hiter_eq2 : forall k x0, In A sub x0 ->
-        chain_root_aux m_aug k x0 = Nat.iter k step x0).
-    {
-      intro k. induction k as [| k' IHk].
-      - intros x0 _. reflexivity.
-      - intros x0 Hx0. simpl chain_root_aux.
-        rewrite Nat.iter_succ_r.
-        destruct (m_aug x0) as [y | d] eqn:Hx0_m.
-        + assert (Hy_sub : In A sub y).
-          { assert (Hm_in : In (sum A A) (nbrs_aug x0) (m_aug x0)) by exact (Hm_nbrs x0 Hx0).
-            rewrite Hx0_m in Hm_in. exact (proj1 Hm_in). }
-          assert (Hstep_x0 : step x0 = y) by (unfold step; rewrite Hx0_m; reflexivity).
-          rewrite Hstep_x0. exact (IHk y Hy_sub).
-        + assert (Hstep_x0 : step x0 = x0) by (unfold step; rewrite Hx0_m; reflexivity).
-          rewrite Hstep_x0. symmetry.
-          clear IHk. induction k' as [| k'' IHk''].
-          * reflexivity.
-          * rewrite Nat.iter_succ_r, Hstep_x0. exact IHk''.
     }
 
     (* Assignment: f(x) ∈ la and R(f(x)) x *)
