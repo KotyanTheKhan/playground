@@ -171,29 +171,21 @@ Section HallKernel.
   Proof.
     intros sub la w nbrs_aug Hla Habove HfinSub Hcard_la Hnbrs.
     intros S ns nn HinclS HcardS HcardNS.
-    (* We need ns <= nn *)
-    (* set_neighbors nbrs_aug S = {inl y | StrictPred sub S y} ∪ {inr a | a ∈ la} when S non-empty *)
-    (* and = {inr a | a ∈ la} when S empty *)
     destruct ns as [| ns'].
     { lia. }
     assert (HinhS : Inhabited A S).
     { inversion HcardS as [| S0 m Hm x Hx_notin]. subst.
       apply Inhabited_intro with x. apply Union_intror. apply In_singleton. }
-    (* StrictPred sub S is finite *)
     assert (HfinSP : Finite A (StrictPred sub S)).
     { apply (Finite_downward_closed A sub HfinSub). intros y Hy. exact (proj1 Hy). }
     destruct (finite_cardinal A (StrictPred sub S) HfinSP) as [nP HcardSP].
-    (* set_neighbors nbrs_aug S = inl-image(StrictPred) ∪ inr-image(la) *)
     pose proof (nbrs_aug_neighbors_eq sub la nbrs_aug Hnbrs S HinhS) as Hset_eq.
-    (* Cardinal of inl-image(StrictPred) *)
     assert (HcardInlP : cardinal (sum A A)
         (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end) nP)
       by exact (inl_image_cardinal (StrictPred sub S) nP HcardSP).
-    (* Cardinal of inr-image(la) *)
     assert (HcardInrLa : cardinal (sum A A)
         (fun z => match z with inl _ => False | inr a => In A la a end) w)
       by exact (inr_image_cardinal la w Hcard_la).
-    (* Cardinal of the union *)
     assert (HcardUnion : cardinal (sum A A)
         (Union (sum A A)
           (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end)
@@ -203,7 +195,6 @@ Section HallKernel.
       - intros z Hl Hr. destruct z. exact Hr. exact Hl.
       - exact HcardInlP.
       - exact HcardInrLa. }
-    (* nn = nP + w *)
     assert (Hnn_eq : nn = nP + w).
     { apply (cardinal_unicity (sum A A) (set_neighbors nbrs_aug S)).
       - exact HcardNS.
@@ -213,7 +204,6 @@ Section HallKernel.
               (fun z => match z with inl _ => False | inr a => In A la a end))).
         + intro z. rewrite <- Hset_eq. tauto.
         + exact HcardUnion. }
-    (* Apply dilworth_hall_defect_pred *)
     assert (Hns_le : Datatypes.S ns' <= nP + w).
     { apply (dilworth_hall_defect_pred R sub la w Hla Habove S (Datatypes.S ns') nP).
       - exact HinclS.
@@ -240,8 +230,7 @@ Section HallKernel.
     assert (Ha_sub : In A sub a) by exact (Hincl_la a Ha).
     assert (Hm_in := Hm_match a Ha_sub).
     destruct (m_aug a) as [y | k] eqn:Hma.
-    - (* m_aug a = inl y: y ∈ sub, R y a, y ≠ a. But a ∈ la is minimal in sub. *)
-      destruct Hm_in as [Hy_sub [HRya Hyne]].
+    - destruct Hm_in as [Hy_sub [HRya Hyne]].
       exfalso.
       assert (Hmin : forall z, In A sub z -> R z a -> z = a).
       { apply (min_elements_eq_la R sub la w Hla Habove a Ha_sub). exact Ha. }
@@ -268,9 +257,7 @@ Section HallKernel.
     intros sub la w m_aug Hcard_la Hincl_la Hm_match Hm_inj Hla_dummy z Hz [d Hm_z].
     assert (Hd_la : In A la d).
     { assert (Hm_in := Hm_match z Hz). rewrite Hm_z in Hm_in. exact Hm_in. }
-    (* π : la → la, a ↦ k where m_aug a = inr k, is a total injection.
-       Since la is finite, π is surjective. So d = π(a) for some a ∈ la,
-       and injectivity of m_aug gives z = a ∈ la. *)
+    (* π : la → la injective, hence surjective; so d is in the range and z = π⁻¹(d) ∈ la. *)
     set (π := fun a => epsilon (inhabits d) (fun k => In A la k /\ m_aug a = inr k)).
     assert (Hpi_spec : forall a, In A la a -> In A la (π a) /\ m_aug a = inr (π a)).
     { intro a. intro Ha.
@@ -280,7 +267,6 @@ Section HallKernel.
     { intros a1 a2 Ha1 Ha2 Heq_pi.
       apply (Hm_inj a1 a2 (Hincl_la a1 Ha1) (Hincl_la a2 Ha2)).
       rewrite (proj2 (Hpi_spec a1 Ha1)), (proj2 (Hpi_spec a2 Ha2)). congruence. }
-    (* Surjectivity: d ∈ la, so ∃ a ∈ la, π a = d *)
     assert (Hpi_surj_d : exists a, In A la a /\ π a = d).
     {
       destruct (classic (exists a, In A la a /\ π a = d)) as [Hex | Hnex].
@@ -332,7 +318,6 @@ Section HallKernel.
     intros sub la w m_aug nx Hla Habove Hcard_sub Hstep_R Hm_inj Hla_dummy.
     assert (Hincl_la : Included A la sub)
       by exact (@largest_antichain_included A R sub la w Hla).
-    (* Replicate kernel-local helpers. *)
     assert (Hsteps_in_sub : forall k x, In A sub x -> k <= nx ->
         In A sub (chain_root_aux m_aug k x)).
     {
@@ -368,10 +353,6 @@ Section HallKernel.
           * rewrite Nat.iter_succ_r, Hstep_x0. exact IHk''.
     }
     intro x. intro Hx.
-    (* Body lifted from kernel's Hf_assign. *)
-    (* We prove the chain doesn't reach la in at most nx steps, or rather DOES reach la *)
-    (* Strategy: if it doesn't reach la in nx steps, we get nx+1 distinct sub-elements *)
-
     assert (Hiter_sub : forall k, k <= nx -> In A sub (Nat.iter k step x)).
     {
       intro k. rewrite <- Hiter_eq2 by exact Hx.
@@ -613,7 +594,6 @@ Section HallKernel.
     intros sub la w m_aug nx Hla Habove Hcard_sub Hstep_R Hm_inj Hla_dummy Hf_la Hf_assign a Ha.
     assert (Hincl_la : Included A la sub)
       by exact (@largest_antichain_included A R sub la w Hla).
-    (* Local helpers replicated from kernel. *)
     set (step := fun z => match m_aug z with inl y => y | inr _ => z end).
     assert (Hiter_eq2 : forall k x0, In A sub x0 ->
         chain_root_aux m_aug k x0 = Nat.iter k step x0).
@@ -638,7 +618,6 @@ Section HallKernel.
                   (@largest_antichain_cardinality A R sub la w Hla)
                   Hincl_la Hstep_R Hm_inj Hla_dummy).
     set (f := fun x => chain_root_aux m_aug nx x).
-    (* Begin lifted Hf_chain body. *)
     split.
     - apply Inhabited_intro with a.
       split. exact (Hincl_la a Ha).
@@ -851,50 +830,41 @@ Section HallKernel.
     destruct Hanti as [HinhLa HincompLa].
     destruct (finite_cardinal A sub HfinSub) as [nx Hcard_sub].
 
-    (* The augmented right type is (sum A A), left = inl y means predecessor y in sub,
-       right = inr a means assigned to la-element a (dummy). *)
     set (nbrs_aug := fun (x : A) (z : sum A A) =>
       match z with
       | inl y => In A sub y /\ R y x /\ y <> x
       | inr a => In A la a
       end).
 
-    (* Y = {inl y | y ∈ sub} ∪ {inr a | a ∈ la} *)
     set (Y := fun (z : sum A A) =>
       match z with
       | inl y => In A sub y
       | inr a => In A la a
       end).
 
-    (* Y is finite *)
     assert (HfinY : Finite (sum A A) Y).
     {
       pose proof (Y_cardinal sub la nx w Hcard_sub Hcard_la) as HcardY.
       exact (cardinal_finite (sum A A) Y (nx + w) HcardY).
     }
 
-    (* (sum A A) is inhabited *)
     assert (HinhR : inhabited (sum A A)).
     { destruct HinhLa as [a Ha]. exact (inhabits (inr a)). }
 
-    (* nbrs_aug x ⊆ Y for x ∈ sub *)
     assert (Hnbrs_Y : forall x z, In A sub x -> In (sum A A) (nbrs_aug x) z -> In (sum A A) Y z).
     { intros x z Hx Hz. unfold nbrs_aug in Hz. unfold Y.
       destruct z as [y | a].
       - exact (proj1 Hz).
       - exact Hz. }
 
-    (* Hall's condition *)
     assert (Hhall : HallCondition sub nbrs_aug)
       by exact (hall_condition_holds sub la w nbrs_aug Hla' Habove HfinSub Hcard_la
                   (fun x z => iff_refl _)).
 
-    (* Apply Hall's marriage theorem *)
     destruct (hall_marriage_theorem sub Y nx nbrs_aug Hcard_sub HfinY HinhR
                 (fun x z Hx Hz => Hnbrs_Y x z Hx Hz) Hhall)
       as [m_aug [Hm_Y [Hm_nbrs Hm_inj]]].
 
-    (* For la-elements: m_aug returns inr *)
     assert (Hm_match : forall x, In A sub x ->
         match m_aug x with
         | inl y => In A sub y /\ R y x /\ y <> x
@@ -903,14 +873,11 @@ Section HallKernel.
     { intros x Hx. exact (Hm_nbrs x Hx). }
     pose proof (la_assigned_to_dummy sub la w m_aug Hla' Habove Hm_match) as Hla_dummy.
 
-    (* Any sub-element matched to a dummy node must be in la *)
     pose proof (dummy_target_in_la sub la w m_aug Hcard_la Hincl_la Hm_match Hm_inj Hla_dummy)
       as Hdummy_means_la.
 
-    (* Define f via chain_root_aux *)
     set (f := fun x => chain_root_aux m_aug nx x).
 
-    (* f(a) = a for a ∈ la *)
     assert (Hf_la : forall a, In A la a -> chain_root_aux m_aug nx a = a).
     {
       intros a Ha.
@@ -920,7 +887,6 @@ Section HallKernel.
       - simpl. rewrite Hma. reflexivity.
     }
 
-    (* Assignment: f(x) ∈ la and R(f(x)) x *)
     assert (Hf_assign : forall x, In A sub x -> In A la (f x) /\ R (f x) x).
     {
       pose proof (chain_terminates sub la w m_aug nx Hla' Habove Hcard_sub
@@ -928,7 +894,6 @@ Section HallKernel.
       intros x Hx. unfold f. exact (Hct x Hx).
     }
 
-    (* Chain property *)
     pose proof (fiber_chain sub la w m_aug nx Hla' Habove Hcard_sub
                   Hm_match Hm_inj Hla_dummy Hf_la Hf_assign) as Hf_chain.
 

@@ -153,10 +153,6 @@ Section BaseCases.
     intros sub la n Hcard _. exact (singleton_chain_cover sub n Hcard).
   Qed.
 
-  (* ========================================================================= *)
-  (* Fiber Cover Cardinality                                                   *)
-  (* ========================================================================= *)
-
   Lemma below_fiber_cover_cardinal : forall (sub la : Ensemble A) w (f : A -> A),
     cardinal A la w ->
     Included A la sub ->

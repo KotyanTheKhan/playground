@@ -41,7 +41,6 @@ Section Merge.
               Included A Cb (Below R la)).
     { intros Cb HCb z Hz.
       destruct (chain_cover_included R (IsChainCover := Hcov_b) Cb HCb z Hz). assumption. }
-    (* Use choice to get functions ca : A -> Ensemble A and cb : A -> Ensemble A *)
     assert (Hca_exists : forall a, In A la a ->
               exists Ca, In (Ensemble A) cover_a Ca /\ In A Ca a).
     { intros a Ha.
@@ -50,7 +49,6 @@ Section Merge.
               exists Cb, In (Ensemble A) cover_b Cb /\ In A Cb a).
     { intros a Ha.
       exact (chain_cover_covers R (IsChainCover := Hcov_b) a (Hla_below a Ha)). }
-    (* Extract functions using epsilon *)
     pose (ca := fun a => epsilon (inhabits (Empty_set A))
                   (fun Ca => In (Ensemble A) cover_a Ca /\ In A Ca a)).
     pose (cb := fun a => epsilon (inhabits (Empty_set A))
@@ -61,7 +59,6 @@ Section Merge.
     assert (Hcb_spec : forall a, In A la a ->
               In (Ensemble A) cover_b (cb a) /\ In A (cb a) a).
     { intros a Ha. unfold cb. apply epsilon_spec. exact (Hcb_exists a Ha). }
-    (* ca is injective on la *)
     assert (Hca_inj : forall a1 a2, In A la a1 -> In A la a2 ->
               ca a1 = ca a2 -> a1 = a2).
     { intros a1 a2 Ha1 Ha2 Heq.
@@ -72,7 +69,6 @@ Section Merge.
         by exact (chain_cover_chains R (IsChainCover := Hcov_a) (ca a2) HCa2).
       destruct Hchain as [_ Hcomp].
       exact (Hincompat a1 a2 Ha1 Ha2 (Hcomp a1 a2 Ha1_Ca Ha2_Ca)). }
-    (* ca is surjective onto cover_a *)
     assert (Hca_surj : forall Ca, In (Ensemble A) cover_a Ca ->
               exists a, In A la a /\ ca a = Ca).
     { intros Ca HCa.
@@ -82,14 +78,11 @@ Section Merge.
         (* Ca is not in the range of ca|_la. So ca maps la into cover_a \ {Ca}. *)
         assert (Hno_hit : forall a, In A la a -> ca a <> Ca).
         { intros a Ha Heq. apply Hnex. exact (ex_intro _ a (conj Ha Heq)). }
-        (* cover_a \ {Ca} has cardinality w - 1 *)
         destruct w as [| w'].
-        { (* w = 0: la empty, but la is inhabited *)
-          destruct Hinhab as [a Ha]. inversion Hcard_la. subst. inversion Ha. }
+        { destruct Hinhab as [a Ha]. inversion Hcard_la. subst. inversion Ha. }
         assert (Hcard_minus : cardinal (Ensemble A)
                   (fun D => In (Ensemble A) cover_a D /\ D <> Ca) w').
         { apply cardinal_remove; assumption. }
-        (* The injection la → cover_a \ {Ca} gives S w' ≤ w', contradiction *)
         assert (Habs : S w' <= w').
         { apply (InjectionPrinciple.cardinal_injection_principle_poly
                    A (Ensemble A) la
@@ -105,7 +98,6 @@ Section Merge.
           - exact Hcard_la.
           - exact Hcard_minus. }
         lia. }
-    (* cb is surjective onto cover_b (same argument) *)
     assert (Hcb_surj : forall Cb, In (Ensemble A) cover_b Cb ->
               exists a, In A la a /\ cb a = Cb).
     { intros Cb HCb.
@@ -141,15 +133,12 @@ Section Merge.
           - exact Hcard_la.
           - exact Hcard_minus. }
         lia. }
-    (* Define merged as the image of la under the merge function *)
     pose (merged := fun E : Ensemble A =>
       exists a, In A la a /\ E = Union A (ca a) (cb a)).
     exists merged.
-    (* Part 1: merged is a chain cover of sub *)
     assert (Hmerged_cov : IsChainCover R sub merged).
     { constructor.
-      - (* Each merged chain is a chain *)
-        intros E HE. destruct HE as [a [Ha_la Heq_E]]. subst E.
+      - intros E HE. destruct HE as [a [Ha_la Heq_E]]. subst E.
         destruct (Hca_spec a Ha_la) as [HCa Ha_Ca].
         destruct (Hcb_spec a Ha_la) as [HCb Ha_Cb].
         assert (chain_Ca : IsChain R (ca a))
@@ -177,8 +166,7 @@ Section Merge.
                  (Build_IsAntichain R la Hinhab Hincompat) chain_Ca
                  (HCa_above (ca a) HCa) Ha_Ca Ha_la Hy').
           * exact (chain_comparable R (IsChain := chain_Cb) x y Hx' Hy').
-      - (* Each merged chain is included in sub *)
-        intros E HE. destruct HE as [a [Ha_la Heq_E]]. subst E.
+      - intros E HE. destruct HE as [a [Ha_la Heq_E]]. subst E.
         destruct (Hca_spec a Ha_la) as [HCa _].
         destruct (Hcb_spec a Ha_la) as [HCb _].
         intros x Hx.
@@ -187,12 +175,10 @@ Section Merge.
           assumption.
         + destruct (chain_cover_included R (IsChainCover := Hcov_b) (cb a) HCb x Hx').
           assumption.
-      - (* merged covers sub *)
-        intros x Hx.
+      - intros x Hx.
         pose proof (Hunion x Hx) as Hx_union.
         destruct Hx_union as [x0 Hx_ab | x0 Hx_ab].
-        + (* x ∈ Above(la) *)
-          assert (Hx_inter : In A (Intersection A (Above R la) sub) x0)
+        + assert (Hx_inter : In A (Intersection A (Above R la) sub) x0)
             by exact (Intersection_intro _ _ _ x0 Hx_ab Hx).
           destruct (chain_cover_covers R (IsChainCover := Hcov_a) x0 Hx_inter)
             as [Ca' [HCa' Hx_Ca']].
@@ -201,8 +187,7 @@ Section Merge.
           exists (Union A (ca a') (cb a')). split.
           { exists a'. exact (conj Ha'_la eq_refl). }
           { apply Union_introl. rewrite Hca_eq. exact Hx_Ca'. }
-        + (* x ∈ Below(la) *)
-          assert (Hx_inter : In A (Intersection A (Below R la) sub) x0)
+        + assert (Hx_inter : In A (Intersection A (Below R la) sub) x0)
             by exact (Intersection_intro _ _ _ x0 Hx_ab Hx).
           destruct (chain_cover_covers R (IsChainCover := Hcov_b) x0 Hx_inter)
             as [Cb' [HCb' Hx_Cb']].
@@ -212,12 +197,9 @@ Section Merge.
           { exists a'. exact (conj Ha'_la eq_refl). }
           { apply Union_intror. rewrite Hcb_eq. exact Hx_Cb'. } }
     split; [exact Hmerged_cov |].
-    (* Part 2: |merged| = w *)
     assert (Hla_full : IsLargestAntichain R sub la w).
     { constructor; [constructor; [exact Hinhab | exact Hincompat]
       | exact Hincl_la | exact Hcard_la | exact Hmax]. }
-    (* merged is the image of la under (fun a => Union (ca a) (cb a)) *)
-    (* So |merged| ≤ |la| = w by image_cardinal_le *)
     pose (f := fun a => Union A (ca a) (cb a)).
     assert (Hmerged_eq : forall E, In (Ensemble A) merged E <->
               exists a, In A la a /\ E = f a).
@@ -227,7 +209,6 @@ Section Merge.
       - intro HE. exact (proj1 (Hmerged_eq E) HE).
       - intro HE. exact (proj2 (Hmerged_eq E) HE). }
     destruct (image_cardinal_le la f w Hcard_la) as [m [Hcard_img Hm_le]].
-    (* The image set equals merged *)
     assert (Himg_eq : (fun y : Ensemble A => exists x, In A la x /\ y = f x) = merged).
     { apply Extensionality_Ensembles. intro E. split.
       - intros [a [Ha Heq]]. exists a. exact (conj Ha Heq).

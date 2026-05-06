@@ -20,10 +20,6 @@ Section Backward.
   Local Notation StrictSucc := (HallDefect.StrictSucc R).
   Local Notation StrictPred := (HallDefect.StrictPred R).
 
-  (* ========================================================================= *)
-  (* The Inductive Step                                                        *)
-  (* ========================================================================= *)
-
   Lemma dilworth_inductive_step : forall n (sub la : Ensemble A) (w : nat),
     cardinal A sub n ->
     w >= 2 ->
@@ -78,10 +74,6 @@ Section Backward.
                  (sub_in_above_or_below R sub la w Hla)
                  Hcover_a Hcard_a Hcover_b Hcard_b). } }
   Qed.
-
-  (* ========================================================================= *)
-  (* Backward Direction: DilworthB                                             *)
-  (* ========================================================================= *)
 
   Lemma DilworthB : forall n sub w la,
     cardinal A sub n ->

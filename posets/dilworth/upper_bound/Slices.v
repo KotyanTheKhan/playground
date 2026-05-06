@@ -10,8 +10,6 @@ Section Slices.
   Context {A : Type}.
   Context (R : A -> A -> Prop) `{IsPoset A R}.
 
-  (* === Helper Lemmas for Above and Below === *)
-
   Lemma la_in_Above : forall la,
     IsAntichain R la ->
     Included A la (Above R la).
@@ -77,8 +75,6 @@ Section Slices.
     unfold Below. exists a. split; auto.
     apply poset_refl.
   Qed.
-
-  (* === Inductive Step Preliminaries === *)
 
   Lemma sub_in_above_or_below : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
@@ -249,8 +245,6 @@ Section Slices.
         by exact (incl_card_le A _ _ nb n' Hnb Hcard_minus Hincl_inter). lia. }
     exact (constructive_indefinite_description _ Hprop).
   Qed.
-
-  (* === Antichain Lower Bound for Chain Covers === *)
 
   Lemma antichain_lb_for_chain_cover : forall (sub la : Ensemble A) w n
       (cover : Ensemble (Ensemble A)),
