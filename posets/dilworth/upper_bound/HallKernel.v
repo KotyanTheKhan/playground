@@ -154,6 +154,74 @@ Section HallKernel.
         exists x0. split. exact Hx0. apply Hnbrs. exact Hz'.
   Qed.
 
+  (* Hall's marriage condition for the augmented matching graph,
+     discharged via dilworth_hall_defect_pred. *)
+  Lemma hall_condition_holds : forall (sub la : Ensemble A) w
+      (nbrs_aug : A -> sum A A -> Prop),
+    IsLargestAntichain R sub la w ->
+    Included A sub (Above R la) ->
+    Finite A sub ->
+    cardinal A la w ->
+    (forall x z, nbrs_aug x z <->
+       match z with
+       | inl y => In A sub y /\ R y x /\ y <> x
+       | inr a => In A la a
+       end) ->
+    HallCondition sub nbrs_aug.
+  Proof.
+    intros sub la w nbrs_aug Hla Habove HfinSub Hcard_la Hnbrs.
+    intros S ns nn HinclS HcardS HcardNS.
+    (* We need ns <= nn *)
+    (* set_neighbors nbrs_aug S = {inl y | StrictPred sub S y} ∪ {inr a | a ∈ la} when S non-empty *)
+    (* and = {inr a | a ∈ la} when S empty *)
+    destruct ns as [| ns'].
+    { lia. }
+    assert (HinhS : Inhabited A S).
+    { inversion HcardS as [| S0 m Hm x Hx_notin]. subst.
+      apply Inhabited_intro with x. apply Union_intror. apply In_singleton. }
+    (* StrictPred sub S is finite *)
+    assert (HfinSP : Finite A (StrictPred sub S)).
+    { apply (Finite_downward_closed A sub HfinSub). intros y Hy. exact (proj1 Hy). }
+    destruct (finite_cardinal A (StrictPred sub S) HfinSP) as [nP HcardSP].
+    (* set_neighbors nbrs_aug S = inl-image(StrictPred) ∪ inr-image(la) *)
+    pose proof (nbrs_aug_neighbors_eq sub la nbrs_aug Hnbrs S HinhS) as Hset_eq.
+    (* Cardinal of inl-image(StrictPred) *)
+    assert (HcardInlP : cardinal (sum A A)
+        (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end) nP)
+      by exact (inl_image_cardinal (StrictPred sub S) nP HcardSP).
+    (* Cardinal of inr-image(la) *)
+    assert (HcardInrLa : cardinal (sum A A)
+        (fun z => match z with inl _ => False | inr a => In A la a end) w)
+      by exact (inr_image_cardinal la w Hcard_la).
+    (* Cardinal of the union *)
+    assert (HcardUnion : cardinal (sum A A)
+        (Union (sum A A)
+          (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end)
+          (fun z => match z with inl _ => False | inr a => In A la a end))
+        (nP + w)).
+    { apply cardinal_disjoint_union_gen.
+      - intros z Hl Hr. destruct z. exact Hr. exact Hl.
+      - exact HcardInlP.
+      - exact HcardInrLa. }
+    (* nn = nP + w *)
+    assert (Hnn_eq : nn = nP + w).
+    { apply (cardinal_unicity (sum A A) (set_neighbors nbrs_aug S)).
+      - exact HcardNS.
+      - apply (cardinal_extensional_poly (sum A A)
+            (Union (sum A A)
+              (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end)
+              (fun z => match z with inl _ => False | inr a => In A la a end))).
+        + intro z. rewrite <- Hset_eq. tauto.
+        + exact HcardUnion. }
+    (* Apply dilworth_hall_defect_pred *)
+    assert (Hns_le : Datatypes.S ns' <= nP + w).
+    { apply (dilworth_hall_defect_pred R sub la w Hla Habove S (Datatypes.S ns') nP).
+      - exact HinclS.
+      - exact HcardS.
+      - exact HcardSP. }
+    lia.
+  Qed.
+
   Lemma chain_assignment_kernel : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Above R la) ->
@@ -209,60 +277,9 @@ Section HallKernel.
       - exact Hz. }
 
     (* Hall's condition *)
-    assert (Hhall : HallCondition sub nbrs_aug).
-    {
-      intros S ns nn HinclS HcardS HcardNS.
-      (* We need ns <= nn *)
-      (* set_neighbors nbrs_aug S = {inl y | StrictPred sub S y} ∪ {inr a | a ∈ la} when S non-empty *)
-      (* and = {inr a | a ∈ la} when S empty *)
-      destruct ns as [| ns'].
-      { lia. }
-      assert (HinhS : Inhabited A S).
-      { inversion HcardS as [| S0 m Hm x Hx_notin]. subst.
-        apply Inhabited_intro with x. apply Union_intror. apply In_singleton. }
-      (* StrictPred sub S is finite *)
-      assert (HfinSP : Finite A (StrictPred sub S)).
-      { apply (Finite_downward_closed A sub HfinSub). intros y Hy. exact (proj1 Hy). }
-      destruct (finite_cardinal A (StrictPred sub S) HfinSP) as [nP HcardSP].
-      (* set_neighbors nbrs_aug S = inl-image(StrictPred) ∪ inr-image(la) *)
-      pose proof (nbrs_aug_neighbors_eq sub la nbrs_aug
-                    (fun x z => iff_refl _) S HinhS) as Hset_eq.
-      (* Cardinal of inl-image(StrictPred) *)
-      assert (HcardInlP : cardinal (sum A A)
-          (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end) nP)
-        by exact (inl_image_cardinal (StrictPred sub S) nP HcardSP).
-      (* Cardinal of inr-image(la) *)
-      assert (HcardInrLa : cardinal (sum A A)
-          (fun z => match z with inl _ => False | inr a => In A la a end) w)
-        by exact (inr_image_cardinal la w Hcard_la).
-      (* Cardinal of the union *)
-      assert (HcardUnion : cardinal (sum A A)
-          (Union (sum A A)
-            (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end)
-            (fun z => match z with inl _ => False | inr a => In A la a end))
-          (nP + w)).
-      { apply cardinal_disjoint_union_gen.
-        - intros z Hl Hr. destruct z. exact Hr. exact Hl.
-        - exact HcardInlP.
-        - exact HcardInrLa. }
-      (* nn = nP + w *)
-      assert (Hnn_eq : nn = nP + w).
-      { apply (cardinal_unicity (sum A A) (set_neighbors nbrs_aug S)).
-        - exact HcardNS.
-        - apply (cardinal_extensional_poly (sum A A)
-              (Union (sum A A)
-                (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end)
-                (fun z => match z with inl _ => False | inr a => In A la a end))).
-          + intro z. rewrite <- Hset_eq. tauto.
-          + exact HcardUnion. }
-      (* Apply dilworth_hall_defect_pred *)
-      assert (Hns_le : Datatypes.S ns' <= nP + w).
-      { apply (dilworth_hall_defect_pred R sub la w Hla' Habove S (Datatypes.S ns') nP).
-        - exact HinclS.
-        - exact HcardS.
-        - exact HcardSP. }
-      lia.
-    }
+    assert (Hhall : HallCondition sub nbrs_aug)
+      by exact (hall_condition_holds sub la w nbrs_aug Hla' Habove HfinSub Hcard_la
+                  (fun x z => iff_refl _)).
 
     (* Apply Hall's marriage theorem *)
     destruct (hall_marriage_theorem sub Y nx nbrs_aug Hcard_sub HfinY HinhR
