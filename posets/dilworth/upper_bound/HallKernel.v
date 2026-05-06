@@ -222,6 +222,33 @@ Section HallKernel.
     lia.
   Qed.
 
+  (* la-elements always match a dummy node: m_aug a is some inr k. *)
+  Lemma la_assigned_to_dummy : forall (sub la : Ensemble A) w (m_aug : A -> sum A A),
+    IsLargestAntichain R sub la w ->
+    Included A sub (Above R la) ->
+    (forall x, In A sub x ->
+      match m_aug x with
+      | inl y => In A sub y /\ R y x /\ y <> x
+      | inr a => In A la a
+      end) ->
+    forall a, In A la a ->
+    exists k, In A la k /\ m_aug a = inr k.
+  Proof.
+    intros sub la w m_aug Hla Habove Hm_match a Ha.
+    assert (Hincl_la : Included A la sub)
+      by exact (@largest_antichain_included A R sub la w Hla).
+    assert (Ha_sub : In A sub a) by exact (Hincl_la a Ha).
+    assert (Hm_in := Hm_match a Ha_sub).
+    destruct (m_aug a) as [y | k] eqn:Hma.
+    - (* m_aug a = inl y: y ∈ sub, R y a, y ≠ a. But a ∈ la is minimal in sub. *)
+      destruct Hm_in as [Hy_sub [HRya Hyne]].
+      exfalso.
+      assert (Hmin : forall z, In A sub z -> R z a -> z = a).
+      { apply (min_elements_eq_la R sub la w Hla Habove a Ha_sub). exact Ha. }
+      exact (Hyne (Hmin y Hy_sub HRya)).
+    - exact (ex_intro _ k (conj Hm_in eq_refl)).
+  Qed.
+
   Lemma chain_assignment_kernel : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Above R la) ->
@@ -287,22 +314,13 @@ Section HallKernel.
       as [m_aug [Hm_Y [Hm_nbrs Hm_inj]]].
 
     (* For la-elements: m_aug returns inr *)
-    assert (Hla_dummy : forall a, In A la a ->
-        exists k, In A la k /\ m_aug a = inr k).
-    {
-      intros a Ha.
-      assert (Ha_sub : In A sub a) by exact (Hincl_la a Ha).
-      assert (Hm_in : In (sum A A) (nbrs_aug a) (m_aug a)) by exact (Hm_nbrs a Ha_sub).
-      unfold nbrs_aug in Hm_in.
-      destruct (m_aug a) as [y | k] eqn:Hma.
-      - (* m_aug a = inl y: y ∈ sub, R y a, y ≠ a. But a ∈ la is minimal in sub. *)
-        destruct Hm_in as [Hy_sub [HRya Hyne]].
-        exfalso.
-        assert (Hmin : forall z, In A sub z -> R z a -> z = a).
-        { apply (min_elements_eq_la R sub la w Hla' Habove a Ha_sub). exact Ha. }
-        exact (Hyne (Hmin y Hy_sub HRya)).
-      - exact (ex_intro _ k (conj Hm_in eq_refl)).
-    }
+    assert (Hm_match : forall x, In A sub x ->
+        match m_aug x with
+        | inl y => In A sub y /\ R y x /\ y <> x
+        | inr a => In A la a
+        end).
+    { intros x Hx. exact (Hm_nbrs x Hx). }
+    pose proof (la_assigned_to_dummy sub la w m_aug Hla' Habove Hm_match) as Hla_dummy.
 
     (* Any sub-element matched to a dummy node must be in la *)
     assert (Hdummy_means_la : forall z, In A sub z -> (exists d, m_aug z = inr d) -> In A la z).
