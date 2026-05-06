@@ -118,6 +118,42 @@ Section HallKernel.
       + exact (inr_image_cardinal la w Hcard_la).
   Qed.
 
+  (* set_neighbors of the augmented matching graph decomposes as
+     inl(StrictPred sub S) ⊎ inr(la) for any nonempty S ⊆ sub. *)
+  Lemma nbrs_aug_neighbors_eq : forall (sub la : Ensemble A)
+      (nbrs_aug : A -> sum A A -> Prop),
+    (forall x z, nbrs_aug x z <->
+       match z with
+       | inl y => In A sub y /\ R y x /\ y <> x
+       | inr a => In A la a
+       end) ->
+    forall S,
+    Inhabited A S ->
+    set_neighbors nbrs_aug S =
+      Union (sum A A)
+        (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end)
+        (fun z => match z with inl _ => False | inr a => In A la a end).
+  Proof.
+    intros sub la nbrs_aug Hnbrs S HinhS.
+    apply Extensionality_Ensembles. intro z. split.
+    - intros [x [Hx Hz]]. apply Hnbrs in Hz.
+      destruct z as [y | a].
+      + apply Union_introl. unfold StrictPred.
+        destruct Hz as [Hy [HRyx Hne]].
+        exact (conj Hy (ex_intro _ x (conj Hx (conj HRyx (fun h => Hne (eq_sym h)))))).
+      + apply Union_intror. exact Hz.
+    - intro Hz. inversion Hz as [z' Hz' | z' Hz']; subst.
+      + destruct z as [y | a]. 2: exact (False_rect _ Hz').
+        simpl in Hz'. unfold StrictPred in Hz'.
+        destruct Hz' as [Hy [x [Hx [HRyx Hne]]]].
+        exists x. split. exact Hx. apply Hnbrs.
+        exact (conj Hy (conj HRyx (fun h => Hne (eq_sym h)))).
+      + destruct z as [y | a]. exact (False_rect _ Hz').
+        simpl in Hz'.
+        destruct HinhS as [x0 Hx0].
+        exists x0. split. exact Hx0. apply Hnbrs. exact Hz'.
+  Qed.
+
   Lemma chain_assignment_kernel : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Above R la) ->
@@ -189,26 +225,8 @@ Section HallKernel.
       { apply (Finite_downward_closed A sub HfinSub). intros y Hy. exact (proj1 Hy). }
       destruct (finite_cardinal A (StrictPred sub S) HfinSP) as [nP HcardSP].
       (* set_neighbors nbrs_aug S = inl-image(StrictPred) ∪ inr-image(la) *)
-      assert (Hset_eq : set_neighbors nbrs_aug S =
-          Union (sum A A)
-            (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end)
-            (fun z => match z with inl _ => False | inr a => In A la a end)).
-      { apply Extensionality_Ensembles. intro z. split.
-        - intros [x [Hx Hz]]. unfold nbrs_aug in Hz. destruct z as [y | a].
-          + apply Union_introl. unfold HallDefect.StrictPred.
-            exact (conj (proj1 Hz) (ex_intro _ x (conj Hx (conj (proj1 (proj2 Hz)) (fun h => proj2 (proj2 Hz) (eq_sym h)))))).
-          + apply Union_intror. exact Hz.
-        - intro Hz.
-          inversion Hz as [z' Hz' | z' Hz']; subst.
-          + destruct z as [y | a]. 2: exact (False_rect _ Hz').
-            simpl in Hz'. unfold HallDefect.StrictPred in Hz'.
-            destruct Hz' as [Hy [x [Hx [HRyx Hne]]]].
-            exists x. split. exact Hx. unfold nbrs_aug.
-            exact (conj Hy (conj HRyx (fun h => Hne (eq_sym h)))).
-          + destruct z as [y | a]. exact (False_rect _ Hz').
-            simpl in Hz'.
-            destruct HinhS as [x0 Hx0].
-            exists x0. split. exact Hx0. unfold nbrs_aug. exact Hz'. }
+      pose proof (nbrs_aug_neighbors_eq sub la nbrs_aug
+                    (fun x z => iff_refl _) S HinhS) as Hset_eq.
       (* Cardinal of inl-image(StrictPred) *)
       assert (HcardInlP : cardinal (sum A A)
           (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end) nP)
