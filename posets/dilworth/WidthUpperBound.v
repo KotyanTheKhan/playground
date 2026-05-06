@@ -1,10 +1,7 @@
 From Stdlib Require Import Ensembles Finite_sets Classical Lia Arith Wf_nat.
 From Stdlib Require Import Finite_sets_facts ClassicalEpsilon ClassicalChoice.
 From Posets Require Import PosetClasses.
-From Dilworth Require Import CardinalArithmetic Definitions InjectionPrinciple CardinalLemmas WidthLowerBound Helpers Hall upper_bound.Slices upper_bound.HallDefect upper_bound.BaseCases.
-
-Local Lemma Nat_le_of_succ_le (n m : nat) : Datatypes.S n <= m -> n <= m.
-Proof. lia. Qed.
+From Dilworth Require Import CardinalArithmetic Definitions InjectionPrinciple CardinalLemmas WidthLowerBound Helpers Hall upper_bound.Slices upper_bound.HallDefect upper_bound.BaseCases upper_bound.Iter.
 
 Section DilworthBackward.
   Context {A : Type}.
@@ -12,28 +9,6 @@ Section DilworthBackward.
 
   Local Notation StrictSucc := (HallDefect.StrictSucc R).
   Local Notation StrictPred := (HallDefect.StrictPred R).
-
-  (* ========================================================================= *)
-  (* Chain root auxiliary functions                                            *)
-  (* ========================================================================= *)
-
-  Fixpoint chain_root_aux (m : A -> sum A A) (fuel : nat) (x : A) : A :=
-    match fuel with
-    | 0 => x
-    | S k => match m x with
-             | inr _ => x
-             | inl y => chain_root_aux m k y
-             end
-    end.
-
-  Fixpoint depth_aux (m : A -> sum A A) (fuel : nat) (x : A) : nat :=
-    match fuel with
-    | 0 => 0
-    | S k => match m x with
-             | inr _ => 0
-             | inl y => S (depth_aux m k y)
-             end
-    end.
 
   (* ========================================================================= *)
   (* Assignment Lemmas (Hall's Marriage Theorem)                               *)
