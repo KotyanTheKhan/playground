@@ -23,6 +23,40 @@ Section HallKernel.
   Local Notation StrictSucc := (HallDefect.StrictSucc R).
   Local Notation StrictPred := (HallDefect.StrictPred R).
 
+  (* The inl-image of a finite subset of A inside sum A A has the same cardinal. *)
+  Lemma inl_image_cardinal : forall (S : Ensemble A) n,
+    cardinal A S n ->
+    cardinal (sum A A)
+      (fun z => match z with inl y => In A S y | inr _ => False end) n.
+  Proof.
+    intros S n Hcard.
+    induction Hcard as [| S' k Hcard' IH a Ha_notin].
+    - apply (cardinal_extensional_poly (sum A A) (Empty_set (sum A A))).
+      + intro z. split.
+        * intro Hz. inversion Hz.
+        * intro Hz. destruct z as [y|b]; simpl in Hz; inversion Hz.
+      + apply card_empty.
+    - apply (cardinal_extensional_poly (sum A A)
+            (Add (sum A A)
+              (fun z => match z with inl y => In A S' y | inr _ => False end)
+              (inl a))).
+      + intro z. split.
+        * intro Hz. unfold Add in Hz.
+          inversion Hz as [u Hu Heq | u Hu Heq]; subst u.
+          -- destruct z as [y | b].
+             ++ apply Union_introl. simpl in Hu. exact Hu.
+             ++ simpl in Hu. exact (False_rect _ Hu).
+          -- inversion Hu. subst z. apply Union_intror. apply In_singleton.
+        * intro Hz. destruct z as [y | b].
+          -- simpl in Hz.
+             inversion Hz as [u Hu Heq | u Hu Heq]; subst u.
+             ++ apply Union_introl. simpl. exact Hu.
+             ++ inversion Hu. subst y. apply Union_intror. apply In_singleton.
+          -- simpl in Hz. exact (False_rect _ Hz).
+      + apply card_add. exact IH.
+        intro Hcontra. simpl in Hcontra. exact (Ha_notin Hcontra).
+  Qed.
+
   Lemma chain_assignment_kernel : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Above R la) ->
@@ -57,32 +91,8 @@ Section HallKernel.
     {
       (* Helper: lift cardinal through inl/inr injections *)
       assert (HcardInl : cardinal (sum A A)
-          (fun z => match z with inl y => In A sub y | inr _ => False end) nx).
-      { clear - Hcard_sub.
-        induction Hcard_sub as [| S' k Hcard' IH a Ha_notin].
-        - apply (cardinal_extensional_poly (sum A A) (Empty_set (sum A A))).
-          + intro z. split. intro Hz. inversion Hz. intro Hz. destruct z as [y|b]; simpl in Hz; inversion Hz.
-          + apply card_empty.
-        - apply (cardinal_extensional_poly (sum A A)
-              (Add (sum A A)
-                (fun z => match z with inl y => In A S' y | inr _ => False end)
-                (inl a))).
-          + intro z. split.
-            * intro Hz. unfold Add in Hz.
-              inversion Hz as [u Hu Heq | u Hu Heq]; subst u.
-              -- destruct z as [y | b].
-                 ++ apply Union_introl. simpl in Hu. exact Hu.
-                 ++ simpl in Hu. exact (False_rect _ Hu).
-              -- inversion Hu. subst z. apply Union_intror. apply In_singleton.
-            * intro Hz. destruct z as [y | b].
-              -- simpl in Hz.
-                 inversion Hz as [u Hu Heq | u Hu Heq]; subst u.
-                 ++ apply Union_introl. simpl. exact Hu.
-                 ++ inversion Hu. subst y. apply Union_intror. apply In_singleton.
-              -- simpl in Hz. exact (False_rect _ Hz).
-          + apply card_add. exact IH.
-            intro Hcontra. simpl in Hcontra. exact (Ha_notin Hcontra).
-      }
+          (fun z => match z with inl y => In A sub y | inr _ => False end) nx)
+        by exact (inl_image_cardinal sub nx Hcard_sub).
       assert (HcardInr : cardinal (sum A A)
           (fun z => match z with inl _ => False | inr a => In A la a end) w).
       { clear - Hcard_la.
@@ -185,29 +195,8 @@ Section HallKernel.
             exists x0. split. exact Hx0. unfold nbrs_aug. exact Hz'. }
       (* Cardinal of inl-image(StrictPred) *)
       assert (HcardInlP : cardinal (sum A A)
-          (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end) nP).
-      { clear - HcardSP.
-        induction HcardSP as [| SP' k Hcard' IH a Ha_notin].
-        - apply (cardinal_extensional_poly (sum A A) (Empty_set (sum A A))).
-          + intro z. split; intro Hz. inversion Hz. destruct z as [y|b]; simpl in Hz; [inversion Hz | inversion Hz].
-          + apply card_empty.
-        - apply (cardinal_extensional_poly (sum A A)
-              (Add (sum A A)
-                (fun z => match z with inl y => In A SP' y | inr _ => False end)
-                (inl a))).
-          + intro z. split; intro Hz.
-            * destruct Hz as [z' Hz' | z' Hz'].
-              -- simpl in Hz'. destruct z' as [y | b].
-                 ++ apply Union_introl. exact Hz'.
-                 ++ exact (False_rect _ Hz').
-              -- inversion Hz'. subst z'. simpl. apply Union_intror. apply In_singleton.
-            * destruct z as [y | b].
-              -- simpl in Hz. destruct Hz as [z' Hz' | z' Hz'].
-                 ++ apply Union_introl. exact Hz'.
-                 ++ inversion Hz'. subst z'. apply Union_intror. apply In_singleton.
-              -- simpl in Hz. exact (False_rect _ Hz).
-          + apply card_add. exact IH.
-            intro Hcontra. exact (Ha_notin Hcontra). }
+          (fun z => match z with inl y => In A (StrictPred sub S) y | inr _ => False end) nP)
+        by exact (inl_image_cardinal (StrictPred sub S) nP HcardSP).
       (* Cardinal of inr-image(la) *)
       assert (HcardInrLa : cardinal (sum A A)
           (fun z => match z with inl _ => False | inr a => In A la a end) w).
