@@ -249,6 +249,70 @@ Section HallKernel.
     - exact (ex_intro _ k (conj Hm_in eq_refl)).
   Qed.
 
+  (* Any sub-element matched to a dummy node is itself in la
+     (by surjectivity of the la-restriction of m_aug). *)
+  Lemma dummy_target_in_la : forall (sub la : Ensemble A) w (m_aug : A -> sum A A),
+    cardinal A la w ->
+    Included A la sub ->
+    (forall x, In A sub x ->
+      match m_aug x with
+      | inl y => In A sub y /\ R y x /\ y <> x
+      | inr a => In A la a
+      end) ->
+    (forall x y, In A sub x -> In A sub y -> m_aug x = m_aug y -> x = y) ->
+    (forall a, In A la a -> exists k, In A la k /\ m_aug a = inr k) ->
+    forall z, In A sub z ->
+    (exists d, m_aug z = inr d) ->
+    In A la z.
+  Proof.
+    intros sub la w m_aug Hcard_la Hincl_la Hm_match Hm_inj Hla_dummy z Hz [d Hm_z].
+    assert (Hd_la : In A la d).
+    { assert (Hm_in := Hm_match z Hz). rewrite Hm_z in Hm_in. exact Hm_in. }
+    (* π : la → la, a ↦ k where m_aug a = inr k, is a total injection.
+       Since la is finite, π is surjective. So d = π(a) for some a ∈ la,
+       and injectivity of m_aug gives z = a ∈ la. *)
+    set (π := fun a => epsilon (inhabits d) (fun k => In A la k /\ m_aug a = inr k)).
+    assert (Hpi_spec : forall a, In A la a -> In A la (π a) /\ m_aug a = inr (π a)).
+    { intro a. intro Ha.
+      destruct (Hla_dummy a Ha) as [k [Hk Hmk]].
+      unfold π. apply epsilon_spec. exact (ex_intro _ k (conj Hk Hmk)). }
+    assert (Hpi_inj : forall a1 a2, In A la a1 -> In A la a2 -> π a1 = π a2 -> a1 = a2).
+    { intros a1 a2 Ha1 Ha2 Heq_pi.
+      apply (Hm_inj a1 a2 (Hincl_la a1 Ha1) (Hincl_la a2 Ha2)).
+      rewrite (proj2 (Hpi_spec a1 Ha1)), (proj2 (Hpi_spec a2 Ha2)). congruence. }
+    (* Surjectivity: d ∈ la, so ∃ a ∈ la, π a = d *)
+    assert (Hpi_surj_d : exists a, In A la a /\ π a = d).
+    {
+      destruct (classic (exists a, In A la a /\ π a = d)) as [Hex | Hnex].
+      - exact Hex.
+      - exfalso.
+        assert (Hnota : forall a, In A la a -> π a <> d).
+        { intros a Ha Heq. apply Hnex. exact (ex_intro _ a (conj Ha Heq)). }
+        destruct w as [| w'].
+        { inversion Hcard_la. subst. inversion Hd_la. }
+        assert (Hcard_la_minus : cardinal A (Subtract A la d) w').
+        { exact (card_soustr_1 A la (Datatypes.S w') Hcard_la d Hd_la). }
+        assert (Htot' : forall a, In A la a ->
+            exists b, In A (Subtract A la d) b /\ π a = b).
+        { intros a Ha. exists (π a). split.
+          - constructor. exact (proj1 (Hpi_spec a Ha)). intro Heq. inversion Heq. exact (Hnota a Ha (eq_sym H0)).
+          - reflexivity. }
+        assert (Hinj' : forall a1 a2 b, In A la a1 -> In A la a2 ->
+            In A (Subtract A la d) b -> π a1 = b -> π a2 = b -> a1 = a2).
+        { intros a1 a2 b Ha1 Ha2 _ H1 H2. exact (Hpi_inj a1 a2 Ha1 Ha2 (eq_trans H1 (eq_sym H2))). }
+        assert (Hle : Datatypes.S w' <= w').
+        { exact (InjectionPrinciple.cardinal_injection_principle_poly
+                   A A la (Subtract A la d) (fun a b => π a = b)
+                   (Datatypes.S w') w' Htot' Hinj' Hcard_la Hcard_la_minus). }
+        lia.
+    }
+    destruct Hpi_surj_d as [a [Ha Hpi_d]].
+    assert (Heq_za : z = a).
+    { apply (Hm_inj z a Hz (Hincl_la a Ha)).
+      rewrite Hm_z, (proj2 (Hpi_spec a Ha)). congruence. }
+    subst z. exact Ha.
+  Qed.
+
   Lemma chain_assignment_kernel : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Above R la) ->
@@ -323,56 +387,8 @@ Section HallKernel.
     pose proof (la_assigned_to_dummy sub la w m_aug Hla' Habove Hm_match) as Hla_dummy.
 
     (* Any sub-element matched to a dummy node must be in la *)
-    assert (Hdummy_means_la : forall z, In A sub z -> (exists d, m_aug z = inr d) -> In A la z).
-    {
-      intros z Hz [d Hm_z].
-      assert (Hd_la : In A la d).
-      { assert (Hm_in : In (sum A A) (nbrs_aug z) (m_aug z)) by exact (Hm_nbrs z Hz).
-        rewrite Hm_z in Hm_in. exact Hm_in. }
-      (* π : la → la, a ↦ k where m_aug a = inr k, is a total injection.
-         Since la is finite, π is surjective. So d = π(a) for some a ∈ la,
-         and injectivity of m_aug gives z = a ∈ la. *)
-      set (π := fun a => epsilon (inhabits d) (fun k => In A la k /\ m_aug a = inr k)).
-      assert (Hpi_spec : forall a, In A la a -> In A la (π a) /\ m_aug a = inr (π a)).
-      { intro a. intro Ha.
-        destruct (Hla_dummy a Ha) as [k [Hk Hmk]].
-        unfold π. apply epsilon_spec. exact (ex_intro _ k (conj Hk Hmk)). }
-      assert (Hpi_inj : forall a1 a2, In A la a1 -> In A la a2 -> π a1 = π a2 -> a1 = a2).
-      { intros a1 a2 Ha1 Ha2 Heq_pi.
-        apply (Hm_inj a1 a2 (Hincl_la a1 Ha1) (Hincl_la a2 Ha2)).
-        rewrite (proj2 (Hpi_spec a1 Ha1)), (proj2 (Hpi_spec a2 Ha2)). congruence. }
-      (* Surjectivity: d ∈ la, so ∃ a ∈ la, π a = d *)
-      assert (Hpi_surj_d : exists a, In A la a /\ π a = d).
-      {
-        destruct (classic (exists a, In A la a /\ π a = d)) as [Hex | Hnex].
-        - exact Hex.
-        - exfalso.
-          assert (Hnota : forall a, In A la a -> π a <> d).
-          { intros a Ha Heq. apply Hnex. exact (ex_intro _ a (conj Ha Heq)). }
-          destruct w as [| w'].
-          { inversion Hcard_la. subst. inversion Hd_la. }
-          assert (Hcard_la_minus : cardinal A (Subtract A la d) w').
-          { exact (card_soustr_1 A la (Datatypes.S w') Hcard_la d Hd_la). }
-          assert (Htot' : forall a, In A la a ->
-              exists b, In A (Subtract A la d) b /\ π a = b).
-          { intros a Ha. exists (π a). split.
-            - constructor. exact (proj1 (Hpi_spec a Ha)). intro Heq. inversion Heq. exact (Hnota a Ha (eq_sym H0)).
-            - reflexivity. }
-          assert (Hinj' : forall a1 a2 b, In A la a1 -> In A la a2 ->
-              In A (Subtract A la d) b -> π a1 = b -> π a2 = b -> a1 = a2).
-          { intros a1 a2 b Ha1 Ha2 _ H1 H2. exact (Hpi_inj a1 a2 Ha1 Ha2 (eq_trans H1 (eq_sym H2))). }
-          assert (Hle : Datatypes.S w' <= w').
-          { exact (InjectionPrinciple.cardinal_injection_principle_poly
-                     A A la (Subtract A la d) (fun a b => π a = b)
-                     (Datatypes.S w') w' Htot' Hinj' Hcard_la Hcard_la_minus). }
-          lia.
-      }
-      destruct Hpi_surj_d as [a [Ha Hpi_d]].
-      assert (Heq_za : z = a).
-      { apply (Hm_inj z a Hz (Hincl_la a Ha)).
-        rewrite Hm_z, (proj2 (Hpi_spec a Ha)). congruence. }
-      subst z. exact Ha.
-    }
+    pose proof (dummy_target_in_la sub la w m_aug Hcard_la Hincl_la Hm_match Hm_inj Hla_dummy)
+      as Hdummy_means_la.
 
     (* Define f via chain_root_aux *)
     set (f := fun x => chain_root_aux m_aug nx x).
