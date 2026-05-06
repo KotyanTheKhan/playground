@@ -91,6 +91,33 @@ Section HallKernel.
         intro Hcontra. simpl in Hcontra. exact (Ha_notin Hcontra).
   Qed.
 
+  (* The augmented right-side Y = inl-image(sub) ⊎ inr-image(la) has cardinal nx + w. *)
+  Lemma Y_cardinal : forall (sub la : Ensemble A) nx w,
+    cardinal A sub nx ->
+    cardinal A la w ->
+    cardinal (sum A A)
+      (fun z : sum A A =>
+        match z with inl y => In A sub y | inr a => In A la a end)
+      (nx + w).
+  Proof.
+    intros sub la nx w Hcard_sub Hcard_la.
+    apply (cardinal_extensional_poly (sum A A)
+        (Union (sum A A)
+          (fun z => match z with inl y => In A sub y | inr _ => False end)
+          (fun z => match z with inl _ => False | inr a => In A la a end))).
+    - intro z. split; intro Hz.
+      + destruct z as [y | a].
+        * inversion Hz as [u Hu | u Hu]; subst u; simpl in Hu; [exact Hu | exact (False_rect _ Hu)].
+        * inversion Hz as [u Hu | u Hu]; subst u; simpl in Hu; [exact (False_rect _ Hu) | exact Hu].
+      + destruct z as [y | a].
+        * apply Union_introl. exact Hz.
+        * apply Union_intror. exact Hz.
+    - apply cardinal_disjoint_union_gen.
+      + intros z Hl Hr. destruct z; simpl in *; [exact Hr | exact Hl].
+      + exact (inl_image_cardinal sub nx Hcard_sub).
+      + exact (inr_image_cardinal la w Hcard_la).
+  Qed.
+
   Lemma chain_assignment_kernel : forall (sub la : Ensemble A) w,
     IsLargestAntichain R sub la w ->
     Included A sub (Above R la) ->
@@ -130,28 +157,7 @@ Section HallKernel.
       assert (HcardInr : cardinal (sum A A)
           (fun z => match z with inl _ => False | inr a => In A la a end) w)
         by exact (inr_image_cardinal la w Hcard_la).
-      assert (HcardY : cardinal (sum A A) Y (nx + w)).
-      { apply (cardinal_extensional_poly (sum A A)
-            (Union (sum A A)
-              (fun z => match z with inl y => In A sub y | inr _ => False end)
-              (fun z => match z with inl _ => False | inr a => In A la a end))).
-        - intro z. split; intro Hz.
-          + (* Union ... z -> Y z *)
-            unfold Y. destruct z as [y | a].
-            * inversion Hz as [u Hu Heq | u Hu Heq]; subst u; simpl in Hu.
-              -- exact Hu.
-              -- exact (False_rect _ Hu).
-            * inversion Hz as [u Hu Heq | u Hu Heq]; subst u; simpl in Hu.
-              -- exact (False_rect _ Hu).
-              -- exact Hu.
-          + (* Y z -> Union ... z *)
-            unfold Y in Hz. destruct z as [y | a].
-            * apply Union_introl. exact Hz.
-            * apply Union_intror. exact Hz.
-        - apply cardinal_disjoint_union_gen.
-          + intros z Hl Hr. destruct z; simpl in *; [exact Hr | exact Hl].
-          + exact HcardInl.
-          + exact HcardInr. }
+      pose proof (Y_cardinal sub la nx w Hcard_sub Hcard_la) as HcardY.
       exact (cardinal_finite (sum A A) Y (nx + w) HcardY).
     }
 
