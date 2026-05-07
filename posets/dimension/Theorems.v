@@ -110,7 +110,35 @@ Section Theorems.
   Lemma add_incomparable_is_poset :
     forall x y, Incomparable R x y ->
     IsPoset A (TransitiveClosure (fun a b => R a b \/ (a = y /\ b = x))).
-  Admitted.
+  Proof.
+    intros x y Hinc.
+    set (ext := fun a b => R a b \/ (a = y /\ b = x)).
+    assert (Hinv : forall a b,
+      TransitiveClosure ext a b -> R a b \/ (R a y /\ R x b)).
+    { intros a b Htc.
+      induction Htc as [a b Hstep | a m b _ IH1 _ IH2].
+      - destruct Hstep as [HRab | [-> ->]].
+        + left; exact HRab.
+        + right; split; apply poset_refl.
+      - destruct IH1 as [Ham | [Hay Hxm]],
+                 IH2 as [Hmb | [Hmy Hxb]].
+        + left; eapply poset_trans; eauto.
+        + right; split; [eapply poset_trans; eauto | auto].
+        + right; split; [auto | eapply poset_trans; eauto].
+        + exfalso; apply Hinc; left; eapply poset_trans; eauto. }
+    constructor.
+    - intro a; apply tc_step; left; apply poset_refl.
+    - intros a b Hab Hba.
+      destruct (Hinv a b Hab) as [HRab | [Hay Hxb]],
+               (Hinv b a Hba) as [HRba | [Hby Hxa]].
+      + eapply poset_antisym; eauto.
+      + exfalso; apply Hinc; left;
+          eapply poset_trans; [eapply poset_trans; [exact Hxa | exact HRab] | exact Hby].
+      + exfalso; apply Hinc; left;
+          eapply poset_trans; [eapply poset_trans; [exact Hxb | exact HRba] | exact Hay].
+      + exfalso; apply Hinc; left; eapply poset_trans; [exact Hxb | exact Hby].
+    - intros a b c Hab Hbc; eapply tc_trans; eauto.
+  Qed.
 
   (** Lemma: Any linear extension of a larger relation R' is also a linear extension of R. *)
   Lemma extend_to_linear :
