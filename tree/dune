@@ -1,0 +1,5 @@
+(coq.theory
+ (name Tree)
+ (package playground)
+ (theories Posets)
+ (modules Structure Operations Instances Examples Tree))

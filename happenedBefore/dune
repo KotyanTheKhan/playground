@@ -1,0 +1,14 @@
+(coq.theory
+ (name HappenedBefore)
+ (package playground)
+ (theories Posets Stdlib)
+ (modules
+  EventStructure
+  CausalRelation
+  CausalRelationProps
+  PosetInstance
+  LatticeOperations
+  LatticeInstances
+  SemilatticeContradiction
+  LamportClock
+  HappenedBefore))

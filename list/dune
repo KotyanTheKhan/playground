@@ -1,0 +1,14 @@
+(coq.theory
+ (name List)
+ (package playground)
+ (theories Hammer Posets Stdlib)
+ (modules
+  Structure
+  Operations
+  Helpers
+  PosetInstance
+  MeetSemilatticeInstance
+  JoinSemilatticeInstance
+  LatticeInstance
+  DistributiveLatticeInstance
+  List))

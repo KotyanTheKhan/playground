@@ -1,0 +1,6 @@
+(include_subdirs qualified)
+
+(coq.theory
+ (name Dilworth)
+ (package playground)
+ (theories Stdlib Posets ChipalaBook))

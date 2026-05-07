@@ -1,0 +1,66 @@
+{
+    "chat.agent.maxRequests": 100,
+    "chat.tools.autoApprove": true,
+    "chat.tools.terminal.autoApprove": {
+        "git": false,
+        "rm": false,
+        "rmdir": false,
+        "del": false,
+        "kill": false,
+        "curl": false,
+        "wget": false,
+        "eval": false,
+        "chmod": false,
+        "chown": false,
+        "/^Remove-Item\\b/i": false
+    },
+    // Coq Language Server Configuration (coq-lsp)
+    "coq-lsp.path": "/Users/maxstarling/code/research/playground/_opam/bin/coq-lsp",
+    "coq-lsp.args": [
+        "--coqlib=/Users/maxstarling/code/research/playground/_opam/lib/coq",
+        "--ocamlpath=/Users/maxstarling/code/research/playground/_opam/lib",
+        "-R",
+        "/Users/maxstarling/code/research/playground/_build/default/posets,Posets",
+        "-R",
+        "/Users/maxstarling/code/research/playground/_build/default/list,List",
+        "-R",
+        "/Users/maxstarling/code/research/playground/_build/default/tree,Tree",
+        "-R",
+        "/Users/maxstarling/code/research/playground/_build/default/happenedBefore,HappenedBefore",
+        "-R",
+        "/Users/maxstarling/code/research/playground/_build/default/eventualConsistency,EventualConsistency",
+        "-R",
+        "/Users/maxstarling/code/research/playground/_build/default/standard_example,StandardExample",
+        "-R",
+        "/Users/maxstarling/code/research/playground/_build/default/posets/dilworth,Dilworth",
+        "-R",
+        "/Users/maxstarling/code/research/playground/_build/default/posets/dimension,Dimension",
+        "-R",
+        "/Users/maxstarling/code/research/playground/_build/default/chipala_book,ChipalaBook",
+        "-R",
+        "/Users/maxstarling/code/research/playground/_build/default/happenedBefore/examples/pingpong,HappenedBeforePingPong"
+    ],
+    "coq-lsp.eager_diagnostics": true,
+    "coq-lsp.trace.server": "verbose",
+    "coq-lsp.check_only_on_request": true,
+    "files.associations": {
+        "*.v": "coq"
+    },
+    "[coq]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.formatOnSave": false
+    },
+    "files.exclude": {
+        "**/*.vo": true,
+        "**/*.vok": true,
+        "**/*.vos": true,
+        "**/*.aux": true,
+        "**/*.glob": true,
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true
+    }
+}
