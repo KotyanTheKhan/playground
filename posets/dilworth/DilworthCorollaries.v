@@ -5,11 +5,12 @@ From Posets Require Import PosetClasses LatticeClasses LatticeOrder FinitePoset.
 From Dilworth Require Import Definitions DilworthTheorem.
 
 (* ------------------------------------------------------------------ *)
-(* Corollary B: Dilworth without explicit n — IsFinitePoset carries it *)
+(* Dilworth without explicit n — IsFinitePoset carries the cardinality *)
 (* ------------------------------------------------------------------ *)
 
 Section DilworthFinite.
-  Context {A : Type} {R : A -> A -> Prop} {n : nat} `{IsFinitePoset A R n}.
+  Context {A : Type} {R : A -> A -> Prop} {n : nat} `{H : IsFinitePoset A R n}.
+  #[local] Existing Instance fp_is_poset.
 
   Corollary Dilworth_finite : forall w k,
     Width R (Full_set A) w ->
@@ -17,16 +18,14 @@ Section DilworthFinite.
     w = k.
   Proof.
     intros w k Hw Hk.
-    pose proof (@fp_is_poset A R n H) as Hposet.
-    exact (@Dilworth A R Hposet _ w k fp_finite Hw Hk).
+    exact (Dilworth _ _ w k fp_finite Hw Hk).
   Qed.
 End DilworthFinite.
 
-(* ------------------------------------------------------------------ *)
-(* Corollaries A: Dilworth for each level of the lattice hierarchy     *)
-(* In all three sections, the order is meet_le meet.                   *)
-(* IsPoset A (meet_le meet) is resolved via meet_semilattice_is_poset. *)
-(* ------------------------------------------------------------------ *)
+(* Corollaries for each level of the lattice hierarchy.
+   All three use meet_le as the order; the extra structure (IsLattice, IsDistributiveLattice)
+   is not used by the proof. They are convenience aliases so callers with those typeclasses
+   can apply Dilworth without naming the meet component explicitly. *)
 
 Section DilworthMeetSemilattice.
   Context {A : Type} (meet : A -> A -> A) `{IsMeetSemilattice A meet}.
@@ -43,7 +42,7 @@ Section DilworthMeetSemilattice.
 End DilworthMeetSemilattice.
 
 Section DilworthLattice.
-  Context {A : Type} (meet join : A -> A -> A) `{IsLattice A meet join}.
+  Context {A : Type} (meet : A -> A -> A) {join : A -> A -> A} `{IsLattice A meet join}.
 
   Corollary Dilworth_lattice : forall n w k,
     cardinal A (Full_set A) n ->
@@ -57,7 +56,7 @@ Section DilworthLattice.
 End DilworthLattice.
 
 Section DilworthDistributiveLattice.
-  Context {A : Type} (meet join : A -> A -> A) `{IsDistributiveLattice A meet join}.
+  Context {A : Type} (meet : A -> A -> A) {join : A -> A -> A} `{IsDistributiveLattice A meet join}.
 
   Corollary Dilworth_distributive_lattice : forall n w k,
     cardinal A (Full_set A) n ->
