@@ -251,33 +251,37 @@ Section PingPongParameters.
     Out-of-range cycles require an infinite history (admitted for now).
   *)
 
-  (** In-range case: [ping_causes_recv_ext].
-      Out-of-range case: requires extending to an infinite history. *)
-  Lemma ax_ping : forall n i,
-    happened_before (pp_history_ext n)
-      (map_ping_send GAP_0 GAP_1 i) (map_ping_recv GAP_0 GAP_1 i).
-  Admitted.
+  Lemma ax_ping : forall i,
+    hb_inf (map_ping_send GAP_0 GAP_1 i) (map_ping_recv GAP_0 GAP_1 i).
+  Proof.
+    intro i. unfold hb_inf.
+    exists (i * msgs_per_cycle_ext + 1).
+    apply ping_causes_recv_ext. lia.
+  Qed.
 
-  (** In-range case: [turn_causes_pong_ext].
-      Out-of-range case: requires extending to an infinite history. *)
-  Lemma ax_turn : forall n i,
-    happened_before (pp_history_ext n)
-      (map_ping_recv GAP_0 GAP_1 i) (map_pong_send GAP_0 GAP_1 i).
-  Admitted.
+  Lemma ax_turn : forall i,
+    hb_inf (map_ping_recv GAP_0 GAP_1 i) (map_pong_send GAP_0 GAP_1 i).
+  Proof.
+    intro i. unfold hb_inf.
+    exists (i * msgs_per_cycle_ext + 2).
+    apply turn_causes_pong_ext. lia.
+  Qed.
 
-  (** In-range case: [pong_causes_recv_ext].
-      Out-of-range case: requires extending to an infinite history. *)
-  Lemma ax_pong : forall n i,
-    happened_before (pp_history_ext n)
-      (map_pong_send GAP_0 GAP_1 i) (map_pong_recv GAP_0 GAP_1 i).
-  Admitted.
+  Lemma ax_pong : forall i,
+    hb_inf (map_pong_send GAP_0 GAP_1 i) (map_pong_recv GAP_0 GAP_1 i).
+  Proof.
+    intro i. unfold hb_inf.
+    exists (i * msgs_per_cycle_ext + 3).
+    apply pong_causes_recv_ext. lia.
+  Qed.
 
-  (** In-range case: [inter_causes_next_ext].
-      Out-of-range case: requires extending to an infinite history. *)
-  Lemma ax_next : forall n i,
-    happened_before (pp_history_ext n)
-      (map_pong_recv GAP_0 GAP_1 i) (map_ping_send GAP_0 GAP_1 (S i)).
-  Admitted.
+  Lemma ax_next : forall i,
+    hb_inf (map_pong_recv GAP_0 GAP_1 i) (map_ping_send GAP_0 GAP_1 (S i)).
+  Proof.
+    intro i. unfold hb_inf.
+    exists (i * msgs_per_cycle_ext + 4).
+    apply inter_causes_next_ext. lia.
+  Qed.
 
   Instance ex_is_ping_pong (n : nat) :
     IsPairAlternatingSymPingPong (happened_before (pp_history_ext n)).
