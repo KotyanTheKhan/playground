@@ -43,22 +43,6 @@ For an index of all classes, instances, and theorems see **[docs/INDEX.md](docs/
   Require Import Posets.LatticeClasses.
   ```
 
-## Key typeclasses
-
-```coq
-Class IsPoset (A : Type) (R : A -> A -> Prop)        (* PosetClasses.v *)
-Class IsMeetSemilattice (A : Type) (meet : A -> A -> A)  (* LatticeClasses.v *)
-Class IsJoinSemilattice (A : Type) (join : A -> A -> A)
-Class IsLattice (A : Type) (meet join : A -> A -> A)
-Class IsDistributiveLattice (A : Type) (meet join : A -> A -> A)
-Class IsFinitePoset (A : Type) (R : A -> A -> Prop) (n : nat)  (* FinitePoset.v *)
-```
-
-`meet_le` (in `LatticeOrder.v`) derives an `IsPoset` from any `IsMeetSemilattice`:
-```coq
-Definition meet_le : A -> A -> Prop := fun x y => meet x y = x.
-```
-
 ## Common Coq pitfalls in this codebase
 
 - **`rewrite X at 1`** requires setoid. Use `transitivity` to split goals instead.
