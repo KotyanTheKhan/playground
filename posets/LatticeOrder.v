@@ -7,6 +7,7 @@ Section MeetOrder.
 
   Definition meet_le : A -> A -> Prop := fun x y => meet x y = x.
 
+  (* After section close, meet and IsMeetSemilattice become implicit args of the exported instance. *)
   #[export] Instance meet_semilattice_is_poset : IsPoset A meet_le.
   Proof.
     constructor.
