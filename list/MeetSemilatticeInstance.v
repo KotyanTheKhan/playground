@@ -1,5 +1,6 @@
 (* Meet semilattice instance for lists *)
 Require Import Posets.PosetClasses.
+Require Import Posets.LatticeClasses.
 Require Import Structure.
 Require Import Operations.
 Require Import Helpers.
