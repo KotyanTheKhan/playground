@@ -12,6 +12,7 @@ Class IsJoinSemilattice (A : Type) (join : A -> A -> A) := {
   join_idem  : forall x, join x x = x
 }.
 
+(* Lattice via two semilattices + absorption laws *)
 Class IsLattice (A : Type) (meet join : A -> A -> A)
       `{IsMeetSemilattice A meet} `{IsJoinSemilattice A join} := {
   absorption_meet : forall x y, meet x (join x y) = x;
