@@ -1,4 +1,6 @@
-From Stdlib Require Import Ensembles Finite_sets Arith Classical.
+From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts Arith Classical.
+From Coq Require Import FunctionalExtensionality PropExtensionality ProofIrrelevance.
+From ZornsLemma Require Import FiniteTypes.
 From Posets Require Import PosetClasses.
 From Dilworth Require Import Definitions.
 From Dimension Require Import DimDefs CriticalPairs Szpilrajn.
@@ -383,11 +385,67 @@ Section Theorems.
       + intros L HL. apply Hreal, HL.
   Qed.
 
+  (** Helper: FiniteT Prop using propositional extensionality + classical logic *)
+  Lemma FiniteT_Prop : FiniteT Prop.
+  Proof.
+    apply bij_finite with bool (fun b => if b then True else False).
+    - apply FiniteT_bool.
+    - (* Build the inverse: Prop -> bool *)
+      set (g := fun (P : Prop) =>
+        match classic P with
+        | or_introl _ => true
+        | or_intror _ => false
+        end).
+      eapply intro_invertible with g.
+      + (* g (f b) = b *)
+        intro b; unfold g.
+        destruct b; simpl.
+        * destruct (classic True) as [_ | H].
+          -- reflexivity.
+          -- exfalso; apply H; trivial.
+        * destruct (classic False) as [H | _].
+          -- exact (False_rect _ H).
+          -- reflexivity.
+      + (* f (g P) = P *)
+        intro P; unfold g.
+        destruct (classic P) as [HP | HnP]; simpl.
+        * (* P holds, g P = true, f true = True *)
+          apply propositional_extensionality; tauto.
+        * (* P doesn't hold, g P = false, f false = False *)
+          apply propositional_extensionality; tauto.
+  Qed.
+
   (** Lemma: If the base set A is finite, the set of all linear extensions is also finite. *)
   Lemma all_linear_extensions_finite :
     forall n, cardinal A (Full_set A) n ->
     Finite (A -> A -> Prop) AllLinearExtensions.
-  Admitted.
+  Proof.
+    intros n Hcard.
+    (* Step 1: A is Finite as an ensemble *)
+    assert (HfinA : Finite A (Full_set A)) by
+      (apply cardinal_finite with n; exact Hcard).
+    (* Step 2: {x : A | In (Full_set A) x} is FiniteT *)
+    apply Finite_ens_type in HfinA.
+    (* Step 3: Establish FiniteT A via bijection with {x | Full_set A x} *)
+    assert (HftA : FiniteT A).
+    { apply bij_finite with {x : A | In (Full_set A) x}
+        (fun s => proj1_sig s).
+      - exact HfinA.
+      - exists (fun a => exist _ a (Full_intro A a)).
+        + intros [x Hx]. simpl.
+          destruct (proof_irrelevance _ Hx (Full_intro A x)).
+          reflexivity.
+        + intro a. simpl. reflexivity. }
+    (* Step 4: FiniteT (A -> Prop) *)
+    assert (HftAP : FiniteT (A -> Prop)).
+    { apply finite_exp; [exact HftA | apply FiniteT_Prop]. }
+    (* Step 5: FiniteT (A -> A -> Prop) *)
+    assert (HftAAP : FiniteT (A -> A -> Prop)).
+    { apply finite_exp; [exact HftA | exact HftAP]. }
+    (* Step 6: Any ensemble of (A -> A -> Prop) is Finite when the type is FiniteT *)
+    apply FiniteT_Finite.
+    exact HftAAP.
+  Qed.
 
   (** Theorem: Dushnik-Miller (1941) - Every finite poset has a well-defined dimension *)
   Theorem dushnik_miller_exists :
@@ -395,13 +453,52 @@ Section Theorems.
     exists d, inhabited (PosetDimension R d).
   Proof.
     intros n Hfin.
-    (* Structure of the proof using the lemmas defined above: *)
-    (* 1. FullRealizer is a realizer (by all_linear_extensions_is_realizer) *)
-    (* 2. It is finite if A is finite (by all_linear_extensions_finite) *)
-    (* 3. Therefore the set of finite realizers is non-empty. *)
-    (* 4. The dimension d is the minimum size of a finite realizer. *)
-    admit.
-  Admitted.
+    (* The set of all linear extensions is a finite realizer *)
+    pose proof all_linear_extensions_is_realizer as Hrealizer.
+    pose proof (all_linear_extensions_finite n Hfin) as Hfinite.
+    (* Extract cardinal of AllLinearExtensions *)
+    destruct (finite_cardinal _ _ Hfinite) as [m Hcard_m].
+    (* Key lemma: any realizer of size m gives rise to a PosetDimension.
+       We prove this by strong induction on m.
+       The idea: if m is already minimum, we're done. Otherwise find a smaller
+       realizer and apply the induction hypothesis. *)
+    assert (Hgen : forall k,
+        (exists r : Ensemble (A -> A -> Prop),
+          IsRealizer R r /\ cardinal (A -> A -> Prop) r k) ->
+        exists d, inhabited (PosetDimension R d)).
+    { induction k as [k IHk] using lt_wf_ind.
+      intros [r [Hr_real Hr_card]].
+      (* Is k the minimum realizer size? *)
+      destruct (classic (exists r' : Ensemble (A -> A -> Prop),
+          exists k', IsRealizer R r' /\ cardinal (A -> A -> Prop) r' k' /\ k' < k))
+        as [[r' [k' [Hr'_real [Hr'_card Hlt]]]] | Hmin].
+      - (* There is a strictly smaller realizer r' of size k'. Use IH. *)
+        apply (IHk k'); [exact Hlt | exists r'; split; [exact Hr'_real | exact Hr'_card]].
+      - (* k is the minimum: every realizer has size >= k.
+           Build a PosetDimension. *)
+        exists k.
+        apply not_ex_all_not in Hmin.
+        constructor.
+        exact {|
+          dimension_realizer    := r;
+          dimension_is_realizer := Hr_real;
+          dimension_cardinality := Hr_card;
+          dimension_is_minimum  :=
+            fun r'' n'' Hr''_real Hr''_card =>
+              (* Suppose n'' < k. Then Hmin applied to r'' gives a contradiction. *)
+              match Nat.le_gt_cases k n'' with
+              | or_introl H => H
+              | or_intror H =>
+                  let Hcontra := Hmin r'' in
+                  False_rect _ (Hcontra (ex_intro _ n''
+                    (conj Hr''_real (conj Hr''_card H))))
+              end
+        |}.
+    }
+    apply (Hgen m).
+    exists AllLinearExtensions.
+    split; [exact Hrealizer | exact Hcard_m].
+  Qed.
 
 
   (** Theorem: Subposet Dimension Monotonicity
