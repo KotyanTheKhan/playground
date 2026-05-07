@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+## Git
+
+Do not add `Co-Authored-By` or any other AI watermarks to commit messages.
+
 ## Build commands
 
 Always use `mise` — never invoke `dune` or `opam` directly.
