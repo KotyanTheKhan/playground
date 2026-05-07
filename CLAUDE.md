@@ -19,24 +19,19 @@ Use a scoped target (e.g. `mise run build posets/`) for fast feedback while work
 
 ## Project layout
 
-```
-posets/              — IsPoset, lattice classes, Dilworth theorem
-  PosetClasses.v     — IsPoset typeclass only
-  LatticeClasses.v   — IsMeetSemilattice, IsJoinSemilattice, IsLattice, IsDistributiveLattice
-  LatticeOrder.v     — meet_le order + meet_semilattice_is_poset instance
-  FinitePoset.v      — IsFinitePoset bundled class
-  NatInstances.v     — nat instances
-  dilworth/          — Dilworth theorem, corollaries, concrete example
-  dimension/         — Dimension theory
-list/                — list poset / lattice instances (lexicographic order)
-tree/                — tree poset / lattice instances
-happenedBefore/      — happened-before causal order, semilattice impossibility
-eventualConsistency/ — eventual consistency models
-standard_example/    — S(n,k) poset proofs
-abhishek/            — Dilworth (alternate proof), Hall's theorem, Erdős–Szekeres
-```
+| Directory | Contents |
+|-----------|----------|
+| `posets/` | `IsPoset` / lattice typeclasses, `meet_le` order, `IsFinitePoset`, `nat` instances, Dilworth theorem + corollaries, dimension theory |
+| `list/` | List poset and distributive lattice instances (lexicographic order) |
+| `tree/` | Tree poset and distributive lattice instances |
+| `happenedBefore/` | Happened-before causal order; impossibility of semilattice structure |
+| `eventualConsistency/` | Eventual consistency models and convergence proof |
+| `standard_example/` | S(n,k) poset proofs |
+| `abhishek/` | Alternate Dilworth proof, Hall's theorem, Erdős–Szekeres |
 
-Each directory under `_CoqProject` is a separate logical library mapped with `-R`.
+Each directory is a separate logical library (mapped with `-R` in `_CoqProject`).
+
+For an index of all classes, instances, and theorems see **[docs/INDEX.md](docs/INDEX.md)** — keep it up to date when adding or moving definitions.
 
 ## Import conventions
 
