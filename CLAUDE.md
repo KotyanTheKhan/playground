@@ -36,7 +36,7 @@ For an index of all classes, instances, and theorems see **[docs/INDEX.md](docs/
 ## Hints
 
 - **Decompose proofs into small lemmas.** A focused lemma with a descriptive name is easier to reuse and debug than an inline block. If a sub-goal recurs across cases, extract it.
-- **Search Stdlib before proving.** `Search`, `SearchAbout`, and `Check` can surface existing lemmas — `Nat.min_assoc`, `Nat.max_comm`, `Extensionality_Ensembles`, etc. Check `Stdlib.Sets`, `Stdlib.Arith`, and `Stdlib.Logic` before writing a lemma from scratch.
+- **Search existing libraries before proving.** `Search`, `SearchAbout`, and `Check` can surface lemmas in Stdlib (`Nat.min_assoc`, `Extensionality_Ensembles`, etc.) and in MathComp. Use the `rocq_query` MCP tool (from `rocq-mcp`, configured in `.mcp.json`) to run `Search` and `Check` against the live Coq environment including MathComp — faster than grepping source files.
 - **Use `lia` for linear arithmetic** and `hauto lq:on` (Hammer) for goals that follow from a small set of boolean hypotheses without much structure.
 - **`rewrite X at 1`** requires setoid. Use `transitivity` to split goals instead.
 - **Typeclass resolution from bundled classes**: if `IsFinitePoset` wraps `IsPoset` but inference doesn't find it, add `#[local] Existing Instance fp_is_poset.` inside the section.
