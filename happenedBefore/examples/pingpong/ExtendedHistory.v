@@ -238,6 +238,11 @@ Section PingPongParameters.
         unfold msg_pong1, msg_ping0, event_0, event_1. simpl. split; reflexivity.
   Qed.
 
+  (* ── Colimit relation ────────────────────────────────────────────────────  *)
+
+  Definition hb_inf (e1 e2 : Event) : Prop :=
+    exists n, happened_before (pp_history_ext n) e1 e2.
+
   (* ── IsPairAlternatingSymPingPong instance ───────────────────────────────  *)
 
   (**
