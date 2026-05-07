@@ -260,11 +260,12 @@ Section Theorems.
     exists L, IsLinearExtension R' L.
   Proof.
     intros R' HP'.
-    (* This is Szpilrajn's theorem - admitted in this project.
-       A proper proof would use Zorn's lemma for infinite sets,
-       or induction for finite sets. *)
-    admit.
-  Admitted.
+    destruct (szpilrajn_theorem A R') as [L [HLp [HLt HLe]]].
+    exists L.
+    constructor.
+    - constructor; auto.
+    - exact HLe.
+  Qed.
 
   (** Lemma: If we add a pair (y, x) to a poset R where x, y are incomparable, 
       the transitive closure is still a partial order (specifically, it's antisymmetric). *)
@@ -351,26 +352,23 @@ Section Theorems.
         * subst. apply poset_refl.
         * (* x <> y and ~ R x y *)
           destruct (classic (R y x)) as [Hyx | Hnyx].
-          { (* R y x holds *)
-            (* In any linear extension L, L y x. If L x y also, then x = y, contradiction. *)
-            assert (exists L_ex, IsLinearExtension R L_ex) as [L_ex HL_ex].
-            { (* Every poset has at least one linear extension (Szpilrajn) *)
-              admit.
-            }
+          { (* R y x holds: any linear extension L satisfies L y x.
+               But Hall gives L x y. So L x y /\ L y x -> x = y, contradiction. *)
+            destruct (at_least_one_linear_extension R) as [L_ex HL_ex].
             specialize (Hall L_ex HL_ex).
-            assert (HLyx : L_ex y x) by (apply HL_ex; auto).
-            (* Proof of antisymmetry from L_ex being a linear extension *)
-            admit.
+            assert (HLyx : L_ex y x) by (apply HL_ex; exact Hyx).
+            exfalso. apply Hneq.
+            exact (poset_antisym x y Hall HLyx).
           }
-          { (* Incomparable x y *)
+          { (* Incomparable x y: get extension L_ex with L_ex y x *)
             destruct (incomparable_extension x y) as [L_ex [HL_ex Hlyx]].
             { unfold Incomparable. intros [H1 | H2]; auto. }
             specialize (Hall L_ex HL_ex).
-            (* Proof of antisymmetry from L_ex being a linear extension *)
-            admit.
+            exfalso. apply Hneq.
+            exact (poset_antisym x y Hall Hlyx).
           }
-    - intros Hxy L HL. admit.
-  Admitted.
+    - intros Hxy L HL. apply HL. exact Hxy.
+  Qed.
 
   (** Lemma: The set of all linear extensions of a poset is a realizer for it.
       This is the core of the Dushnik-Miller theorem. *)
