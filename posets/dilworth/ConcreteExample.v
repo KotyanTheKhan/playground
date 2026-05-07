@@ -538,13 +538,18 @@ Section ConcreteExample.
       [apply card_add; [apply card_add |] |] |] |] |].
     - apply card_empty.
     - solve_not_in_empty.
-    - intros H; inversion H; subst; inversion H0.
-    - intros H; inversion H; subst; inversion H0; subst; inversion H1.
-    - intros H; inversion H; subst; inversion H0; subst; inversion H1; subst;
+    - (* AA I1 ∉ {AA I0} *)
+      intros H; inversion H; subst; inversion H0.
+    - (* AA I2 ∉ {AA I0, AA I1} *)
+      intros H; inversion H; subst; inversion H0; subst; inversion H1.
+    - (* BB I0 ∉ {AA I0, AA I1, AA I2} *)
+      intros H; inversion H; subst; inversion H0; subst; inversion H1; subst;
         inversion H2.
-    - intros H; inversion H; subst; inversion H0; subst; inversion H1; subst;
+    - (* BB I1 ∉ {AA I0, AA I1, AA I2, BB I0} *)
+      intros H; inversion H; subst; inversion H0; subst; inversion H1; subst;
         inversion H2; subst; inversion H3.
-    - intros H; inversion H; subst; inversion H0; subst; inversion H1; subst;
+    - (* BB I2 ∉ {AA I0, AA I1, AA I2, BB I0, BB I1} *)
+      intros H; inversion H; subst; inversion H0; subst; inversion H1; subst;
         inversion H2; subst; inversion H3; subst; inversion H4.
   Qed.
 
