@@ -2,20 +2,14 @@
 
 ## Build commands
 
-Always use `mise` tasks — never invoke `dune` or `opam` directly.
+Always use `mise` — never invoke `dune` or `opam` directly.
 
-`mise run build [TARGET]` accepts any dune target — a directory, a `.v` file, or nothing for everything:
+- `mise build` — entire project
+- `mise run build <dir>/` — single submodule (e.g. `posets/`, `list/`)
+- `mise run build <file>.v` — single file
+- `mise run clean`
 
-```bash
-mise build                                          # build entire project
-mise run build posets/                              # build posets/ subtree
-mise run build list/                                # build list/ subtree
-mise run build happenedBefore/                      # build happenedBefore/ subtree
-mise run build posets/dilworth/DilworthCorollaries.v  # build one file
-mise run clean                                      # clean build artifacts
-```
-
-Use a scoped target (e.g. `mise run build posets/`) for fast feedback while working in one module. Run `mise build` (no target) before committing to catch import errors in other modules.
+Run `mise build` (no target) before committing to catch cross-module import errors.
 
 ## Project layout
 
