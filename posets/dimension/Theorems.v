@@ -48,19 +48,78 @@ Section Theorems.
           { exists x. auto. }
           { (* If x not minimal, there is y < x in Add A0 x. y must be in A0. *)
             (* Then y < m, which contradicts m's minimality in A0. *)
-            admit.
+            exfalso.
+            unfold IsMinimal in Hxnmin.
+            apply Hxnmin.
+            split.
+            { right. constructor. }
+            { intros y Hy Hyx.
+              destruct Hy as [y Hy | y Hy].
+              - (* y in A0: y <= x and x <= m, so y <= m, so y = m by minimality of m *)
+                destruct Hm as [Hm_in Hm_min].
+                assert (Hym : rel_rel y m).
+                { eapply poset_trans; [exact Hyx | exact (proj1 Hxm)]. }
+                assert (Heqym : y = m) by (apply Hm_min; auto).
+                (* But then rel_rel m x (since y=m and rel_rel y x ... wait rel_rel y x not given *)
+                (* We have rel_rel y x is not given; we have rel_rel y m holds and y=m *)
+                (* So rel_rel m x from Hxm: rel_rel x m and x <> m *)
+                (* Wait: y = m, and we need to derive a contradiction *)
+                (* We know rel_rel x m (from Hxm) and y = m, and y is in A0 *)
+                (* m is minimal in A0, meaning for all z in A0 with rel z m, z = m *)
+                (* y is in A0 and rel y m, so y = m. But also rel y x and rel x m. *)
+                (* We need: rel m x to get m = x by antisym, contradicting x <> m *)
+                subst y.
+                (* Now we know rel_rel m x because rel_rel m = rel_rel y and rel_rel y x = Hyx? *)
+                (* Hyx : rel_rel y x, y = m, so rel_rel m x *)
+                (* And Hxm : rel_rel x m /\ x <> m *)
+                exfalso.
+                apply (proj2 Hxm).
+                eapply poset_antisym; [exact (proj1 Hxm) | exact Hyx].
+              - (* y = x: rel x x and x = x trivially *)
+                destruct Hy. reflexivity. }
           }
         * (* x is not strictly smaller than m. Then m is still minimal. *)
-          exists m. admit.
+          exists m.
+          destruct Hm as [Hm_in Hm_min].
+          split.
+          { left. exact Hm_in. }
+          { intros y Hy Hym.
+            destruct Hy as [y Hy | y Hy].
+            - (* y in A0 *)
+              apply Hm_min; auto.
+            - (* y = x *)
+              destruct Hy.
+              (* y = x and rel_rel x m. We need x = m. *)
+              (* Hnxm : ~ (rel_rel x m /\ x <> m) *)
+              (* So either ~ rel_rel x m or x = m *)
+              destruct (classic (x = m)) as [Heq | Hneq].
+              + exact Heq.
+              + exfalso. apply Hnxm. split; auto. }
       + (* A0 is empty, so S is just {x} *)
-        exists x. admit.
-  Admitted.
+        exists x.
+        split.
+        { right. constructor. }
+        { intros y Hy Hyx.
+          destruct Hy as [y Hy | y Hy].
+          - (* y in A0, but A0 is empty *)
+            exfalso. apply Hninh'. exists y. exact Hy.
+          - (* y = x *)
+            destruct Hy. reflexivity. }
+  Qed.
 
   (** Lemma: A sub-relation on A is still a poset if the original was. *)
   Lemma subrelation_is_poset :
     forall (rel : A -> A -> Prop) `{IsPoset A rel} (S : Ensemble A),
-    IsPoset A (fun x y => In A S x /\ In A S y /\ rel x y).
-  Admitted.
+    IsPoset A (fun x y => x = y \/ (In A S x /\ In A S y /\ rel x y)).
+  Proof.
+    intros rel HR_rel S.
+    constructor.
+    - intro x. left. reflexivity.
+    - intros x y [-> | [Hx [Hy Hxy]]] [-> | [Hx' [Hy' Hyx]]]; auto.
+      right; split; [exact Hx | split; [exact Hy' | eapply poset_antisym; eauto]].
+    - intros x y z [-> | [Hx [Hy Hxy]]] [-> | [Hy' [Hz Hyz]]]; auto.
+      right; split; [exact Hx | split; [exact Hz | eapply poset_trans; eauto]].
+  Qed.
 
   (** Lemma: Adding a minimal element to the bottom of a linear extension of a smaller set. *)
   Lemma add_minimal_to_linear_extension :
