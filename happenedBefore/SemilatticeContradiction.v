@@ -2,6 +2,7 @@
 Require Import EventStructure.
 Require Import CausalRelation.
 Require Import Posets.PosetClasses.
+Require Import Posets.LatticeClasses.
 Require Import LatticeOperations.
 
 (* 

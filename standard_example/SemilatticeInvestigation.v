@@ -1,6 +1,6 @@
 From Stdlib Require Import Arith.Arith.
 From Stdlib Require Import Classes.RelationClasses.
-From Posets Require Import PosetClasses.
+From Posets Require Import PosetClasses LatticeClasses.
 Require Import Structure.
 Require Import Proofs.
 
