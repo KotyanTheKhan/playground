@@ -246,9 +246,9 @@ Section PingPongParameters.
   (* ── IsPairAlternatingSymPingPong instance ───────────────────────────────  *)
 
   (**
-    The four causality axioms, each as a standalone lemma.
-    In-range cycles are proved via the corresponding causality lemma above.
-    Out-of-range cycles require an infinite history (admitted for now).
+    The four causality axioms, each proved via [hb_inf]:
+    choose a minimal [n] that places the relevant message in the history,
+    then apply the corresponding in-range causality lemma.
   *)
 
   Lemma ax_ping : forall i,
