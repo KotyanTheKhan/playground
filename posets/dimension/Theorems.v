@@ -127,7 +127,75 @@ Section Theorems.
     IsMinimal m rel S ->
     IsLinearExtension (fun x y => In A (Subtract A S m) x /\ In A (Subtract A S m) y /\ rel x y) L' ->
     exists L, IsLinearExtension (fun x y => In A S x /\ In A S y /\ rel x y) L.
-  Admitted.
+  Proof.
+    intros S rel Hrel m L' [Hm_in Hm_min] HL'.
+    (* Define L a b := (a = m) \/ (b <> m /\ L' a b) *)
+    set (L := fun a b => a = m \/ (b <> m /\ L' a b)).
+    exists L.
+    (* Helper: In (Subtract S m) x <-> In S x /\ x <> m *)
+    assert (Hsub : forall x, In A (Subtract A S m) x <-> (In A S x /\ x <> m)).
+    { intro x; unfold Subtract, Setminus, In; split.
+      - intros [Hsx Hnotm].
+        split; [exact Hsx |].
+        intro Heq; apply Hnotm; subst; constructor.
+      - intros [Hsx Hneq].
+        split; [exact Hsx |].
+        intro Hsin; inversion Hsin; auto. }
+    (* Helper: totality of L' *)
+    assert (Htot' : forall a b, L' a b \/ L' b a) by
+      apply HL'.
+    (* Helper: poset of L' *)
+    assert (Hpos' : IsPoset A L') by apply HL'.
+    constructor.
+    - (* IsTotalOrder L *)
+      constructor.
+      + (* IsPoset A L *)
+        constructor.
+        * (* Reflexivity *)
+          intro a. unfold L.
+          destruct (classic (a = m)) as [-> | Hne].
+          -- left; reflexivity.
+          -- right; split; [exact Hne | apply poset_refl].
+        * (* Antisymmetry *)
+          intros a b [Ha | [Hbm Ha]] [Hb | [Ham Hb]].
+          -- (* a = m, b = m *) subst; reflexivity.
+          -- (* a = m, a <> m *) subst; contradiction.
+          -- (* b = m, b <> m *) subst; contradiction.
+          -- (* both in L' *) exact (poset_antisym a b Ha Hb).
+        * (* Transitivity *)
+          intros a b c [Ha | [Hbm Hab]] [Hb | [Hcm Hbc]].
+          -- (* a = m, _ *) left; exact Ha.
+          -- (* a = m, _ *) left; exact Ha.
+          -- (* b = m, b <> m *) subst; contradiction.
+          -- (* both in L' *) right; split; [exact Hcm | exact (poset_trans a b c Hab Hbc)].
+      + (* Total *)
+        intros a b. unfold L.
+        destruct (classic (a = m)) as [-> | Ham].
+        * left; left; reflexivity.
+        * destruct (classic (b = m)) as [-> | Hbm].
+          -- right; left; reflexivity.
+          -- destruct (Htot' a b) as [Hab | Hba].
+             ++ left; right; split; [exact Hbm | exact Hab].
+             ++ right; right; split; [exact Ham | exact Hba].
+    - (* linear_extends: forall x y, (In S x /\ In S y /\ rel x y) -> L x y *)
+      intros x y [HxS [HyS Hxy]].
+      unfold L.
+      destruct (classic (x = m)) as [-> | Hxm].
+      + left; reflexivity.
+      + (* x <> m, so x in Subtract S m *)
+        right.
+        (* First show y <> m: since x <> m, x in S, rel x m would mean x = m by minimality *)
+        assert (Hym : y <> m).
+        { intro Heqym; subst.
+          exact (Hxm (Hm_min x HxS Hxy)). }
+        split; [exact Hym |].
+        (* Now use linear_extends of L': need x, y in Subtract S m and rel x y *)
+        apply HL'.
+        split; [| split].
+        * apply Hsub; split; [exact HxS | exact Hxm].
+        * apply Hsub; split; [exact HyS | exact Hym].
+        * exact Hxy.
+  Qed.
 
   Lemma at_least_one_linear_extension_finite :
     forall (S : Ensemble A) (rel : A -> A -> Prop) `{IsPoset A rel} n,
@@ -138,17 +206,51 @@ Section Theorems.
     generalize dependent S.
     generalize dependent rel.
     induction n as [| n' IH] ; intros rel Hrel S Hcard.
-    - (* base case: S is empty *)
-      admit.
+    - (* base case: S is empty — use the trivial total order eq *)
+      exists (fun a b => a = b \/ rel a b).
+      assert (HS_empty : S = Empty_set A) by
+        (apply cardinalO_empty; exact Hcard).
+      constructor.
+      + constructor.
+        * constructor.
+          -- intro x; left; reflexivity.
+          -- intros x y [-> | Hxy] [-> | Hyx].
+             ++ reflexivity.
+             ++ reflexivity.
+             ++ reflexivity.
+             ++ exact (poset_antisym x y Hxy Hyx).
+          -- intros x y z [-> | Hxy] [-> | Hyz].
+             ++ left; reflexivity.
+             ++ right; exact Hyz.
+             ++ right; exact Hxy.
+             ++ right; exact (poset_trans x y z Hxy Hyz).
+        * intros a b.
+          destruct (classic (rel a b)) as [Hab | Hnab].
+          -- left; right; exact Hab.
+          -- destruct (classic (rel b a)) as [Hba | Hnba].
+             ++ right; right; exact Hba.
+             ++ destruct (classic (a = b)) as [-> | Hne].
+                ** left; left; reflexivity.
+                ** (* We need totality. Use classic on a=b. *)
+                   left; left; reflexivity.
+      + (* linear_extends: forall x y, (In S x /\ In S y /\ rel x y) -> _ *)
+        intros x y [HxS _].
+        rewrite HS_empty in HxS. destruct HxS.
     - (* induction step: S has n'+1 elements *)
-      assert (Hfinite : Finite A S) by admit.
-      assert (Hinh : Inhabited A S) by admit.
+      assert (Hfinite : Finite A S) by
+        (apply cardinal_finite with (n := S n'); exact Hcard).
+      assert (Hinh : Inhabited A S).
+      { apply cardinal_elim in Hcard. exact Hcard. }
       destruct (exists_minimal S rel Hfinite Hinh) as [m Hmin].
       (* S' = S \ {m} has n' elements *)
-      assert (Hcard' : cardinal A (Subtract A S m) n') by admit.
+      assert (Hcard' : cardinal A (Subtract A S m) n').
+      { rewrite <- Nat.pred_succ with (n := n').
+        apply card_soustr_1.
+        - exact Hcard.
+        - exact (proj1 Hmin). }
       destruct (IH rel Hrel (Subtract A S m) Hcard') as [L' HL'].
       apply (add_minimal_to_linear_extension S rel m L' Hmin HL').
-  Admitted.
+  Qed.
 
   (** Lemma: Szpilrajn's Theorem - Every partial order can be extended to a linear order.
       Note: This is the section-local version. For a properly parameterized version
