@@ -283,8 +283,7 @@ Section PingPongParameters.
     apply inter_causes_next_ext. lia.
   Qed.
 
-  Instance ex_is_ping_pong (n : nat) :
-    IsPairAlternatingSymPingPong (happened_before (pp_history_ext n)).
+  Instance ex_is_ping_pong : IsPairAlternatingSymPingPong hb_inf.
   Proof.
     exact {|
       map_cycle_ping_send := map_ping_send GAP_0 GAP_1;
@@ -295,10 +294,10 @@ Section PingPongParameters.
       ax_even_resp := map_ping_recv_even_process GAP_0 GAP_1;
       ax_odd_init  := map_ping_send_odd_process  GAP_0 GAP_1;
       ax_odd_resp  := map_ping_recv_odd_process  GAP_0 GAP_1;
-      ax_ping_rel  := ax_ping n;
-      ax_turn_rel  := ax_turn n;
-      ax_pong_rel  := ax_pong n;
-      ax_next_rel  := ax_next n
+      ax_ping_rel  := ax_ping;
+      ax_turn_rel  := ax_turn;
+      ax_pong_rel  := ax_pong;
+      ax_next_rel  := ax_next
     |}.
   Defined.
 
