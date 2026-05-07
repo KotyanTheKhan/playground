@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "rocq-mcp": {
+      "command": "/opt/homebrew/bin/rocq-mcp",
+      "env": {
+        "ROCQ_WORKSPACE": "/Users/maxstarling/code/research/playground",
+        "ROCQ_PATH": "/Users/maxstarling/code/research/playground/_opam/bin"
+      }
+    }
+  }
+}

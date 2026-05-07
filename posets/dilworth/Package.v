@@ -10,6 +10,7 @@
     - WidthLowerBound: Proof that width ≤ minimum chain cover (DilworthA)
     - WidthUpperBound: Proof that minimum chain cover ≤ width (DilworthB)
     - DilworthTheorem: Main theorem combining both directions
+    - DilworthCorollaries: Corollaries for IsFinitePoset and lattice class hierarchy
 *)
 
 From Dilworth Require Export CardinalArithmetic.
@@ -19,4 +20,5 @@ From Dilworth Require Export CardinalLemmas.
 From Dilworth Require Export WidthLowerBound.
 From Dilworth Require Export WidthUpperBound.
 From Dilworth Require Export DilworthTheorem.
+From Dilworth Require Export DilworthCorollaries.
 

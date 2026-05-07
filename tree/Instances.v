@@ -1,5 +1,6 @@
 (* Poset and lattice instances for trees *)
 Require Import Posets.PosetClasses.
+Require Import Posets.LatticeClasses.
 Require Import Tree.Structure.
 Require Import Tree.Operations.
 From Stdlib Require Import Lia.

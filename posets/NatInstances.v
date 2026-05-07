@@ -2,6 +2,7 @@
 Require Import Nat.
 From Stdlib Require Import PeanoNat.
 Require Import PosetClasses.
+Require Import LatticeClasses.
 
 
 Definition nat_meet (x y : nat) := Nat.min x y.
