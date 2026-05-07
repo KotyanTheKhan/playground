@@ -523,7 +523,30 @@ Section ConcreteExample.
       
       as predicted by Dilworth's Theorem. *)
   Lemma Element_Size_6 : cardinal Element (Full_set Element) 6.
-  Proof. Admitted.
+  Proof.
+    assert (Heq : Full_set Element =
+      Add Element (Add Element (Add Element (Add Element
+        (Add Element (Add Element (Empty_set Element)
+          (AA I0)) (AA I1)) (AA I2))
+          (BB I0)) (BB I1)) (BB I2)).
+    { apply Extensionality_Ensembles; intro e; split.
+      - intros _; destruct e as [i|i]; destruct i;
+        repeat first [apply Union_intror; apply In_singleton | apply Union_introl].
+      - intros _; apply Full_intro. }
+    rewrite Heq.
+    apply card_add; [apply card_add; [apply card_add; [apply card_add;
+      [apply card_add; [apply card_add |] |] |] |] |].
+    - apply card_empty.
+    - solve_not_in_empty.
+    - intros H; inversion H; subst; inversion H0.
+    - intros H; inversion H; subst; inversion H0; subst; inversion H1.
+    - intros H; inversion H; subst; inversion H0; subst; inversion H1; subst;
+        inversion H2.
+    - intros H; inversion H; subst; inversion H0; subst; inversion H1; subst;
+        inversion H2; subst; inversion H3.
+    - intros H; inversion H; subst; inversion H0; subst; inversion H1; subst;
+        inversion H2; subst; inversion H3; subst; inversion H4.
+  Qed.
 
   Theorem S31_Dilworth_verification : 3 = 3.
   Proof.
