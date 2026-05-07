@@ -4,14 +4,18 @@
 
 Always use `mise` tasks — never invoke `dune` or `opam` directly.
 
-| Goal | Command |
-|------|---------|
-| Build everything | `mise build` |
-| Build only `posets/` | `mise run build-posets` |
-| Build a specific target | `mise run build posets/dilworth/DilworthCorollaries.v` |
-| Clean | `mise run clean` |
+`mise run build [TARGET]` accepts any dune target — a directory, a `.v` file, or nothing for everything:
 
-`mise run build-posets` only covers the `posets/` subtree. Use `mise build` to verify changes that touch files outside `posets/` (e.g. `list/`, `tree/`, `happenedBefore/`).
+```bash
+mise build                                          # build entire project
+mise run build posets/                              # build posets/ subtree
+mise run build list/                                # build list/ subtree
+mise run build happenedBefore/                      # build happenedBefore/ subtree
+mise run build posets/dilworth/DilworthCorollaries.v  # build one file
+mise run clean                                      # clean build artifacts
+```
+
+Use a scoped target (e.g. `mise run build posets/`) for fast feedback while working in one module. Run `mise build` (no target) before committing to catch import errors in other modules.
 
 ## Project layout
 
