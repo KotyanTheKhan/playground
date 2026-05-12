@@ -6,6 +6,72 @@ From Dimension Require Import DimDefs Szpilrajn.
 Section CriticalPairs.
   Context {A : Type}.
   Context (R : A -> A -> Prop) `{IsPoset A R}.
+  Context (HfinA : Finite A (Full_set A)).
+
+  Definition IsMinimal_CP (x : A) (rel : A -> A -> Prop) (S : Ensemble A) : Prop :=
+    In A S x /\ forall y, In A S y -> rel y x -> y = x.
+
+  Lemma exists_minimal_CP :
+    forall (S : Ensemble A) (rel : A -> A -> Prop) `{IsPoset A rel},
+    Finite A S -> Inhabited A S ->
+    exists x, IsMinimal_CP x rel S.
+  Proof.
+    intros S rel_rel Hposet Hfin.
+    induction Hfin.
+    - intros Hinh. destruct Hinh as [x Hx]. inversion Hx.
+    - intros Hinh.
+      destruct (classic (Inhabited A A0)) as [Hinh' | Hninh'].
+      + specialize (IHHfin Hinh').
+        destruct IHHfin as [m Hm].
+        destruct (classic (rel_rel x m /\ x <> m)) as [Hxm | Hnxm].
+        * destruct (classic (IsMinimal_CP x rel_rel (Add A A0 x))) as [Hxmin | Hxnmin].
+          { exists x. exact Hxmin. }
+          { exfalso.
+            apply Hxnmin. split.
+            { right. constructor. }
+            { intros y Hy Hyx.
+              destruct Hy as [y Hy | y Hy].
+              - destruct Hm as [Hm_in Hm_min].
+                assert (Hym : rel_rel y m) by (eapply poset_trans; [exact Hyx | exact (proj1 Hxm)]).
+                assert (Heqym : y = m) by (apply Hm_min; auto).
+                subst y.
+                exfalso. apply (proj2 Hxm). eapply poset_antisym; [exact (proj1 Hxm) | exact Hyx].
+              - destruct Hy. reflexivity. } }
+        * exists m.
+          destruct Hm as [Hm_in Hm_min].
+          split.
+          { left. exact Hm_in. }
+          { intros y Hy Hym.
+            destruct Hy as [y Hy | y Hy].
+            - apply Hm_min; auto.
+            - destruct Hy.
+              destruct (classic (x = m)) as [Heq | Hneq].
+              + exact Heq.
+              + exfalso. apply Hnxm. split; auto. }
+      + exists x. split.
+        { right. constructor. }
+        { intros y Hy Hyx.
+          destruct Hy as [y Hy | y Hy].
+          - exfalso. apply Hninh'. exists y. exact Hy.
+          - destruct Hy. reflexivity. }
+  Qed.
+
+  Lemma exists_maximal_CP :
+    forall (S : Ensemble A) (rel : A -> A -> Prop) `{IsPoset A rel},
+    Finite A S -> Inhabited A S ->
+    exists x, In A S x /\ forall y, In A S y -> rel x y -> y = x.
+  Proof.
+    intros S rel_rel Hposet Hfin Hinh.
+    set (rel_flip := fun a b => rel_rel b a).
+    assert (Hposet_flip : IsPoset A rel_flip).
+    { constructor.
+      - intro a. unfold rel_flip. apply poset_refl.
+      - intros a b Ha Hb. unfold rel_flip in *. eapply poset_antisym; eauto.
+      - intros a b c Hab Hbc. unfold rel_flip in *. eapply poset_trans; eauto. }
+    destruct (exists_minimal_CP S rel_flip Hposet_flip Hfin Hinh) as [x [Hx Hmin]].
+    exists x. split; [exact Hx |].
+    intros y Hy Hxy. apply Hmin; [exact Hy | exact Hxy].
+  Qed.
 
   (** Critical Pair: an incomparable pair (x, y) such that adding (x, y) maintains transitivity *)
   Class IsCriticalPair (x y : A) : Prop := {
