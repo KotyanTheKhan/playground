@@ -9,4 +9,6 @@
  (allow_empty)
  (depends
   (coq (>= 8.19.0))
+  (coq-stdlib (>= 8.19.0))
+  (coq-zorns-lemma (>= 10.0.0))
  ))

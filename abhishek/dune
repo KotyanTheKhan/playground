@@ -1,7 +1,6 @@
 (coq.theory
  (name Abhishek)
  (package playground)
- (theories Stdlib)
  (modules
   Compat
   PigeonHole
