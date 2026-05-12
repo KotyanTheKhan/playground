@@ -1,4 +1,4 @@
-From Stdlib Require Import Ensembles Finite_sets.
+From Stdlib Require Import Ensembles Finite_sets Image Arith Classical.
 From Posets Require Import PosetClasses.
 From Dimension Require Import DimDefs CriticalPairs.
 
@@ -46,7 +46,175 @@ Section LinearSum.
     PosetDimension LinearSumRel dSum ->
     dSum = Init.Nat.max dA dB.
   Proof.
-  Admitted.
+    intros dA dB dSum HdA HdB HdSum.
+
+    (* We need dSum <= max(dA, dB) and max(dA, dB) <= dSum. *)
+    (* The latter follows from dA <= dSum and dB <= dSum. *)
+    apply Nat.le_antisymm.
+
+    (** ---- Upper bound: dSum <= max(dA, dB) ----
+        Use linear_sum_realizer_lifting to build a realizer of LinearSumRel
+        of size max(dA, dB), then apply dimension_is_minimum. *)
+    {
+      destruct (linear_sum_realizer_lifting
+                  (dimension_realizer (R := RA) (d := dA))
+                  (dimension_realizer (R := RB) (d := dB))
+                  dA dB
+                  (dimension_is_realizer (R := RA) (d := dA))
+                  (dimension_is_realizer (R := RB) (d := dB))
+                  (dimension_cardinality (R := RA) (d := dA))
+                  (dimension_cardinality (R := RB) (d := dB)))
+        as [rSum [HrSum HcardSum]].
+      exact (dimension_is_minimum (R := LinearSumRel) (d := dSum)
+               rSum (Init.Nat.max dA dB) HrSum HcardSum).
+    }
+
+    (** ---- Lower bound: max(dA, dB) <= dSum ----
+        We show dA <= dSum and dB <= dSum, then use max_lub. *)
+    apply Nat.max_lub.
+
+    (** dA <= dSum:
+        The projection L |-> (fun a1 a2 => L (inl a1) (inl a2)) maps
+        rSum (the canonical realizer of LinearSumRel) to a realizer rA'
+        of RA with |rA'| <= |rSum| = dSum. Apply dimension_is_minimum of dA. *)
+    {
+      (* Let rSum be the canonical realizer of LinearSumRel with dSum elements. *)
+      set (rSum := dimension_realizer (R := LinearSumRel) (d := dSum)).
+      pose proof (dimension_is_realizer (R := LinearSumRel) (d := dSum))
+        as [HrSum_lin HrSum_iff].
+
+      (* Define rA' as the image of rSum under the inl-inl projection. *)
+      set (projA := fun (L : A + B -> A + B -> Prop) (a1 a2 : A) => L (inl a1) (inl a2)).
+      set (rA' := Im (A + B -> A + B -> Prop) (A -> A -> Prop) rSum projA).
+
+      (* Show rA' is a realizer of RA. *)
+      assert (HrA' : IsRealizer RA rA').
+      {
+        constructor.
+        - (* Every LA in rA' is a linear extension of RA *)
+          intros LA HLA.
+          unfold rA', Im in HLA.
+          destruct HLA as [L HLinRSum LA HeqLA].
+          subst LA. unfold projA.
+          (* L is a linear extension of LinearSumRel *)
+          specialize (HrSum_lin L HLinRSum) as HLlin.
+          constructor.
+          + constructor.
+            * (* reflexivity *)
+              intro a. apply (poset_refl (R := L)).
+            * (* antisymmetry *)
+              intros a1 a2 H1 H2.
+              assert (Heq : inl a1 = inl a2)
+                by (apply (poset_antisym (R := L)); exact H1; exact H2).
+              inversion Heq; reflexivity.
+            * (* transitivity *)
+              intros a1 a2 a3 H1 H2.
+              exact (poset_trans (R := L) (inl a1) (inl a2) (inl a3) H1 H2).
+          + (* totality *)
+            intros a1 a2.
+            exact (total_comparable (L := L) (inl a1) (inl a2)).
+          + (* extends RA *)
+            intros a1 a2 HRA.
+            apply HLlin.
+            apply SumAA. exact HRA.
+        - (* Intersection: RA a1 a2 <-> forall LA in rA', LA a1 a2 *)
+          intros a1 a2. split.
+          + (* RA a1 a2 -> all LA in rA' agree *)
+            intros HRA LA HLA.
+            unfold rA', Im in HLA.
+            destruct HLA as [L HLinRSum LA HeqLA].
+            subst LA. unfold projA.
+            (* Use HrSum_iff: RA a1 a2 means L (inl a1) (inl a2) for all L in rSum *)
+            apply (HrSum_iff (inl a1) (inl a2)).
+            * apply SumAA. exact HRA.
+            * exact HLinRSum.
+          + (* All LA in rA' agree -> RA a1 a2 *)
+            intro Hall.
+            apply (HrSum_iff (inl a1) (inl a2)).
+            intro L HLinRSum.
+            apply (Hall (projA L)).
+            apply Im_intro with L.
+            * exact HLinRSum.
+            * reflexivity.
+      }
+
+      (* Cardinality: |rA'| <= |rSum| = dSum *)
+      (* Get the cardinal of rA' using cardinal_Im_intro *)
+      assert (HcardSum : cardinal _ rSum dSum)
+        by exact (dimension_cardinality (R := LinearSumRel) (d := dSum)).
+      destruct (cardinal_Im_intro _ _ _ _ rSum projA dSum HcardSum)
+        as [nA' HcardA'].
+
+      (* cardinal_decreases: |rA'| <= |rSum| = dSum *)
+      assert (HleA' : nA' <= dSum)
+        by exact (cardinal_decreases _ _ _ _ rSum projA dSum HcardSum nA' HcardA').
+
+      (* dA <= nA' by dimension_is_minimum of dA *)
+      assert (HdA_le : dA <= nA')
+        by exact (dimension_is_minimum (R := RA) (d := dA) rA' nA' HrA' HcardA').
+
+      exact (Nat.le_trans dA nA' dSum HdA_le HleA').
+    }
+
+    (** dB <= dSum: symmetric argument using inr-inr projection *)
+    {
+      set (rSum := dimension_realizer (R := LinearSumRel) (d := dSum)).
+      pose proof (dimension_is_realizer (R := LinearSumRel) (d := dSum))
+        as [HrSum_lin HrSum_iff].
+
+      set (projB := fun (L : A + B -> A + B -> Prop) (b1 b2 : B) => L (inr b1) (inr b2)).
+      set (rB' := Im (A + B -> A + B -> Prop) (B -> B -> Prop) rSum projB).
+
+      assert (HrB' : IsRealizer RB rB').
+      {
+        constructor.
+        - intros LB HLB.
+          unfold rB', Im in HLB.
+          destruct HLB as [L HLinRSum LB HeqLB].
+          subst LB. unfold projB.
+          specialize (HrSum_lin L HLinRSum) as HLlin.
+          constructor.
+          + constructor.
+            * intro b. apply (poset_refl (R := L)).
+            * intros b1 b2 H1 H2.
+              assert (Heq : inr b1 = inr b2)
+                by (apply (poset_antisym (R := L)); exact H1; exact H2).
+              inversion Heq; reflexivity.
+            * intros b1 b2 b3 H1 H2.
+              exact (poset_trans (R := L) (inr b1) (inr b2) (inr b3) H1 H2).
+          + intros b1 b2.
+            exact (total_comparable (L := L) (inr b1) (inr b2)).
+          + intros b1 b2 HRB.
+            apply HLlin.
+            apply SumBB. exact HRB.
+        - intros b1 b2. split.
+          + intros HRB LB HLB.
+            unfold rB', Im in HLB.
+            destruct HLB as [L HLinRSum LB HeqLB].
+            subst LB. unfold projB.
+            apply (HrSum_iff (inr b1) (inr b2)).
+            * apply SumBB. exact HRB.
+            * exact HLinRSum.
+          + intro Hall.
+            apply (HrSum_iff (inr b1) (inr b2)).
+            intro L HLinRSum.
+            apply (Hall (projB L)).
+            apply Im_intro with L.
+            * exact HLinRSum.
+            * reflexivity.
+      }
+
+      assert (HcardSum : cardinal _ rSum dSum)
+        by exact (dimension_cardinality (R := LinearSumRel) (d := dSum)).
+      destruct (cardinal_Im_intro _ _ _ _ rSum projB dSum HcardSum)
+        as [nB' HcardB'].
+      assert (HleB' : nB' <= dSum)
+        by exact (cardinal_decreases _ _ _ _ rSum projB dSum HcardSum nB' HcardB').
+      assert (HdB_le : dB <= nB')
+        by exact (dimension_is_minimum (R := RB) (d := dB) rB' nB' HrB' HcardB').
+      exact (Nat.le_trans dB nB' dSum HdB_le HleB').
+    }
+  Qed.
 
   (** Theorem: Critical pairs of a linear sum
       (x, y) is a critical pair in A + B iff it is a critical pair in A (both inl)
