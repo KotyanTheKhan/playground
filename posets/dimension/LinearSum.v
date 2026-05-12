@@ -19,6 +19,16 @@ From Dimension Require Import DimDefs CriticalPairs.
     any incomparable pair in P ⊕ Q must be entirely within P or entirely within Q.
 *)
 
+Lemma cardinal_pos_nonempty :
+  forall (U : Type) (S : Ensemble U) (n : nat),
+  cardinal U S n -> 0 < n -> exists x, In U S x.
+Proof.
+  intros U S n Hcard Hpos.
+  induction Hcard.
+  - inversion Hpos.
+  - exists x. right. constructor.
+Qed.
+
 Section LinearSum.
   Context {A B : Type}.
   Context (RA : A -> A -> Prop) `{IsPoset A RA}.
@@ -44,9 +54,10 @@ Section LinearSum.
     PosetDimension RA dA ->
     PosetDimension RB dB ->
     PosetDimension LinearSumRel dSum ->
+    0 < dA -> 0 < dB ->
     dSum = Init.Nat.max dA dB.
   Proof.
-    intros dA dB dSum HdA HdB HdSum.
+    intros dA dB dSum HdA HdB HdSum HposA HposB.
 
     (* We need dSum <= max(dA, dB) and max(dA, dB) <= dSum. *)
     (* The latter follows from dA <= dSum and dB <= dSum. *)
@@ -63,7 +74,8 @@ Section LinearSum.
                   (dimension_is_realizer (R := RA) (d := dA))
                   (dimension_is_realizer (R := RB) (d := dB))
                   (dimension_cardinality (R := RA) (d := dA))
-                  (dimension_cardinality (R := RB) (d := dB)))
+                  (dimension_cardinality (R := RB) (d := dB))
+                  HposA HposB)
         as [rSum [HrSum HcardSum]].
       exact (dimension_is_minimum (R := LinearSumRel) (d := dSum)
                rSum (Init.Nat.max dA dB) HrSum HcardSum).
@@ -413,13 +425,16 @@ Section LinearSum.
     IsRealizer RB realizerB ->
     cardinal (A -> A -> Prop) realizerA na ->
     cardinal (B -> B -> Prop) realizerB nb ->
+    0 < na -> 0 < nb ->
     exists (realizerSum : Ensemble (A + B -> A + B -> Prop)),
     IsRealizer LinearSumRel realizerSum /\
     cardinal (A + B -> A + B -> Prop) realizerSum (Init.Nat.max na nb).
   Proof.
-    intros realizerA realizerB na nb HrA HrB HcardA HcardB.
+    intros realizerA realizerB na nb HrA HrB HcardA HcardB HposA HposB.
     destruct HrA as [HrA_lin HrA_iff].
     destruct HrB as [HrB_lin HrB_iff].
+    destruct (cardinal_pos_nonempty _ realizerA na HcardA HposA) as [LA₀ HLA₀].
+    destruct (cardinal_pos_nonempty _ realizerB nb HcardB HposB) as [LB₀ HLB₀].
     (* The combined realizer *)
     set (realizerSum :=
       fun (L : A + B -> A + B -> Prop) =>
@@ -448,9 +463,9 @@ Section LinearSum.
              intro Hall.
              apply HrA_iff.
              intros LA HLA.
-             (* To instantiate Hall we need some LB ∈ realizerB. *)
-             (* Admitted: nonemptiness of realizerB *)
-             admit.
+             (* Use LB₀ ∈ realizerB to instantiate Hall *)
+             exact (Hall (combine_extensions LA LB₀)
+               (ex_intro _ LA (ex_intro _ LB₀ (conj HLA (conj HLB₀ eq_refl))))).
         * (* (inl a1, inr b2): always related via SumAB *)
           split.
           -- intros _ L [LA [LB [HLA [HLB ->]]]]. unfold combine_extensions. trivial.
@@ -458,9 +473,11 @@ Section LinearSum.
         * (* (inr b1, inl a2): never related in LinearSumRel *)
           split.
           -- intros Hrel. inversion Hrel.
-          -- (* Hall says combine_extensions LA LB (inr b1) (inl a2) for all LA,LB — contradiction.
-                Admitted: nonemptiness of realizerA and realizerB to witness the contradiction. *)
-             intro Hall. admit.
+          -- (* Hall says combine_extensions LA LB (inr b1) (inl a2) for all LA,LB — contradiction. *)
+             intro Hall.
+             exfalso.
+             exact (Hall (combine_extensions LA₀ LB₀)
+               (ex_intro _ LA₀ (ex_intro _ LB₀ (conj HLA₀ (conj HLB₀ eq_refl))))).
         * (* (inr b1, inr b2) *)
           split.
           -- intros HRB L [LA [LB [HLA [HLB ->]]]].
@@ -470,8 +487,9 @@ Section LinearSum.
           -- intro Hall.
              apply HrB_iff.
              intros LB HLB.
-             (* Need some LA ∈ realizerA. Admitted: nonemptiness of realizerA. *)
-             admit.
+             (* Use LA₀ ∈ realizerA to instantiate Hall *)
+             exact (Hall (combine_extensions LA₀ LB)
+               (ex_intro _ LA₀ (ex_intro _ LB (conj HLA₀ (conj HLB eq_refl))))).
     - (* |realizerSum| = max(na, nb).
          Requires "zip with padding" construction; admitted. *)
       admit.
