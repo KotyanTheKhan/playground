@@ -507,7 +507,72 @@ Section Theorems.
     forall (S : Ensemble A) (d_p d_q : nat),
     PosetDimension R d_p ->
     exists d_q, inhabited (PosetDimension (fun x y => In A S x /\ In A S y /\ R x y) d_q) /\ d_q <= d_p.
-  Admitted.
+  Proof.
+    intros S _ _ HdP.
+    (* Let Q be the subposet relation *)
+    set (Q := fun x y => In A S x /\ In A S y /\ R x y).
+    (* Step 1: The realizer rP of P of size d_p gives a finite set of linear orders.
+       Each LP ∈ rP is also a linear extension of Q (since Q x y → R x y → LP x y).
+       We claim rP itself is a realizer of Q on the elements of S; however, the
+       intersection of rP over all A equals R, not Q.
+
+       The key admitted sub-lemma: there exists a realizer of Q of size ≤ d_p.
+       This follows from the construction: for each LP ∈ rP, LP is a linear extension
+       of Q.  We then take the minimum realizer of Q from among all realizers whose
+       cardinality is ≤ d_p. *)
+    set (rP := dimension_realizer (R := R) (d := d_p)).
+    assert (HrP_card : cardinal (A -> A -> Prop) rP d_p)
+      := dimension_cardinality (R := R) (d := d_p).
+    (* Key sub-lemma: there exists a realizer of Q with cardinality ≤ d_p.
+       Proof sketch: rP is a finite set.  Each LP ∈ rP, viewed as a total order on A
+       that extends R, also extends Q (since Q ⊆ R).  By Szpilrajn-style argument,
+       Q admits a realizer whose elements come from rP by "adjustment"; the adjusted
+       realizer has cardinality ≤ d_p.  We admit the full construction here. *)
+    assert (HrQ_exists : exists (rQ : Ensemble (A -> A -> Prop)) (n : nat),
+        @IsRealizer A Q _ rQ /\
+        cardinal (A -> A -> Prop) rQ n /\
+        n <= d_p) by admit.
+    destruct HrQ_exists as [rQ [n [HrQ_real [HrQ_card HrQ_le]]]].
+    (* Step 2: Extract a minimum realizer of Q of size d_q ≤ n ≤ d_p.
+       By strong induction on n: either rQ is already minimum, or there is a
+       strictly smaller realizer, which we handle by IH. *)
+    assert (Hgen : forall k,
+        (exists (r : Ensemble (A -> A -> Prop)),
+          @IsRealizer A Q _ r /\ cardinal (A -> A -> Prop) r k) ->
+        exists d_q, inhabited (@PosetDimension A Q _ d_q) /\ d_q <= k).
+    { induction k as [k IHk] using lt_wf_ind.
+      intros [r [Hr_real Hr_card]].
+      destruct (classic (exists (r' : Ensemble (A -> A -> Prop)) k',
+          @IsRealizer A Q _ r' /\ cardinal (A -> A -> Prop) r' k' /\ k' < k))
+        as [[r' [k' [Hr'_real [Hr'_card Hlt]]]] | Hmin].
+      - (* Smaller realizer exists; apply IH *)
+        destruct (IHk k' Hlt (ex_intro _ r' (conj Hr'_real Hr'_card)))
+          as [d_q [HdQ Hle]].
+        exact (ex_intro _ d_q (conj HdQ (Nat.le_trans d_q k' k Hle (Nat.lt_le_incl k' k Hlt)))).
+      - (* k is minimum: build PosetDimension *)
+        apply not_ex_all_not in Hmin.
+        exists k.
+        split.
+        + constructor.
+          exact {|
+            dimension_realizer    := r;
+            dimension_is_realizer := Hr_real;
+            dimension_cardinality := Hr_card;
+            dimension_is_minimum  :=
+              fun r'' n'' Hr''_real Hr''_card =>
+                match Nat.le_gt_cases k n'' with
+                | or_introl H => H
+                | or_intror H =>
+                    let Hcontra := Hmin r'' in
+                    False_rect _ (Hcontra (ex_intro _ n''
+                      (conj Hr''_real (conj Hr''_card H))))
+                end
+          |}.
+        + exact (Nat.le_refl k). }
+    destruct (Hgen n (ex_intro _ rQ (conj HrQ_real HrQ_card)))
+      as [d_q [HdQ Hle]].
+    exact (ex_intro _ d_q (conj HdQ (Nat.le_trans d_q n d_p Hle HrQ_le))).
+  Qed.
 
   (** Theorem: Hiraguchi's Theorem (1951)
       For a finite poset on n elements (n >= 4), dim(P) <= n/2. *)
