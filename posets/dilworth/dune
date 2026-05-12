@@ -3,4 +3,4 @@
 (coq.theory
  (name Dilworth)
  (package playground)
- (theories Posets ChipalaBook))
+ (theories Stdlib Posets ChipalaBook))

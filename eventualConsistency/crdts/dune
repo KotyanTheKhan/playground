@@ -2,7 +2,7 @@
  (name crdts)
  (package playground)
  (synopsis "Concrete CRDT implementations")
- (theories EventualConsistency)
+ (theories EventualConsistency Stdlib)
  (modules
   StateBased
   OperationBased

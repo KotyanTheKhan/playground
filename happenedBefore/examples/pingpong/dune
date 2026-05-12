@@ -1,5 +1,5 @@
 (coq.theory
  (name HappenedBeforePingPong)
  (package playground)
- (theories HappenedBefore)
+ (theories HappenedBefore Stdlib)
  (modules Helpers Definitions FixedHistory ExtendedHistory PingPong))

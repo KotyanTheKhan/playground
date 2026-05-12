@@ -1,5 +1,5 @@
 (coq.theory
  (name HappenedBeforeExamples)
  (package playground)
- (theories HappenedBefore)
+ (theories HappenedBefore Stdlib)
  (modules ExBasic ExComplex ExAlternating Examples))
