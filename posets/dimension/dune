@@ -1,4 +1,4 @@
 (coq.theory
  (name Dimension)
  (package playground)
- (theories Stdlib Posets Dilworth ZornsLemma))
+ (theories Posets Dilworth ZornsLemma))

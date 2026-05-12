@@ -1,5 +1,5 @@
 (coq.theory
  (name StandardExample)
  (package playground)
- (theories Posets Stdlib)
+ (theories Posets)
  (modules Structure Proofs SemilatticeInvestigation))
