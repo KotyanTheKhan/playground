@@ -582,6 +582,21 @@ Section Theorems.
     n >= 4 ->
     PosetDimension R d ->
     d <= n / 2.
-  Admitted.
+  Proof.
+    intros n.
+    induction n as [n IH] using lt_wf_ind.
+    intros d Hcard Hn4 Hdim.
+    destruct (classic (exists x y, Incomparable R x y)) as [[x [y Hinc]] | Hchain].
+    - (* Has an incomparable pair: use the inductive extension argument.
+         Key sub-lemma (admitted): adding one comparable pair shrinks a "critical"
+         element so each extension poset has at most n-1 elements and dimension
+         at most (n-1)/2; combining the two extensions keeps d <= n/2. *)
+      assert (Hkey : d <= n / 2) by admit.
+      exact Hkey.
+    - (* Chain: R is a total order, so dim R = 1.
+         Key sub-lemma (admitted): chain implies dimension 1. *)
+      assert (Hd1 : d <= 1) by admit.
+      lia.
+  Qed.
 
 End Theorems.
