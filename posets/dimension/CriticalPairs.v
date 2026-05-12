@@ -1,4 +1,4 @@
-From Stdlib Require Import Ensembles Finite_sets List Classical.
+From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts List Classical.
 From Coq Require Import Relations.Relation_Operators.
 From Posets Require Import PosetClasses.
 From Dimension Require Import DimDefs Szpilrajn.
@@ -84,7 +84,44 @@ Section CriticalPairs.
   Theorem incomparable_lifting_to_critical_pair :
     forall x y, Incomparable R x y ->
     exists x' y', R x' x /\ R y y' /\ IsCriticalPair x' y'.
-  Admitted.
+  Proof.
+    intros x y Hinc.
+    assert (HnRxy : ~ R x y) by (intro H; apply Hinc; left; exact H).
+    assert (HnRyx : ~ R y x) by (intro H; apply Hinc; right; exact H).
+    set (S_x := fun a => R a x /\ ~ R a y).
+    assert (HS_x_inh : Inhabited A S_x).
+    { apply Inhabited_intro with x. unfold S_x. split; [apply poset_refl | exact HnRxy]. }
+    assert (HS_x_fin : Finite A S_x).
+    { apply Finite_downward_closed with (Full_set A); [exact HfinA |].
+      intros a _. apply Full_intro. }
+    destruct (exists_minimal_CP S_x R _ HS_x_fin HS_x_inh) as [x' [[Hx'x HnRx'y] Hx'min]].
+    set (T_y := fun b => R y b /\ ~ R x' b).
+    assert (HT_y_inh : Inhabited A T_y).
+    { apply Inhabited_intro with y. unfold T_y. split; [apply poset_refl | exact HnRx'y]. }
+    assert (HT_y_fin : Finite A T_y).
+    { apply Finite_downward_closed with (Full_set A); [exact HfinA |].
+      intros b _. apply Full_intro. }
+    destruct (exists_maximal_CP T_y R _ HT_y_fin HT_y_inh) as [y' [Hy'T Hy'max]].
+    destruct Hy'T as [HRyy' HnRx'y'].
+    exists x', y'.
+    split; [exact Hx'x |].
+    split; [exact HRyy' |].
+    constructor.
+    - unfold Incomparable. intro H. destruct H as [HRx'y' | HRy'x'].
+      + exact (HnRx'y' HRx'y').
+      + apply HnRyx. eapply poset_trans; [exact HRyy' |].
+        eapply poset_trans; [exact HRy'x' | exact Hx'x].
+    - intros a [HRax' Hane].
+      destruct (classic (R a y)) as [? | HnRay]; [assumption |].
+      assert (HRax : R a x) by (eapply poset_trans; [exact HRax' | exact Hx'x]).
+      assert (Ha_Sx : In A S_x a) by (split; assumption).
+      exact (False_ind _ (Hane (Hx'min a Ha_Sx HRax'))).
+    - intros b [HRy'b Hbne].
+      destruct (classic (R x' b)) as [? | HnRx'b]; [assumption |].
+      assert (HRyb : R y b) by (eapply poset_trans; [exact HRyy' | exact HRy'b]).
+      assert (Hb_Ty : In A T_y b) by (split; assumption).
+      exact (False_ind _ (Hbne (Hy'max b Hb_Ty HRy'b))).
+  Qed.
 
   (** Characterization of realizers via critical pairs. *)
   Theorem critical_pair_realizer_iff :
