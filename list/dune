@@ -1,7 +1,7 @@
 (coq.theory
  (name List)
  (package playground)
- (theories Hammer Posets)
+ (theories Hammer Posets Stdlib)
  (modules
   Structure
   Operations

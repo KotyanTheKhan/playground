@@ -1,7 +1,7 @@
 (coq.theory
  (name EventualConsistency)
  (package playground)
- (theories Posets)
+ (theories Posets Stdlib)
  (modules
   StateModel
   ReplicatedStructure
