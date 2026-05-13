@@ -41,16 +41,6 @@ Proof.
       rewrite Heq. apply card_add; assumption.
 Qed.
 
-Lemma cardinal_to_finite :
-  forall (U : Type) (S : Ensemble U) (n : nat),
-  cardinal U S n -> Finite U S.
-Proof.
-  intros U S n Hcard.
-  induction Hcard.
-  - constructor.
-  - apply Add_preserves_Finite. exact IHHcard.
-Qed.
-
 Lemma singleton_cardinal :
   forall (U : Type) (x : U),
   cardinal U (Singleton U x) 1.
@@ -715,7 +705,7 @@ Section Theorems.
       { (* Build a total order from Hchain *)
         assert (HR_total : IsTotalOrder R).
         { constructor.
-          - exact H.
+          - assumption.
           - intros a b.
             destruct (classic (R a b)) as [Hab | Hnab]; [left; assumption |].
             right.
