@@ -1,4 +1,5 @@
-From Stdlib Require Import Ensembles Finite_sets Image Arith Classical.
+From Stdlib Require Import Ensembles Finite_sets Image Arith Classical List.
+From Coq Require Import FunctionalExtensionality PropExtensionality.
 From Posets Require Import PosetClasses.
 From Dimension Require Import DimDefs CriticalPairs.
 
@@ -27,6 +28,51 @@ Proof.
   induction Hcard.
   - inversion Hpos.
   - exists x. right. constructor.
+Qed.
+
+Lemma cardinal_to_list :
+  forall (U : Type) (S : Ensemble U) (n : nat),
+  cardinal U S n ->
+  exists l : list U,
+    length l = n /\
+    (forall x, In U S x <-> List.In x l) /\
+    List.NoDup l.
+Proof.
+  intros U S n Hcard.
+  induction Hcard.
+  - exists nil. split; [reflexivity | split; [intro x; split; [intro Hx; inversion Hx | intro Hx; inversion Hx] | constructor]].
+  - destruct IHHcard as [l [Hlen [Hiff Hnodup]]].
+    exists (x :: l).
+    split; [simpl; lia |].
+    split.
+    + intro y. split.
+      * intro Hy. destruct Hy as [y Hy | y Hy].
+        -- right. exact (proj1 (Hiff y) Hy).
+        -- destruct Hy. left. reflexivity.
+      * intro Hy. simpl in Hy. destruct Hy as [-> | Hy].
+        -- right. constructor.
+        -- left. exact (proj2 (Hiff y) Hy).
+    + constructor.
+      * intro Hxl. apply H. exact (proj2 (Hiff x) Hxl).
+      * exact Hnodup.
+Qed.
+
+Lemma cardinal_Im_injective :
+  forall (U V : Type) (S : Ensemble U) (f : U -> V) (n : nat),
+  cardinal U S n ->
+  (forall x y, In U S x -> In U S y -> f x = f y -> x = y) ->
+  cardinal V (Im U V S f) n.
+Proof.
+  intros U V S f n Hcard Hinj.
+  induction Hcard.
+  - rewrite image_empty. constructor.
+  - assert (Hnew : ~ In V (Im U V A0 f) (f x)).
+    { intros HIm. inversion HIm as [z HzA0 y Heqz]; subst.
+      apply H. rewrite (Hinj z x HzA0 (Add_intro2 _ A0 x) Heqz). exact HzA0. }
+    rewrite Im_add. apply card_add.
+    + apply IHHcard.
+      intros a b Ha Hb Heqab. apply Hinj; [left; exact Ha | left; exact Hb | exact Heqab].
+    + exact Hnew.
 Qed.
 
 Section LinearSum.
@@ -407,18 +453,56 @@ Section LinearSum.
       + trivial.
   Qed.
 
-  (** Realizers of a linear sum can be formed by combining linear extensions of A and B.
+  Lemma nth_nodup_inj :
+    forall (U : Type) (l : list U) (d : U) (i j : nat),
+    List.NoDup l -> i < length l -> j < length l ->
+    nth i l d = nth j l d -> i = j.
+  Proof.
+    intros U l d i j Hnd Hi Hj Heq.
+    destruct (Nat.eq_dec i j) as [-> | Hne]; [reflexivity |].
+    exfalso.
+    rewrite NoDup_nth in Hnd.
+    exact (Hne (Hnd i j Hi Hj Heq)).
+  Qed.
 
-      Construction: realizerSum = { combine_extensions LA LB | LA ∈ rA, LB ∈ rB }.
+  Lemma combine_extensions_injective_lem :
+    forall (LA1 LA2 : A -> A -> Prop) (LB1 LB2 : B -> B -> Prop),
+    combine_extensions LA1 LB1 = combine_extensions LA2 LB2 ->
+    LA1 = LA2 /\ LB1 = LB2.
+  Proof.
+    intros LA1 LA2 LB1 LB2 Heq.
+    assert (HeqA : LA1 = LA2).
+    { apply functional_extensionality; intro a1.
+      apply functional_extensionality; intro a2.
+      apply propositional_extensionality.
+      split; intro Hh.
+      - assert (H' : combine_extensions LA2 LB2 (inl a1) (inl a2)).
+        { rewrite <- Heq. exact Hh. }
+        exact H'.
+      - assert (H' : combine_extensions LA1 LB1 (inl a1) (inl a2)).
+        { rewrite Heq. exact Hh. }
+        exact H'. }
+    assert (HeqB : LB1 = LB2).
+    { apply functional_extensionality; intro b1.
+      apply functional_extensionality; intro b2.
+      apply propositional_extensionality.
+      split; intro Hh.
+      - assert (H' : combine_extensions LA2 LB2 (inr b1) (inr b2)).
+        { rewrite <- Heq. exact Hh. }
+        exact H'.
+      - assert (H' : combine_extensions LA1 LB1 (inr b1) (inr b2)).
+        { rewrite Heq. exact Hh. }
+        exact H'. }
+    exact (conj HeqA HeqB).
+  Qed.
 
-      The IsRealizer proof is complete modulo three admits:
-        (i)  nonemptiness of rB (needed to extract LB when proving RA a1 a2 from Hall),
-        (ii) nonemptiness of rA (needed for the inr–inl impossible case),
-        (iii) cardinality: |realizerSum| = max(na, nb).
+  (** Realizers of a linear sum can be formed via a zip-with-padding construction.
 
-      The nonemptiness admits require knowing that any realizer of a poset with
-      elements is nonempty (a consequence of Szpilrajn / at_least_one_linear_extension).
-      The cardinality admit requires a "zip-with-padding" bijection argument.  *)
+      Given NoDup enumerations la (length na) and lb (length nb), define
+        zip_i := fun i => combine_extensions (nth i la LA₀) (nth i lb LB₀)
+      where out-of-bounds accesses repeat the first element (padding).
+      Then realizerSum = Im {i | i < max(na, nb)} zip_i has exactly max(na, nb)
+      elements and is a realizer of LinearSumRel.  *)
   Theorem linear_sum_realizer_lifting :
     forall (realizerA : Ensemble (A -> A -> Prop)) (realizerB : Ensemble (B -> B -> Prop)) (na nb : nat),
     IsRealizer RA realizerA ->
@@ -433,66 +517,131 @@ Section LinearSum.
     intros realizerA realizerB na nb HrA HrB HcardA HcardB HposA HposB.
     destruct HrA as [HrA_lin HrA_iff].
     destruct HrB as [HrB_lin HrB_iff].
-    destruct (cardinal_pos_nonempty _ realizerA na HcardA HposA) as [LA₀ HLA₀].
-    destruct (cardinal_pos_nonempty _ realizerB nb HcardB HposB) as [LB₀ HLB₀].
-    (* The combined realizer *)
-    set (realizerSum :=
-      fun (L : A + B -> A + B -> Prop) =>
-        exists (LA : A -> A -> Prop) (LB : B -> B -> Prop),
-        In (A -> A -> Prop) realizerA LA /\
-        In (B -> B -> Prop) realizerB LB /\
-        L = combine_extensions LA LB).
+    (* Enumerate as NoDup lists *)
+    destruct (cardinal_to_list _ realizerA na HcardA) as [la [Hla_len [Hla_iff Hla_nd]]].
+    destruct (cardinal_to_list _ realizerB nb HcardB) as [lb [Hlb_len [Hlb_iff Hlb_nd]]].
+    (* Establish nonemptiness from positivity *)
+    destruct la as [| LA0 la_tail] eqn:Hla_eq.
+    { simpl in Hla_len. lia. }
+    destruct lb as [| LB0 lb_tail] eqn:Hlb_eq.
+    { simpl in Hlb_len. lia. }
+    (* Zip construction *)
+    set (la_full := LA0 :: la_tail).
+    set (lb_full := LB0 :: lb_tail).
+    set (zip_i := fun i => combine_extensions (nth i la_full LA0) (nth i lb_full LB0)).
+    set (idx := fun i => i < Nat.max na nb).
+    set (realizerSum := Im nat (A + B -> A + B -> Prop) idx zip_i).
     exists realizerSum.
     split.
-    - constructor.
-      + (* Every L ∈ realizerSum is a linear extension *)
-        intros L [LA [LB [HLA [HLB ->]]]].
+    - (* IsRealizer *)
+      constructor.
+      + (* Every element is a linear extension *)
+        intros L HL. inversion HL as [i Hi y HeqL]. subst L.
+        unfold zip_i.
         apply combine_extensions_is_linear.
-        * exact (HrA_lin LA HLA).
-        * exact (HrB_lin LB HLB).
-      + (* Intersection of realizerSum = LinearSumRel *)
-        intros [a1|b1] [a2|b2].
-        * (* (inl a1, inl a2) *)
+        * apply HrA_lin. apply (proj2 (Hla_iff _)).
+          destruct (Nat.lt_ge_cases i na) as [Hilt | Hige].
+          -- apply nth_In. unfold la_full. simpl. rewrite <- Hla_len. exact Hilt.
+          -- rewrite nth_overflow.
+             ++ left. reflexivity.
+             ++ unfold la_full. simpl. lia.
+        * apply HrB_lin. apply (proj2 (Hlb_iff _)).
+          destruct (Nat.lt_ge_cases i nb) as [Hilt | Hige].
+          -- apply nth_In. unfold lb_full. simpl. rewrite <- Hlb_len. exact Hilt.
+          -- rewrite nth_overflow.
+             ++ left. reflexivity.
+             ++ unfold lb_full. simpl. lia.
+      + intros [a1|b1] [a2|b2].
+        * (* inl-inl *)
           split.
-          -- (* RA a1 a2 → every combined extension agrees *)
-             intros HRA L [LA [LB [HLA [HLB ->]]]].
-             unfold combine_extensions.
-             exact (HrA_lin LA HLA).(linear_extends) a1 a2
-               ((HrA_iff a1 a2).mp HRA LA HLA).
-          -- (* All combined extensions agree → RA a1 a2 *)
-             intro Hall.
-             apply HrA_iff.
-             intros LA HLA.
-             (* Use LB₀ ∈ realizerB to instantiate Hall *)
-             exact (Hall (combine_extensions LA LB₀)
-               (ex_intro _ LA (ex_intro _ LB₀ (conj HLA (conj HLB₀ eq_refl))))).
-        * (* (inl a1, inr b2): always related via SumAB *)
+          -- intros HRA L HL.
+             inversion HL as [i Hi y HeqL]. subst L.
+             unfold zip_i, combine_extensions.
+             assert (HLAi : In (A->A->Prop) realizerA (nth i la_full LA0)).
+             { apply (proj2 (Hla_iff _)).
+               destruct (Nat.lt_ge_cases i na) as [Hilt | Hige].
+               - apply nth_In. unfold la_full. simpl. rewrite <- Hla_len. lia.
+               - rewrite nth_overflow; [left; reflexivity | unfold la_full; simpl; lia]. }
+             exact ((HrA_lin _ HLAi).(linear_extends) a1 a2 ((HrA_iff a1 a2).mp HRA _ HLAi)).
+          -- intro Hall.
+             apply HrA_iff. intros LA HLA.
+             destruct (In_nth la_full LA LA0 ((proj1 (Hla_iff LA)) HLA)) as [j [Hj_len Hj_nth]].
+             assert (Hj_max : j < Nat.max na nb).
+             { unfold la_full in Hj_len. simpl in Hj_len. unfold la_full in Hla_len. simpl in Hla_len. lia. }
+             specialize (Hall (zip_i j) (Im_intro _ _ idx zip_i j Hj_max _ eq_refl)).
+             unfold zip_i, combine_extensions in Hall.
+             rewrite Hj_nth in Hall. exact Hall.
+        * (* inl-inr: always related *)
           split.
-          -- intros _ L [LA [LB [HLA [HLB ->]]]]. unfold combine_extensions. trivial.
+          -- intros _ L HL.
+             inversion HL as [i Hi y HeqL]. subst L.
+             unfold zip_i, combine_extensions. trivial.
           -- intros _. apply SumAB.
-        * (* (inr b1, inl a2): never related in LinearSumRel *)
+        * (* inr-inl: never related *)
           split.
           -- intros Hrel. inversion Hrel.
-          -- (* Hall says combine_extensions LA LB (inr b1) (inl a2) for all LA,LB — contradiction. *)
-             intro Hall.
-             exfalso.
-             exact (Hall (combine_extensions LA₀ LB₀)
-               (ex_intro _ LA₀ (ex_intro _ LB₀ (conj HLA₀ (conj HLB₀ eq_refl))))).
-        * (* (inr b1, inr b2) *)
+          -- intro Hall. exfalso.
+             assert (H0 : 0 < Nat.max na nb) by lia.
+             specialize (Hall (zip_i 0) (Im_intro _ _ idx zip_i 0 H0 _ eq_refl)).
+             unfold zip_i, combine_extensions in Hall. exact Hall.
+        * (* inr-inr *)
           split.
-          -- intros HRB L [LA [LB [HLA [HLB ->]]]].
-             unfold combine_extensions.
-             exact (HrB_lin LB HLB).(linear_extends) b1 b2
-               ((HrB_iff b1 b2).mp HRB LB HLB).
+          -- intros HRB L HL.
+             inversion HL as [i Hi y HeqL]. subst L.
+             unfold zip_i, combine_extensions.
+             assert (HLBi : In (B->B->Prop) realizerB (nth i lb_full LB0)).
+             { apply (proj2 (Hlb_iff _)).
+               destruct (Nat.lt_ge_cases i nb) as [Hilt | Hige].
+               - apply nth_In. unfold lb_full. simpl. rewrite <- Hlb_len. lia.
+               - rewrite nth_overflow; [left; reflexivity | unfold lb_full; simpl; lia]. }
+             exact ((HrB_lin _ HLBi).(linear_extends) b1 b2 ((HrB_iff b1 b2).mp HRB _ HLBi)).
           -- intro Hall.
-             apply HrB_iff.
-             intros LB HLB.
-             (* Use LA₀ ∈ realizerA to instantiate Hall *)
-             exact (Hall (combine_extensions LA₀ LB)
-               (ex_intro _ LA₀ (ex_intro _ LB (conj HLA₀ (conj HLB eq_refl))))).
-    - (* |realizerSum| = max(na, nb).
-         Requires "zip with padding" construction; admitted. *)
-      admit.
+             apply HrB_iff. intros LB HLB.
+             destruct (In_nth lb_full LB LB0 ((proj1 (Hlb_iff LB)) HLB)) as [j [Hj_len Hj_nth]].
+             assert (Hj_max : j < Nat.max na nb).
+             { unfold lb_full in Hj_len. simpl in Hj_len. unfold lb_full in Hlb_len. simpl in Hlb_len. lia. }
+             specialize (Hall (zip_i j) (Im_intro _ _ idx zip_i j Hj_max _ eq_refl)).
+             unfold zip_i, combine_extensions in Hall.
+             rewrite Hj_nth in Hall. exact Hall.
+    - (* |realizerSum| = max(na, nb) *)
+      assert (Hla_full_len : length la_full = na).
+      { unfold la_full. simpl. simpl in Hla_len. lia. }
+      assert (Hlb_full_len : length lb_full = nb).
+      { unfold lb_full. simpl. simpl in Hlb_len. lia. }
+      (* Cardinal of {i | i < k} is k *)
+      assert (Hcard_idx : cardinal nat idx (Nat.max na nb)).
+      { unfold idx. clear.
+        induction (Nat.max na nb) as [| k IHk].
+        - assert (Heq : (fun i => i < 0) = Empty_set nat).
+          { apply Extensionality_Ensembles. split; intros x Hx; [lia | destruct Hx]. }
+          rewrite Heq. constructor.
+        - assert (Heq : (fun i => i < S k) = Add nat (fun i => i < k) k).
+          { apply Extensionality_Ensembles. split; intros x Hx.
+            - destruct (Nat.eq_dec x k) as [-> | Hne].
+              + right. constructor.
+              + left. unfold In. lia.
+            - destruct Hx as [x Hx | x Hx].
+              + unfold In in *. lia.
+              + destruct Hx. unfold In. lia. }
+          rewrite Heq. apply card_add; [exact IHk |].
+          intros Hk. unfold In in Hk. lia. }
+      apply cardinal_Im_injective; [exact Hcard_idx |].
+      intros i j Hi Hj Heq.
+      unfold zip_i in Heq.
+      destruct (combine_extensions_injective_lem _ _ _ _ Heq) as [HeqA HeqB].
+      (* WLOG split on na vs nb to determine max *)
+      unfold In, idx in Hi, Hj.
+      destruct (Nat.le_ge_cases na nb) as [Hle | Hle].
+      + (* max = nb: i, j < nb, so use HeqB with lb NoDup *)
+        assert (Hmax : Nat.max na nb = nb) by lia.
+        rewrite Hmax in Hi, Hj.
+        apply (nth_nodup_inj _ lb_full LB0 i j Hla_nd0); try lia.
+        (* lb NoDup version *)
+        apply (nth_nodup_inj _ lb_full LB0 i j Hlb_nd); [rewrite Hlb_full_len; lia | rewrite Hlb_full_len; lia | exact HeqB].
+      + (* max = na: i, j < na, so use HeqA with la NoDup *)
+        assert (Hmax : Nat.max na nb = na) by lia.
+        rewrite Hmax in Hi, Hj.
+        apply (nth_nodup_inj _ la_full LA0 i j Hla_nd); [rewrite Hla_full_len; lia | rewrite Hla_full_len; lia | exact HeqA].
   Qed.
 
 End LinearSum.
