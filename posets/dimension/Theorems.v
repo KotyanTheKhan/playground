@@ -67,6 +67,96 @@ Proof.
   exact (card_soustr_1 S (S n) Hcard x HIn).
 Qed.
 
+(** Lemma: image under an injective function preserves cardinality. *)
+Lemma cardinal_Im_injective :
+  forall (U V : Type) (S : Ensemble U) (f : U -> V) (n : nat),
+  cardinal U S n ->
+  (forall x y, In U S x -> In U S y -> f x = f y -> x = y) ->
+  cardinal V (Im U V S f) n.
+Proof.
+  intros U V S f n Hcard Hinj.
+  induction Hcard.
+  - assert (Heq : Im U V (Empty_set U) f = Empty_set V).
+    { apply Extensionality_Ensembles. split.
+      - intros y [z Hz _]. destruct Hz.
+      - intros y Hy. destruct Hy. }
+    rewrite Heq. constructor.
+  - assert (Hnew : ~ In V (Im U V A0 f) (f x)).
+    { intros HIm. inversion HIm as [z HzA0 y Heqz]; subst.
+      apply H. rewrite (Hinj z x (Union_introl _ _ _ _ HzA0) (Add_intro2 _ A0 x) Heqz).
+      exact HzA0. }
+    assert (Heq : Im U V (Add U A0 x) f = Add V (Im U V A0 f) (f x)).
+    { apply Extensionality_Ensembles. split.
+      - intros y [z Hz Heqy]. destruct Hz as [z Hz | z Hz].
+        + left. exists z; auto.
+        + destruct Hz. right. rewrite Heqy. constructor.
+      - intros y Hy. destruct Hy as [y Hy | y Hy].
+        + destruct Hy as [z Hz Heqy]. exists z; [left; exact Hz | exact Heqy].
+        + destruct Hy. exists x; [right; constructor | reflexivity]. }
+    rewrite Heq. apply card_add.
+    + apply IHHcard.
+      intros a b Ha Hb Heqab.
+      apply Hinj; [left; exact Ha | left; exact Hb | exact Heqab].
+    + exact Hnew.
+Qed.
+
+(** Lemma: cardinality of the subtype {x | In S x} as a Full_set
+    equals the cardinality of S. *)
+Lemma cardinal_subtype_full :
+  forall (U : Type) (S : Ensemble U) (n : nat),
+  cardinal U S n ->
+  cardinal {x : U | In U S x} (Full_set {x : U | In U S x}) n.
+Proof.
+  intros U S n Hcard.
+  induction Hcard as [| A0 n0 Hcard0 IH x0 Hx0_notin].
+  - (* Empty case *)
+    assert (Heq : Full_set {x : U | In U (Empty_set U) x} = Empty_set _).
+    { apply Extensionality_Ensembles. split.
+      - intros [x Hx] _. destruct Hx.
+      - intros x Hx. destruct Hx. }
+    rewrite Heq. constructor.
+  - (* Add case: cardinal (Add A0 x0) (S n0) *)
+    set (wit_x0 : {y : U | In U (Add U A0 x0) y} := exist _ x0 (Add_intro2 A0 x0)).
+    set (inj : {y : U | In U A0 y} -> {y : U | In U (Add U A0 x0) y} :=
+      fun e => exist _ (proj1_sig e) (Add_intro1 A0 x0 (proj1_sig e) (proj2_sig e))).
+    assert (HFull_eq : Full_set {y : U | In U (Add U A0 x0) y} =
+        Add _ (Im _ _ (Full_set {y : U | In U A0 y}) inj) wit_x0).
+    { apply Extensionality_Ensembles. split.
+      - intros [y Hy] _.
+        destruct Hy as [y Hy | y Hy].
+        + left. exists (exist (fun z => In U A0 z) y Hy); [constructor |].
+          unfold inj. simpl. f_equal. apply proof_irrelevance.
+        + destruct Hy. right. unfold wit_x0. f_equal. apply proof_irrelevance.
+      - intros y Hy. constructor. }
+    rewrite HFull_eq.
+    apply card_add.
+    + apply cardinal_Im_injective.
+      * exact IH.
+      * intros [a Ha] [b Hb] _ _ Heq.
+        unfold inj in Heq. simpl in Heq.
+        inversion Heq as [Heq2].
+        subst b.
+        f_equal. apply proof_irrelevance.
+    + intros [e He Heq_e].
+      apply Hx0_notin.
+      destruct e as [e He_in]. unfold inj, wit_x0 in Heq_e.
+      simpl in Heq_e.
+      inversion Heq_e as [Heq2].
+      rewrite <- Heq2. exact He_in.
+Qed.
+
+(** Forward declaration: the carrier-polymorphic Hiraguchi bound.
+    This is the version we recurse on in the inductive step of the proof
+    (it is admitted here and will be proved by re-running the same induction
+    with a polymorphic IH). *)
+Lemma hiraguchi_helper :
+  forall (n : nat) {B : Type} (R2 : B -> B -> Prop) `{IsPoset B R2} (d2 : nat),
+  cardinal B (Full_set B) n -> n >= 4 ->
+  PosetDimension R2 d2 -> d2 <= n / 2.
+Proof.
+  admit.
+Admitted.
+
 Section Theorems.
   Context {A : Type}.
   Context (R : A -> A -> Prop) `{IsPoset A R}.
@@ -754,12 +844,42 @@ Section Theorems.
         (* Get dimension d_q of the subposet on S' satisfying d_q <= d *)
         destruct (subposet_dimension_le S' d Hdim) as [d_q [HdimQ Hd_q_le]].
         destruct HdimQ as [HdimQ_inh].
-        (* TODO: apply hiraguchi_bound IH to subtype poset; requires n-2 >= 4 (i.e. n >= 6).
-           Base cases n = 4 and n = 5 (2- and 3-element subposet) require separate argument
-           that dim ≤ 1 for posets on ≤ 3 elements, plus (n-2)/2 ≥ 1 for n ≥ 4. *)
-        assert (Hd_q_bound : d_q <= pred (pred n) / 2) by admit.
-        (* Admit: d <= d_q + 1 by extension_through_critical_pair *)
-        assert (Hd_ext : d <= d_q + 1) by admit.
+        (* Bound d_q by the subposet's Hiraguchi bound (for n >= 6); base cases admitted. *)
+        assert (Hd_q_bound : d_q <= pred (pred n) / 2).
+        { destruct (Nat.le_gt_cases 6 n) as [Hn6 | Hlt6].
+          - (* n >= 6: pred(pred n) >= 4, recurse via hiraguchi_helper *)
+            assert (Hcard_sub : cardinal {x : A | In A S' x}
+                                  (Full_set {x : A | In A S' x}) (pred (pred n))).
+            { exact (cardinal_subtype_full A S' (pred (pred n)) Hcard_minus2). }
+            assert (Hpredpred_ge4 : pred (pred n) >= 4) by lia.
+            exact (@hiraguchi_helper (pred (pred n))
+                     {x : A | In A S' x}
+                     (fun a b => R (proj1_sig a) (proj1_sig b))
+                     (subtype_is_poset S')
+                     d_q
+                     Hcard_sub Hpredpred_ge4 HdimQ_inh).
+          - (* n = 4 or n = 5: base cases, separate argument deferred *)
+            assert (Hn45 : n = 4 \/ n = 5) by lia.
+            destruct Hn45 as [-> | ->]; simpl; admit. }
+        (* d <= d_q + 1 by extension_through_critical_pair applied to the sub-realizer *)
+        assert (Hd_ext : d <= d_q + 1).
+        { set (Rsub := fun (a b : {x : A | In A S' x}) => R (proj1_sig a) (proj1_sig b)).
+          assert (HrSub_real :
+            @IsRealizer {x : A | In A S' x} Rsub (subtype_is_poset S')
+              (@dimension_realizer {x : A | In A S' x} Rsub (subtype_is_poset S')
+                 d_q HdimQ_inh)) :=
+            @dimension_is_realizer {x : A | In A S' x} Rsub (subtype_is_poset S')
+              d_q HdimQ_inh.
+          assert (HrSub_card :
+            cardinal _ (@dimension_realizer {x : A | In A S' x} Rsub
+                          (subtype_is_poset S') d_q HdimQ_inh) d_q) :=
+            @dimension_cardinality {x : A | In A S' x} Rsub
+              (subtype_is_poset S') d_q HdimQ_inh.
+          destruct (extension_through_critical_pair x' y' S' d_q Hcp_val eq_refl
+              (ex_intro _ _ (conj HrSub_real HrSub_card)))
+            as [r [Hr_real Hr_card]].
+          exact (dimension_is_minimum (R := R) (d := d) r (d_q + 1)
+                   Hr_real Hr_card). }
         (* Conclude by arithmetic: d <= d_q + 1 <= (n-2)/2 + 1 = n/2 *)
         lia. }
       exact Hkey.
@@ -789,6 +909,6 @@ Section Theorems.
             + intro Hall. apply Hall. constructor. }
         exact (dimension_is_minimum (R:=R) (d:=d) rSingle 1 HrS_real HrS_card). }
       lia.
-  Qed.
+  Admitted.
 
 End Theorems.
