@@ -694,10 +694,12 @@ Section Theorems.
       The full Hiraguchi extension construction is beyond the current scope;
       this admitted skeleton lets the incomparable case reference it. *)
   Lemma extension_through_critical_pair :
-    forall (x' y' : A) (d' : nat),
+    forall (x' y' : A) (S' : Ensemble A) (d' : nat),
     IsCriticalPair R x' y' ->
-    (exists (r' : Ensemble (A -> A -> Prop)) (n : nat),
-      cardinal (A -> A -> Prop) r' n /\ n <= d') ->
+    S' = Subtract A (Subtract A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    (exists (r' : Ensemble ({a : A | In A S' a} -> {a : A | In A S' a} -> Prop)),
+      IsRealizer (fun (a b : {a : A | In A S' a}) => R (proj1_sig a) (proj1_sig b)) r' /\
+      cardinal _ r' d') ->
     exists r : Ensemble (A -> A -> Prop),
       IsRealizer R r /\
       cardinal (A -> A -> Prop) r (d' + 1).
@@ -737,18 +739,24 @@ Section Theorems.
         (* Form S' = Full_set \ {x'} \ {y'} with cardinal n-2 *)
         set (S' := Subtract A (Subtract A (Full_set A) (Singleton A x')) (Singleton A y')).
         assert (Hcard_minus1 : cardinal A (Subtract A (Full_set A) (Singleton A x')) (pred n)).
-        { exact (card_soustr_1 (Full_set A) n Hcard x' (Full_intro A x')). }
+        { assert (Hn_pos : 0 < n) by lia.
+          rewrite <- (Nat.succ_pred_pos n Hn_pos) in Hcard.
+          exact (cardinal_subtract_sn A (Full_set A) x' (pred n) Hcard (Full_intro A x')). }
         assert (Hcard_minus2 : cardinal A S' (pred (pred n))).
         { assert (Hy'_in : In A (Subtract A (Full_set A) (Singleton A x')) y').
           { split.
             - apply Full_intro.
             - intro Heq. apply (critical_incomparable _ _ _ Hcp_val). left.
               rewrite <- Heq. apply poset_refl. }
-          exact (card_soustr_1 _ (pred n) Hcard_minus1 y' Hy'_in). }
+          assert (Hpredn_pos : 0 < pred n) by lia.
+          rewrite <- (Nat.succ_pred_pos (pred n) Hpredn_pos) in Hcard_minus1.
+          exact (cardinal_subtract_sn A _ y' (pred (pred n)) Hcard_minus1 Hy'_in). }
         (* Get dimension d_q of the subposet on S' satisfying d_q <= d *)
         destruct (subposet_dimension_le S' d Hdim) as [d_q [HdimQ Hd_q_le]].
         destruct HdimQ as [HdimQ_inh].
-        (* Admit: d_q <= (n-2)/2 by the induction hypothesis on the subposet *)
+        (* TODO: apply hiraguchi_bound IH to subtype poset; requires n-2 >= 4 (i.e. n >= 6).
+           Base cases n = 4 and n = 5 (2- and 3-element subposet) require separate argument
+           that dim ≤ 1 for posets on ≤ 3 elements, plus (n-2)/2 ≥ 1 for n ≥ 4. *)
         assert (Hd_q_bound : d_q <= pred (pred n) / 2) by admit.
         (* Admit: d <= d_q + 1 by extension_through_critical_pair *)
         assert (Hd_ext : d <= d_q + 1) by admit.
