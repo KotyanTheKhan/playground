@@ -58,6 +58,15 @@ Proof.
   - intro H. inversion H.
 Qed.
 
+(** Lemma: cardinal of S minus one element, given cardinal S (S n) and x ∈ S. *)
+Lemma cardinal_subtract_sn :
+  forall (U : Type) (S : Ensemble U) (x : U) (n : nat),
+  cardinal U S (S n) -> In U S x -> cardinal U (Subtract U S x) n.
+Proof.
+  intros U S x n Hcard HIn.
+  exact (card_soustr_1 S (S n) Hcard x HIn).
+Qed.
+
 Section Theorems.
   Context {A : Type}.
   Context (R : A -> A -> Prop) `{IsPoset A R}.
@@ -681,6 +690,21 @@ Section Theorems.
     exact (ex_intro _ d_q (conj HdQ (Nat.le_trans d_q n d_p Hle HrQ_le))).
   Qed.
 
+  (** Skeleton lemma: a critical pair can be used to extend a sub-realizer.
+      The full Hiraguchi extension construction is beyond the current scope;
+      this admitted skeleton lets the incomparable case reference it. *)
+  Lemma extension_through_critical_pair :
+    forall (x' y' : A) (d' : nat),
+    IsCriticalPair R x' y' ->
+    (exists (r' : Ensemble (A -> A -> Prop)) (n : nat),
+      cardinal (A -> A -> Prop) r' n /\ n <= d') ->
+    exists r : Ensemble (A -> A -> Prop),
+      IsRealizer R r /\
+      cardinal (A -> A -> Prop) r (d' + 1).
+  Proof.
+    admit.
+  Qed.
+
   (** Theorem: Hiraguchi's Theorem (1951)
       For a finite poset on n elements (n >= 4), dim(P) <= n/2. *)
   Theorem hiraguchi_bound :
@@ -694,11 +718,42 @@ Section Theorems.
     induction n as [n IH] using lt_wf_ind.
     intros d Hcard Hn4 Hdim.
     destruct (classic (exists x y, Incomparable R x y)) as [[x [y Hinc]] | Hchain].
-    - (* Has an incomparable pair: use the inductive extension argument.
-         Key sub-lemma (admitted): adding one comparable pair shrinks a "critical"
-         element so each extension poset has at most n-1 elements and dimension
-         at most (n-1)/2; combining the two extensions keeps d <= n/2. *)
-      assert (Hkey : d <= n / 2) by admit.
+    - (* Has an incomparable pair *)
+      assert (Hkey : d <= n / 2).
+      { assert (HfinA : Finite A (Full_set A)) :=
+          cardinal_finite A (Full_set A) n Hcard.
+        (* Lift the incomparable pair to a critical pair *)
+        assert (Hcp_ex : exists x' y', R x' x /\ R y y' /\ @IsCriticalPair A R _ x' y').
+        { exact (@incomparable_lifting_to_critical_pair A R _ HfinA x y Hinc). }
+        destruct Hcp_ex as [x' [y' [Hx'x [Hyy' Hcp_val]]]].
+        (* n >= 2 because we have an incomparable pair *)
+        assert (Hn2 : n >= 2).
+        { destruct n as [| [| n'']].
+          - inversion Hcard; subst.
+            exfalso. apply Hinc. left. apply poset_refl.
+          - inversion Hcard; subst.
+            exfalso. apply Hinc. left. apply poset_refl.
+          - lia. }
+        (* Form S' = Full_set \ {x'} \ {y'} with cardinal n-2 *)
+        set (S' := Subtract A (Subtract A (Full_set A) (Singleton A x')) (Singleton A y')).
+        assert (Hcard_minus1 : cardinal A (Subtract A (Full_set A) (Singleton A x')) (pred n)).
+        { exact (card_soustr_1 (Full_set A) n Hcard x' (Full_intro A x')). }
+        assert (Hcard_minus2 : cardinal A S' (pred (pred n))).
+        { assert (Hy'_in : In A (Subtract A (Full_set A) (Singleton A x')) y').
+          { split.
+            - apply Full_intro.
+            - intro Heq. apply (critical_incomparable _ _ _ Hcp_val). left.
+              rewrite <- Heq. apply poset_refl. }
+          exact (card_soustr_1 _ (pred n) Hcard_minus1 y' Hy'_in). }
+        (* Get dimension d_q of the subposet on S' satisfying d_q <= d *)
+        destruct (subposet_dimension_le S' d Hdim) as [d_q [HdimQ Hd_q_le]].
+        destruct HdimQ as [HdimQ_inh].
+        (* Admit: d_q <= (n-2)/2 by the induction hypothesis on the subposet *)
+        assert (Hd_q_bound : d_q <= pred (pred n) / 2) by admit.
+        (* Admit: d <= d_q + 1 by extension_through_critical_pair *)
+        assert (Hd_ext : d <= d_q + 1) by admit.
+        (* Conclude by arithmetic: d <= d_q + 1 <= (n-2)/2 + 1 = n/2 *)
+        lia. }
       exact Hkey.
     - (* Chain: R is a total order, so dim R = 1. *)
       assert (Hd1 : d <= 1).
