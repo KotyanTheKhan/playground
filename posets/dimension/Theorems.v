@@ -41,6 +41,33 @@ Proof.
       rewrite Heq. apply card_add; assumption.
 Qed.
 
+Lemma cardinal_to_finite :
+  forall (U : Type) (S : Ensemble U) (n : nat),
+  cardinal U S n -> Finite U S.
+Proof.
+  intros U S n Hcard.
+  induction Hcard.
+  - constructor.
+  - apply Add_preserves_Finite. exact IHHcard.
+Qed.
+
+Lemma singleton_cardinal :
+  forall (U : Type) (x : U),
+  cardinal U (Singleton U x) 1.
+Proof.
+  intros U x.
+  assert (Heq : Singleton U x = Add U (Empty_set U) x).
+  { apply Extensionality_Ensembles. split.
+    - intros y Hy. right. exact Hy.
+    - intros y Hy. destruct Hy as [y Hy | y Hy].
+      + destruct Hy.
+      + exact Hy. }
+  rewrite Heq.
+  apply card_add.
+  - constructor.
+  - intro H. inversion H.
+Qed.
+
 Section Theorems.
   Context {A : Type}.
   Context (R : A -> A -> Prop) `{IsPoset A R}.
@@ -683,9 +710,31 @@ Section Theorems.
          at most (n-1)/2; combining the two extensions keeps d <= n/2. *)
       assert (Hkey : d <= n / 2) by admit.
       exact Hkey.
-    - (* Chain: R is a total order, so dim R = 1.
-         Key sub-lemma (admitted): chain implies dimension 1. *)
-      assert (Hd1 : d <= 1) by admit.
+    - (* Chain: R is a total order, so dim R = 1. *)
+      assert (Hd1 : d <= 1).
+      { (* Build a total order from Hchain *)
+        assert (HR_total : IsTotalOrder R).
+        { constructor.
+          - exact H.
+          - intros a b.
+            destruct (classic (R a b)) as [Hab | Hnab]; [left; assumption |].
+            right.
+            destruct (classic (R b a)) as [Hba | Hnba]; [assumption |].
+            exfalso. apply Hchain. exists a, b.
+            unfold Incomparable. intros [H1 | H2]; contradiction. }
+        (* {R} is a realizer of cardinal 1 *)
+        set (rSingle := Singleton (A -> A -> Prop) R).
+        assert (HrS_card : cardinal (A -> A -> Prop) rSingle 1) :=
+          singleton_cardinal _ R.
+        assert (HrS_real : IsRealizer R rSingle).
+        { constructor.
+          - intros L HL.
+            destruct HL.
+            constructor; [exact HR_total | intros a b Hab; exact Hab].
+          - intros a b. split.
+            + intros HRab L HL. destruct HL. exact HRab.
+            + intro Hall. apply Hall. constructor. }
+        exact (dimension_is_minimum (R:=R) (d:=d) rSingle 1 HrS_real HrS_card). }
       lia.
   Qed.
 
