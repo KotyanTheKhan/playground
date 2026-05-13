@@ -635,8 +635,6 @@ Section LinearSum.
       + (* max = nb: i, j < nb, so use HeqB with lb NoDup *)
         assert (Hmax : Nat.max na nb = nb) by lia.
         rewrite Hmax in Hi, Hj.
-        apply (nth_nodup_inj _ lb_full LB0 i j Hla_nd0); try lia.
-        (* lb NoDup version *)
         apply (nth_nodup_inj _ lb_full LB0 i j Hlb_nd); [rewrite Hlb_full_len; lia | rewrite Hlb_full_len; lia | exact HeqB].
       + (* max = na: i, j < na, so use HeqA with la NoDup *)
         assert (Hmax : Nat.max na nb = na) by lia.
