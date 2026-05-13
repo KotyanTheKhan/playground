@@ -2,6 +2,100 @@ From Stdlib Require Import Ensembles Finite_sets Arith Classical.
 From Posets Require Import PosetClasses.
 From Dimension Require Import DimDefs.
 
+(* ------------------------------------------------------------------ *)
+(* Helper lemmas (analogues of those in LinearSum.v)                   *)
+(* ------------------------------------------------------------------ *)
+
+Lemma pd_cardinal_pos_nonempty :
+  forall (U : Type) (S : Ensemble U) (n : nat),
+  cardinal U S n -> 0 < n -> exists x, In U S x.
+Proof.
+  intros U S n Hcard Hpos.
+  induction Hcard.
+  - inversion Hpos.
+  - exists x. right. constructor.
+Qed.
+
+(** The image of a finite set under a function has cardinality ≤ that of the source. *)
+Lemma cardinal_Im_le :
+  forall (U V : Type) (S : Ensemble U) (f : U -> V) (n : nat),
+  cardinal U S n ->
+  exists m, cardinal V (Im U V S f) m /\ m <= n.
+Proof.
+  intros U V S f n Hcard.
+  induction Hcard.
+  - exists 0. split; [| lia].
+    assert (Heq : Im U V (Empty_set U) f = Empty_set V).
+    { apply Extensionality_Ensembles. split.
+      - intros x [z Hz _]. destruct Hz.
+      - intros x Hx. destruct Hx. }
+    rewrite Heq. constructor.
+  - destruct IHHcard as [m [Hcard_m Hle]].
+    destruct (classic (In V (Im U V A0 f) (f x))) as [HIn | HNin].
+    + exists m. split; [| lia].
+      assert (Heq : Im U V (Add U A0 x) f = Im U V A0 f).
+      { apply Extensionality_Ensembles. split.
+        - intros y [z Hz Heqy]. destruct Hz as [z Hz | z Hz].
+          + exists z; [exact Hz | exact Heqy].
+          + destruct Hz. rewrite Heqy. exact HIn.
+        - intros y [z Hz Heqy]. exists z; [left; exact Hz | exact Heqy]. }
+      rewrite Heq. exact Hcard_m.
+    + exists (S m). split; [| lia].
+      assert (Heq : Im U V (Add U A0 x) f = Add V (Im U V A0 f) (f x)).
+      { apply Extensionality_Ensembles. split.
+        - intros y [z Hz Heqy]. destruct Hz as [z Hz | z Hz].
+          + left. exists z; auto.
+          + destruct Hz. right. rewrite Heqy. constructor.
+        - intros y Hy. destruct Hy as [y Hy | y Hy].
+          + destruct Hy as [z Hz Heqy]. exists z; [left; exact Hz | exact Heqy].
+          + destruct Hy. exists x; [right; constructor | reflexivity]. }
+      rewrite Heq. apply card_add; assumption.
+Qed.
+
+(** The union of two finite sets has cardinality ≤ the sum of their cardinalities. *)
+Lemma cardinal_union_le :
+  forall (U : Type) (S1 S2 : Ensemble U) (m n : nat),
+  cardinal U S1 m -> cardinal U S2 n ->
+  exists k, cardinal U (Union U S1 S2) k /\ k <= m + n.
+Proof.
+  intros U S1 S2 m n Hcard1 Hcard2.
+  induction Hcard1.
+  - exists n. split; [| lia].
+    assert (Heq : Union U (Empty_set U) S2 = S2).
+    { apply Extensionality_Ensembles. split.
+      - intros x [x Hx | x Hx]; [destruct Hx | exact Hx].
+      - intros x Hx. right. exact Hx. }
+    rewrite Heq. exact Hcard2.
+  - destruct IHHcard1 as [k [Hcard_k Hle]].
+    destruct (classic (In U (Union U A0 S2) x)) as [HinU | HninU].
+    + exists k. split; [| lia].
+      assert (Heq : Union U (Add U A0 x) S2 = Union U A0 S2).
+      { apply Extensionality_Ensembles. split.
+        - intros y Hy. destruct Hy as [y Hy | y Hy].
+          + destruct Hy as [y Hy | y Hy].
+            * left. exact Hy.
+            * destruct Hy. exact HinU.
+          + right. exact Hy.
+        - intros y Hy. destruct Hy as [y Hy | y Hy].
+          + left. left. exact Hy.
+          + right. exact Hy. }
+      rewrite Heq. exact Hcard_k.
+    + exists (S k). split; [| lia].
+      assert (Heq : Union U (Add U A0 x) S2 = Add U (Union U A0 S2) x).
+      { apply Extensionality_Ensembles. split.
+        - intros y Hy. destruct Hy as [y Hy | y Hy].
+          + destruct Hy as [y Hy | y Hy].
+            * left. left. exact Hy.
+            * destruct Hy. right. constructor.
+          + left. right. exact Hy.
+        - intros y Hy. destruct Hy as [y Hy | y Hy].
+          + destruct Hy as [y Hy | y Hy].
+            * left. left. exact Hy.
+            * right. exact Hy.
+          + destruct Hy. left. right. constructor. }
+      rewrite Heq. apply card_add; assumption.
+Qed.
+
 (** Theorem: Product Dimension
     The dimension of the Cartesian product of two posets is at most the sum of their dimensions. *)
 Section ProductDimension.
@@ -85,35 +179,44 @@ Section ProductDimension.
       split; [exact (HLA_ext a1 a2 HRA) | intros; exact (HLB_ext b1 b2 HRB)].
   Qed.
 
-  (** Key sub-lemma (admitted): Given realizers rA of RA (size dA) and rB of RB (size dB),
-      there exists a realizer of ProductRel of size ≤ dA + dB.
+  (** Key sub-lemma (admitted): Given realizers rA of RA (size nA) and rB of RB (size nB),
+      both nonempty (0 < nA, 0 < nB), there exists a realizer of ProductRel of size ≤ nA + nB.
 
-      Construction sketch:
-      - Fix any LA0 ∈ rA and any LB0 ∈ rB (both realizers are nonempty for non-trivial posets).
-      - For each LA ∈ rA, add LexOrder LA LB0 to the product realizer.
-      - For each LB ∈ rB, add LexOrder LA0 LB to the product realizer.
-      - The resulting set has size ≤ dA + dB.
-      - It is a realizer of ProductRel: the key argument is that for any incomparable
-        pair (a1,b1),(a2,b2) in the product, either a1 and a2 are incomparable in A
-        (separated by some LA ∈ rA via LexOrder LA LB0) or b1 and b2 are incomparable
-        in B (separated by some LB ∈ rB via LexOrder LA0 LB). *)
+      WHY THE UNION/LEXORDER APPROACH IS INSUFFICIENT:
+      The natural construction is
+        rProd = {LexOrder LA LB0 | LA ∈ rA} ∪ {LexOrder LA0 LB | LB ∈ rB}
+      where LA0 ∈ rA and LB0 ∈ rB are fixed representatives.  This set has size ≤ nA + nB
+      and every element is a linear extension of ProductRel (by lex_order_is_linear_extension).
+      However it fails the backward direction of realizer_intersection:
+        - If RA a1 a2 strictly (a1 ≠ a2) and ¬RB b1 b2, then (a1,b1) and (a2,b2) are
+          incomparable in ProductRel.  A realizer element must reverse them, i.e. put
+          (a2,b2) ≤ (a1,b1).  But for every LA extending RA we have LA a1 a2, so
+          LexOrder LA LB0 (a2,b2)(a1,b1) would require LA a2 a1, implying a1=a2 — contradiction.
+          Similarly LexOrder LA0 LB (a2,b2)(a1,b1) requires LA0 a2 a1, which fails for the
+          same reason.  Neither subfamily can separate this type of incomparable pair.
+
+      CORRECT APPROACH (future work):
+      The standard Dushnik–Miller proof that dim(P×Q) ≤ dim(P) + dim(Q) uses Szpilrajn's
+      theorem (linear extension of any partial order) together with a critical-pair argument.
+      For each incomparable pair ((a1,b1),(a2,b2)) in P×Q one exhibits a linear extension
+      that reverses it; the key cases are covered by the nA+nB extensions obtained by
+      interleaving the A-realizer and B-realizer in a way that is NOT purely lexicographic.
+      Formalising this requires the full Szpilrajn machinery (already present in CriticalPairs)
+      and a more delicate construction than zip-of-LexOrders. *)
   Lemma product_realizer_exists :
     forall (rA : Ensemble (A -> A -> Prop)) (rB : Ensemble (B -> B -> Prop)) (nA nB : nat),
     IsRealizer RA rA ->
     IsRealizer RB rB ->
     cardinal (A -> A -> Prop) rA nA ->
     cardinal (B -> B -> Prop) rB nB ->
+    0 < nA -> 0 < nB ->
     exists (rProd : Ensemble (A * B -> A * B -> Prop)) (n : nat),
       @IsRealizer (A * B) ProductRel _ rProd /\
       cardinal (A * B -> A * B -> Prop) rProd n /\
       n <= nA + nB.
   Proof.
-    intros rA rB nA nB HrA HrB HcardA HcardB.
-    (* Full construction is admitted; the key steps are:
-       1. Extract some LA0 ∈ rA and LB0 ∈ rB.
-       2. Build rProd = {LexOrder LA LB0 | LA ∈ rA} ∪ {LexOrder LA0 LB | LB ∈ rB}.
-       3. Show rProd is a realizer of ProductRel.
-       4. Show |rProd| ≤ nA + nB. *)
+    intros rA rB nA nB HrA HrB HcardA HcardB HposA HposB.
+    (* TODO: implement the correct construction described in the comment above. *)
     admit.
   Qed.
 
@@ -122,9 +225,10 @@ Section ProductDimension.
     PosetDimension RA dA ->
     PosetDimension RB dB ->
     PosetDimension ProductRel dProd ->
+    0 < dA -> 0 < dB ->
     dProd <= dA + dB.
   Proof.
-    intros dA dB dProd HdA HdB HdProd.
+    intros dA dB dProd HdA HdB HdProd HposA HposB.
     (* Extract the canonical realizers for RA and RB. *)
     set (rA := dimension_realizer (R := RA) (d := dA)).
     set (rB := dimension_realizer (R := RB) (d := dB)).
@@ -133,7 +237,8 @@ Section ProductDimension.
         (dimension_is_realizer (R := RA) (d := dA))
         (dimension_is_realizer (R := RB) (d := dB))
         (dimension_cardinality (R := RA) (d := dA))
-        (dimension_cardinality (R := RB) (d := dB)))
+        (dimension_cardinality (R := RB) (d := dB))
+        HposA HposB)
       as [rProd [n [HrProd_real [HrProd_card HrProd_le]]]].
     (* Apply dimension_is_minimum: dProd ≤ n ≤ dA + dB. *)
     exact (Nat.le_trans dProd n (dA + dB)
