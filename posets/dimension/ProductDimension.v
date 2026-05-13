@@ -179,6 +179,70 @@ Section ProductDimension.
       split; [exact (HLA_ext a1 a2 HRA) | intros; exact (HLB_ext b1 b2 HRB)].
   Qed.
 
+  (** RevLex order on A * B: (a1,b1) ≤_LA,LB (a2,b2) iff LB b1 b2 and (b1=b2 → LA a1 a2).
+      B-coordinate is the primary key, A-coordinate is the tiebreaker. *)
+  Definition RevLex (LA : A -> A -> Prop) (LB : B -> B -> Prop)
+      (p q : A * B) : Prop :=
+    LB (snd p) (snd q) /\ (snd p = snd q -> LA (fst p) (fst q)).
+
+  (** RevLex LA LB is a linear extension of ProductRel when LA extends RA and LB extends RB. *)
+  Lemma revlex_is_linear_extension :
+    forall (LA : A -> A -> Prop) (LB : B -> B -> Prop),
+    IsLinearExtension RA LA ->
+    IsLinearExtension RB LB ->
+    @IsLinearExtension (A * B) ProductRel _ (RevLex LA LB).
+  Proof.
+    intros LA LB HLA HLB.
+    destruct HLA as [[HLA_poset HLA_tot] HLA_ext].
+    destruct HLB as [[HLB_poset HLB_tot] HLB_ext].
+    constructor.
+    - constructor.
+      + constructor.
+        * (* refl *)
+          intros [a b]. unfold RevLex; simpl.
+          split; [apply poset_refl | intros; apply poset_refl].
+        * (* antisym *)
+          intros [a1 b1] [a2 b2] [H1b H1a] [H2b H2a].
+          unfold RevLex in *; simpl in *.
+          assert (Heqb : b1 = b2) by (apply (poset_antisym (R := LB)); assumption).
+          subst.
+          assert (Heqa : a1 = a2) by
+            (apply (poset_antisym (R := LA)); [apply H1a | apply H2a]; reflexivity).
+          subst; reflexivity.
+        * (* trans *)
+          intros [a1 b1] [a2 b2] [a3 b3] [H1b H1a] [H2b H2a].
+          unfold RevLex in *; simpl in *.
+          split.
+          -- exact (poset_trans (R := LB) b1 b2 b3 H1b H2b).
+          -- intro Heq13.
+             assert (Heqb12 : b1 = b2).
+             { apply (poset_antisym (R := LB)); [exact H1b |].
+               rewrite <- Heq13; exact H2b. }
+             assert (Heqb23 : b2 = b3) by (rewrite <- Heqb12; exact Heq13).
+             exact (poset_trans (R := LA) a1 a2 a3 (H1a Heqb12) (H2a Heqb23)).
+      + (* Total *)
+        intros [a1 b1] [a2 b2]. unfold RevLex; simpl.
+        destruct (HLB_tot b1 b2) as [Hb12 | Hb21],
+                 (classic (b1 = b2)) as [Heqb | Hneqb].
+        * (* LB b1 b2 and b1 = b2 *)
+          subst.
+          destruct (HLA_tot a1 a2) as [Ha | Ha].
+          -- left; split; [apply poset_refl | intros; exact Ha].
+          -- right; split; [apply poset_refl | intros; exact Ha].
+        * (* LB b1 b2 and b1 ≠ b2 *)
+          left; split; [exact Hb12 | intro Heq; exfalso; exact (Hneqb Heq)].
+        * (* LB b2 b1 and b1 = b2 *)
+          subst.
+          destruct (HLA_tot a1 a2) as [Ha | Ha].
+          -- left; split; [apply poset_refl | intros; exact Ha].
+          -- right; split; [apply poset_refl | intros; exact Ha].
+        * (* LB b2 b1 and b1 ≠ b2 *)
+          right; split; [exact Hb21 | intro Heq; exfalso; apply Hneqb; symmetry; exact Heq].
+    - (* extends ProductRel *)
+      intros [a1 b1] [a2 b2] [HRA HRB]. unfold RevLex; simpl.
+      split; [exact (HLB_ext b1 b2 HRB) | intros; exact (HLA_ext a1 a2 HRA)].
+  Qed.
+
   (** Key sub-lemma (admitted): Given realizers rA of RA (size nA) and rB of RB (size nB),
       both nonempty (0 < nA, 0 < nB), there exists a realizer of ProductRel of size ≤ nA + nB.
 
@@ -216,8 +280,52 @@ Section ProductDimension.
       n <= nA + nB.
   Proof.
     intros rA rB nA nB HrA HrB HcardA HcardB HposA HposB.
-    (* TODO: implement the correct construction described in the comment above. *)
-    admit.
+    destruct HrA as [HrA_lin HrA_iff].
+    destruct HrB as [HrB_lin HrB_iff].
+    destruct (pd_cardinal_pos_nonempty _ rA nA HcardA HposA) as [LA0 HLA0].
+    destruct (pd_cardinal_pos_nonempty _ rB nB HcardB HposB) as [MB0 HMB0].
+    assert (HLA0_lin : IsLinearExtension RA LA0) := HrA_lin LA0 HLA0.
+    assert (HMB0_lin : IsLinearExtension RB MB0) := HrB_lin MB0 HMB0.
+    set (rProd_A := Im (A -> A -> Prop) (A * B -> A * B -> Prop) rA (fun LA => LexOrder LA MB0)).
+    set (rProd_B := Im (B -> B -> Prop) (A * B -> A * B -> Prop) rB (fun LB => RevLex LA0 LB)).
+    set (rProd := Union _ rProd_A rProd_B).
+    destruct (cardinal_Im_le _ _ rA (fun LA => LexOrder LA MB0) nA HcardA) as [mA [HcardA' HleA]].
+    destruct (cardinal_Im_le _ _ rB (fun LB => RevLex LA0 LB) nB HcardB) as [mB [HcardB' HleB]].
+    destruct (cardinal_union_le _ rProd_A rProd_B mA mB HcardA' HcardB') as [n [Hcard_n Hle_n]].
+    exists rProd, n.
+    split; [| split; [exact Hcard_n | lia]].
+    constructor.
+    - (* Every L ∈ rProd is a linear extension of ProductRel *)
+      intros L HL.
+      destruct HL as [L HL | L HL].
+      + destruct HL as [LA HLA HLeq]. rewrite <- HLeq.
+        exact (lex_order_is_linear_extension LA MB0 (HrA_lin LA HLA) HMB0_lin).
+      + destruct HL as [LB HLB HLeq]. rewrite <- HLeq.
+        exact (revlex_is_linear_extension LA0 LB HLA0_lin (HrB_lin LB HLB)).
+    - (* Intersection: ProductRel (a1,b1)(a2,b2) ↔ ∀ L ∈ rProd, L (a1,b1)(a2,b2) *)
+      intros [a1 b1] [a2 b2]. split.
+      + (* Forward: ProductRel → all L agree *)
+        intros [HRA HRB] L HL.
+        destruct HL as [L HL | L HL].
+        * destruct HL as [LA HLA HLeq]. rewrite <- HLeq. unfold LexOrder; simpl.
+          split; [exact (linear_extends a1 a2 HRA) |
+                  intros; exact (linear_extends b1 b2 HRB)].
+        * destruct HL as [LB HLB HLeq]. rewrite <- HLeq. unfold RevLex; simpl.
+          split; [exact (linear_extends b1 b2 HRB) |
+                  intros; exact (linear_extends a1 a2 HRA)].
+      + (* Backward: all L agree → ProductRel *)
+        intro Hall.
+        split.
+        * (* RA a1 a2: from all LexOrder Li MB0 agreeing *)
+          apply HrA_iff. intros LA HLA.
+          assert (Hex : LexOrder LA MB0 (a1, b1) (a2, b2)).
+          { apply Hall. left. exists LA; [exact HLA | reflexivity]. }
+          exact (proj1 Hex).
+        * (* RB b1 b2: from all RevLex LA0 Mj agreeing *)
+          apply HrB_iff. intros LB HLB.
+          assert (Hex : RevLex LA0 LB (a1, b1) (a2, b2)).
+          { apply Hall. right. exists LB; [exact HLB | reflexivity]. }
+          exact (proj1 Hex).
   Qed.
 
   Theorem product_dimension_le :
