@@ -5,6 +5,42 @@ From Posets Require Import PosetClasses.
 From Dilworth Require Import Definitions.
 From Dimension Require Import DimDefs CriticalPairs Szpilrajn.
 
+(** The image of a finite set under a function has cardinality ≤ that of the source. *)
+Lemma cardinal_Im_le_local :
+  forall (U V : Type) (S : Ensemble U) (f : U -> V) (n : nat),
+  cardinal U S n ->
+  exists m, cardinal V (Im U V S f) m /\ m <= n.
+Proof.
+  intros U V S f n Hcard.
+  induction Hcard.
+  - exists 0. split; [| lia].
+    assert (Heq : Im U V (Empty_set U) f = Empty_set V).
+    { apply Extensionality_Ensembles. split.
+      - intros x [z Hz _]. destruct Hz.
+      - intros x Hx. destruct Hx. }
+    rewrite Heq. constructor.
+  - destruct IHHcard as [m [Hcard_m Hle]].
+    destruct (classic (In V (Im U V A0 f) (f x))) as [HIn | HNin].
+    + exists m. split; [| lia].
+      assert (Heq : Im U V (Add U A0 x) f = Im U V A0 f).
+      { apply Extensionality_Ensembles. split.
+        - intros y [z Hz Heqy]. destruct Hz as [z Hz | z Hz].
+          + exists z; [exact Hz | exact Heqy].
+          + destruct Hz. rewrite Heqy. exact HIn.
+        - intros y [z Hz Heqy]. exists z; [left; exact Hz | exact Heqy]. }
+      rewrite Heq. exact Hcard_m.
+    + exists (S m). split; [| lia].
+      assert (Heq : Im U V (Add U A0 x) f = Add V (Im U V A0 f) (f x)).
+      { apply Extensionality_Ensembles. split.
+        - intros y [z Hz Heqy]. destruct Hz as [z Hz | z Hz].
+          + left. exists z; auto.
+          + destruct Hz. right. rewrite Heqy. constructor.
+        - intros y Hy. destruct Hy as [y Hy | y Hy].
+          + destruct Hy as [z Hz Heqy]. exists z; [left; exact Hz | exact Heqy].
+          + destruct Hy. exists x; [right; constructor | reflexivity]. }
+      rewrite Heq. apply card_add; assumption.
+Qed.
+
 Section Theorems.
   Context {A : Type}.
   Context (R : A -> A -> Prop) `{IsPoset A R}.
@@ -121,6 +157,20 @@ Section Theorems.
       right; split; [exact Hx | split; [exact Hy' | eapply poset_antisym; eauto]].
     - intros x y z [-> | [Hx [Hy Hxy]]] [-> | [Hy' [Hz Hyz]]]; auto.
       right; split; [exact Hx | split; [exact Hz | eapply poset_trans; eauto]].
+  Qed.
+
+  (** Lemma: Restricting a poset to a subset via the subtype yields a valid poset. *)
+  Lemma subtype_is_poset :
+    forall (S : Ensemble A),
+    IsPoset {x : A | In A S x} (fun x y => R (proj1_sig x) (proj1_sig y)).
+  Proof.
+    intro S.
+    constructor.
+    - intro x. apply poset_refl.
+    - intros [x Hx] [y Hy] H1 H2. simpl in *.
+      assert (Heq : x = y) by (apply poset_antisym; assumption).
+      subst. f_equal. apply proof_irrelevance.
+    - intros [x Hx] [y Hy] [z Hz] H1 H2. simpl in *. eapply poset_trans; eauto.
   Qed.
 
   (** Lemma: Adding a minimal element to the bottom of a linear extension of a smaller set. *)
@@ -502,54 +552,94 @@ Section Theorems.
 
 
   (** Theorem: Subposet Dimension Monotonicity
-      If Q is a subposet of P (induced by subset S), then dim(Q) <= dim(P). *)
+      If Q is the subposet of P induced by S, then dim(Q) ≤ dim(P).
+      We use the subtype {x : A | In A S x} as the carrier for Q. *)
   Theorem subposet_dimension_le :
-    forall (S : Ensemble A) (d_p d_q : nat),
+    forall (S : Ensemble A) (d_p : nat),
     PosetDimension R d_p ->
-    exists d_q, inhabited (PosetDimension (fun x y => In A S x /\ In A S y /\ R x y) d_q) /\ d_q <= d_p.
+    exists d_q,
+      inhabited (@PosetDimension {x : A | In A S x}
+                  (fun x y => R (proj1_sig x) (proj1_sig y))
+                  (subtype_is_poset S) d_q) /\
+      d_q <= d_p.
   Proof.
-    intros S _ _ HdP.
-    (* Let Q be the subposet relation *)
-    set (Q := fun x y => In A S x /\ In A S y /\ R x y).
-    (* Step 1: The realizer rP of P of size d_p gives a finite set of linear orders.
-       Each LP ∈ rP is also a linear extension of Q (since Q x y → R x y → LP x y).
-       We claim rP itself is a realizer of Q on the elements of S; however, the
-       intersection of rP over all A equals R, not Q.
-
-       The key admitted sub-lemma: there exists a realizer of Q of size ≤ d_p.
-       This follows from the construction: for each LP ∈ rP, LP is a linear extension
-       of Q.  We then take the minimum realizer of Q from among all realizers whose
-       cardinality is ≤ d_p. *)
+    intros S d_p HdP.
+    (* Q is the subtype relation *)
+    set (Q := fun (x y : {a : A | In A S a}) => R (proj1_sig x) (proj1_sig y)).
+    (* rP: the canonical realizer of P of size d_p *)
     set (rP := dimension_realizer (R := R) (d := d_p)).
     assert (HrP_card : cardinal (A -> A -> Prop) rP d_p)
       := dimension_cardinality (R := R) (d := d_p).
-    (* Key sub-lemma: there exists a realizer of Q with cardinality ≤ d_p.
-       Proof sketch: rP is a finite set.  Each LP ∈ rP, viewed as a total order on A
-       that extends R, also extends Q (since Q ⊆ R).  By Szpilrajn-style argument,
-       Q admits a realizer whose elements come from rP by "adjustment"; the adjusted
-       realizer has cardinality ≤ d_p.  We admit the full construction here. *)
-    assert (HrQ_exists : exists (rQ : Ensemble (A -> A -> Prop)) (n : nat),
-        @IsRealizer A Q _ rQ /\
-        cardinal (A -> A -> Prop) rQ n /\
-        n <= d_p) by admit.
-    destruct HrQ_exists as [rQ [n [HrQ_real [HrQ_card HrQ_le]]]].
-    (* Step 2: Extract a minimum realizer of Q of size d_q ≤ n ≤ d_p.
-       By strong induction on n: either rQ is already minimum, or there is a
-       strictly smaller realizer, which we handle by IH. *)
+    (* proj_S: maps each LP : A -> A -> Prop to its restriction to the subtype *)
+    set (proj_S := fun (LP : A -> A -> Prop)
+                       (x y : {a : A | In A S a}) =>
+                     LP (proj1_sig x) (proj1_sig y)).
+    (* rQ: the image of rP under proj_S *)
+    set (rQ := Im (A -> A -> Prop)
+                  ({x : A | In A S x} -> {x : A | In A S x} -> Prop)
+                  rP proj_S).
+    (* Step 1: rQ is a realizer of Q *)
+    assert (HrQ_real : @IsRealizer {x : A | In A S x} Q (subtype_is_poset S) rQ).
+    { constructor.
+      + (* Every element of rQ is a linear extension of Q *)
+        intros LQ [LP HLP_in ->].
+        (* LP is a linear extension of R *)
+        assert (HLP_lin : IsLinearExtension R LP) :=
+          (dimension_is_realizer (R := R) (d := d_p)).(realizer_linear) LP HLP_in.
+        constructor.
+        * (* proj_S LP is a total order on the subtype *)
+          constructor.
+          -- (* IsPoset *)
+             constructor.
+             ++ intro x. unfold proj_S. apply poset_refl.
+             ++ intros [x Hx] [y Hy] H1 H2. unfold proj_S in *. simpl in *.
+                assert (Heq : x = y) by (apply poset_antisym; assumption).
+                subst. f_equal. apply proof_irrelevance.
+             ++ intros [x Hx] [y Hy] [z Hz] H1 H2. unfold proj_S in *. simpl in *.
+                eapply poset_trans; eauto.
+          -- (* Totality *)
+             intros [x Hx] [y Hy]. unfold proj_S. simpl.
+             exact (HLP_lin.(linear_is_total).(total_comparable) x y).
+        * (* proj_S LP extends Q *)
+          intros [x Hx] [y Hy] HQxy. unfold proj_S. simpl.
+          exact (HLP_lin.(linear_extends) x y HQxy).
+      + (* Intersection property: Q x y ↔ ∀ LQ ∈ rQ, LQ x y *)
+        intros [x Hx] [y Hy]. split.
+        * (* Q x y → ∀ LQ ∈ rQ, LQ x y *)
+          intros HQxy LQ [LP HLP_in ->].
+          unfold proj_S. simpl.
+          exact ((dimension_is_realizer (R := R) (d := d_p)).(realizer_intersection x y).(proj1) HQxy LP HLP_in).
+        * (* ∀ LQ ∈ rQ, LQ x y → Q x y *)
+          intro Hall.
+          apply (dimension_is_realizer (R := R) (d := d_p)).(realizer_intersection x y).(proj2).
+          intros LP HLP_in.
+          exact (Hall (proj_S LP) (ex_intro _ LP (conj HLP_in eq_refl))). }
+    (* Step 2: |rQ| ≤ d_p because rQ = Im rP proj_S *)
+    destruct (cardinal_Im_le_local
+                (A -> A -> Prop)
+                ({x : A | In A S x} -> {x : A | In A S x} -> Prop)
+                rP proj_S d_p HrP_card)
+      as [n [HrQ_card HrQ_le]].
+    (* Step 3: By strong induction on n, extract the minimum realizer of Q *)
     assert (Hgen : forall k,
-        (exists (r : Ensemble (A -> A -> Prop)),
-          @IsRealizer A Q _ r /\ cardinal (A -> A -> Prop) r k) ->
-        exists d_q, inhabited (@PosetDimension A Q _ d_q) /\ d_q <= k).
+        (exists (r : Ensemble ({x : A | In A S x} -> {x : A | In A S x} -> Prop)),
+          @IsRealizer {x : A | In A S x} Q (subtype_is_poset S) r /\
+          cardinal _ r k) ->
+        exists d_q,
+          inhabited (@PosetDimension {x : A | In A S x} Q (subtype_is_poset S) d_q) /\
+          d_q <= k).
     { induction k as [k IHk] using lt_wf_ind.
       intros [r [Hr_real Hr_card]].
-      destruct (classic (exists (r' : Ensemble (A -> A -> Prop)) k',
-          @IsRealizer A Q _ r' /\ cardinal (A -> A -> Prop) r' k' /\ k' < k))
+      destruct (classic (exists
+          (r' : Ensemble ({x : A | In A S x} -> {x : A | In A S x} -> Prop)) k',
+          @IsRealizer {x : A | In A S x} Q (subtype_is_poset S) r' /\
+          cardinal _ r' k' /\ k' < k))
         as [[r' [k' [Hr'_real [Hr'_card Hlt]]]] | Hmin].
-      - (* Smaller realizer exists; apply IH *)
+      - (* Strictly smaller realizer exists; apply IH *)
         destruct (IHk k' Hlt (ex_intro _ r' (conj Hr'_real Hr'_card)))
           as [d_q [HdQ Hle]].
         exact (ex_intro _ d_q (conj HdQ (Nat.le_trans d_q k' k Hle (Nat.lt_le_incl k' k Hlt)))).
-      - (* k is minimum: build PosetDimension *)
+      - (* k is the minimum realizer size: build PosetDimension *)
         apply not_ex_all_not in Hmin.
         exists k.
         split.
