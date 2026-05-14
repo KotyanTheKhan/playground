@@ -912,3 +912,100 @@ Section Theorems.
   Admitted.
 
 End Theorems.
+
+(** The carrier-polymorphic Hiraguchi bound, proved by well-founded induction on n.
+    The IH from lt_wf_ind is polymorphic over the carrier type B and relation R2,
+    which lets us apply it on the subtype carrier in the incomparable case. *)
+Lemma hiraguchi_thm :
+  forall (n : nat) {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2} (d2 : nat),
+  cardinal B (Full_set B) n ->
+  n >= 4 ->
+  PosetDimension R2 d2 ->
+  d2 <= n / 2.
+Proof.
+  induction n as [n IH] using lt_wf_ind.
+  intros B R2 HR2 d2 Hcard Hn4 Hdim.
+  destruct (classic (exists x y, @Incomparable B R2 x y)) as [[x [y Hinc]] | Hchain].
+  - (* Incomparable pair exists *)
+    assert (HfinB : Finite B (Full_set B)) :=
+      cardinal_finite B (Full_set B) n Hcard.
+    assert (Hcp_ex : exists x' y', R2 x' x /\ R2 y y' /\ @IsCriticalPair B R2 HR2 HfinB x' y').
+    { exact (@incomparable_lifting_to_critical_pair B R2 HR2 HfinB x y Hinc). }
+    destruct Hcp_ex as [x' [y' [Hx'x [Hyy' Hcp_val]]]].
+    assert (Hn2 : n >= 2).
+    { destruct n as [| [| n'']].
+      - inversion Hcard; subst. exfalso. apply Hinc. left. apply poset_refl.
+      - inversion Hcard; subst. exfalso. apply Hinc. left. apply poset_refl.
+      - lia. }
+    set (S' := Subtract B (Subtract B (Full_set B) (Singleton B x')) (Singleton B y')).
+    assert (Hcard_minus1 : cardinal B (Subtract B (Full_set B) (Singleton B x')) (pred n)).
+    { assert (Hn_pos : 0 < n) by lia.
+      rewrite <- (Nat.succ_pred_pos n Hn_pos) in Hcard.
+      exact (cardinal_subtract_sn B (Full_set B) x' (pred n) Hcard (Full_intro B x')). }
+    assert (Hcard_minus2 : cardinal B S' (pred (pred n))).
+    { assert (Hy'_in : In B (Subtract B (Full_set B) (Singleton B x')) y').
+      { split.
+        - apply Full_intro.
+        - intro Heq.
+          apply (@critical_incomparable B R2 HR2 HfinB x' y' Hcp_val).
+          left. rewrite <- Heq. apply poset_refl. }
+      assert (Hpredn_pos : 0 < pred n) by lia.
+      rewrite <- (Nat.succ_pred_pos (pred n) Hpredn_pos) in Hcard_minus1.
+      exact (cardinal_subtract_sn B _ y' (pred (pred n)) Hcard_minus1 Hy'_in). }
+    destruct (@subposet_dimension_le B R2 HR2 S' d2 Hdim) as [d_q [HdimQ Hd_q_le]].
+    destruct HdimQ as [HdimQ_inh].
+    assert (Hd_q_bound : d_q <= pred (pred n) / 2).
+    { destruct (Nat.le_gt_cases 6 n) as [Hn6 | Hlt6].
+      - assert (Hcard_sub : cardinal {x : B | In B S' x}
+                              (Full_set {x : B | In B S' x}) (pred (pred n))).
+        { exact (cardinal_subtype_full B S' (pred (pred n)) Hcard_minus2). }
+        assert (Hpredpred_ge4 : pred (pred n) >= 4) by lia.
+        exact (IH (pred (pred n)) ltac:(lia)
+                  {x : B | In B S' x}
+                  (fun a b => R2 (proj1_sig a) (proj1_sig b))
+                  (@subtype_is_poset B R2 HR2 S')
+                  d_q
+                  Hcard_sub Hpredpred_ge4 HdimQ_inh).
+      - assert (Hn45 : n = 4 \/ n = 5) by lia.
+        destruct Hn45 as [-> | ->]; simpl; admit. }
+    assert (Hd_ext : d2 <= d_q + 1).
+    { set (Rsub := fun (a b : {x : B | In B S' x}) => R2 (proj1_sig a) (proj1_sig b)).
+      assert (HrSub_real :
+        @IsRealizer {x : B | In B S' x} Rsub (@subtype_is_poset B R2 HR2 S')
+          (@dimension_realizer {x : B | In B S' x} Rsub (@subtype_is_poset B R2 HR2 S')
+             d_q HdimQ_inh)) :=
+        @dimension_is_realizer {x : B | In B S' x} Rsub (@subtype_is_poset B R2 HR2 S')
+          d_q HdimQ_inh.
+      assert (HrSub_card :
+        cardinal _ (@dimension_realizer {x : B | In B S' x} Rsub
+                      (@subtype_is_poset B R2 HR2 S') d_q HdimQ_inh) d_q) :=
+        @dimension_cardinality {x : B | In B S' x} Rsub
+          (@subtype_is_poset B R2 HR2 S') d_q HdimQ_inh.
+      destruct (@extension_through_critical_pair B R2 HR2 x' y' S' d_q Hcp_val eq_refl
+          (ex_intro _ _ (conj HrSub_real HrSub_card)))
+        as [r [Hr_real Hr_card]].
+      exact (@dimension_is_minimum B R2 HR2 d2 Hdim r (d_q + 1) Hr_real Hr_card). }
+    lia.
+  - (* Chain: R2 is a total order, dim = 1 *)
+    assert (Hd1 : d2 <= 1).
+    { assert (HR2_total : @IsTotalOrder B R2).
+      { constructor; [exact HR2 |].
+        intros a b.
+        destruct (classic (R2 a b)) as [Hab | Hnab]; [left; assumption |].
+        right.
+        destruct (classic (R2 b a)) as [Hba | Hnba]; [assumption |].
+        exfalso. apply Hchain. exists a, b.
+        unfold Incomparable. intros [H1 | H2]; contradiction. }
+      set (rSingle := Singleton (B -> B -> Prop) R2).
+      assert (HrS_card : cardinal (B -> B -> Prop) rSingle 1) :=
+        singleton_cardinal _ R2.
+      assert (HrS_real : @IsRealizer B R2 HR2 rSingle).
+      { constructor.
+        - intros L HL. destruct HL.
+          constructor; [exact HR2_total | intros a b Hab; exact Hab].
+        - intros a b. split.
+          + intros HRab L HL. destruct HL. exact HRab.
+          + intro Hall. apply Hall. constructor. }
+      exact (@dimension_is_minimum B R2 HR2 d2 Hdim rSingle 1 HrS_real HrS_card). }
+    lia.
+Admitted.
