@@ -154,8 +154,9 @@ Lemma hiraguchi_helper :
   cardinal B (Full_set B) n -> n >= 4 ->
   PosetDimension R2 d2 -> d2 <= n / 2.
 Proof.
-  admit.
-Admitted.
+  intros n B R2 HR2 d2 Hcard Hn4 Hdim.
+  exact (hiraguchi_thm n R2 d2 Hcard Hn4 Hdim).
+Qed.
 
 Section Theorems.
   Context {A : Type}.
