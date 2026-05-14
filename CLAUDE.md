@@ -6,7 +6,7 @@ Do not add `Co-Authored-By` or any other AI watermarks to commit messages.
 
 ## Build commands
 
-Always use `mise` — never invoke `dune` or `opam` directly.
+Always use `mise` — never invoke `dune`, `opam`, or `coqc` directly. If you must call them, use `mise exec -- dune …` / `mise exec -- opam …`.
 
 - `mise build` — entire project
 - `mise run build <dir>/` — single submodule (e.g. `posets/`, `list/`)
