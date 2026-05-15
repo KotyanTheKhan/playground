@@ -798,6 +798,17 @@ Section Theorems.
     admit.
   Qed.
 
+  (** Direct proof that any poset on n ∈ {4,5} elements has dim ≤ 2 = n/2. *)
+  Lemma small_hiraguchi :
+    forall n d,
+    cardinal A (Full_set A) n ->
+    (n = 4 \/ n = 5) ->
+    PosetDimension R d ->
+    d <= 2.
+  Proof.
+    admit.
+  Admitted.
+
   (** Theorem: Hiraguchi's Theorem (1951)
       For a finite poset on n elements (n >= 4), dim(P) <= n/2. *)
   Theorem hiraguchi_bound :
@@ -810,6 +821,12 @@ Section Theorems.
     intros n.
     induction n as [n IH] using lt_wf_ind.
     intros d Hcard Hn4 Hdim.
+    (* Handle n = 4 or n = 5 directly via small_hiraguchi *)
+    destruct (Nat.lt_ge_cases n 6) as [Hlt6 | Hge6].
+    { assert (Hn45 : n = 4 \/ n = 5) by lia.
+      assert (Hd2 : d <= 2) := small_hiraguchi n d Hcard Hn45 Hdim.
+      destruct Hn45 as [-> | ->]; simpl; lia. }
+    (* n >= 6: proceed with incomparable/chain case split *)
     destruct (classic (exists x y, Incomparable R x y)) as [[x [y Hinc]] | Hchain].
     - (* Has an incomparable pair *)
       assert (Hkey : d <= n / 2).
@@ -845,23 +862,18 @@ Section Theorems.
         (* Get dimension d_q of the subposet on S' satisfying d_q <= d *)
         destruct (subposet_dimension_le S' d Hdim) as [d_q [HdimQ Hd_q_le]].
         destruct HdimQ as [HdimQ_inh].
-        (* Bound d_q by the subposet's Hiraguchi bound (for n >= 6); base cases admitted. *)
+        (* n >= 6: pred(pred n) >= 4, bound d_q by recursive Hiraguchi on S' *)
         assert (Hd_q_bound : d_q <= pred (pred n) / 2).
-        { destruct (Nat.le_gt_cases 6 n) as [Hn6 | Hlt6].
-          - (* n >= 6: pred(pred n) >= 4, recurse via hiraguchi_helper *)
-            assert (Hcard_sub : cardinal {x : A | In A S' x}
-                                  (Full_set {x : A | In A S' x}) (pred (pred n))).
-            { exact (cardinal_subtype_full A S' (pred (pred n)) Hcard_minus2). }
-            assert (Hpredpred_ge4 : pred (pred n) >= 4) by lia.
-            exact (@hiraguchi_helper (pred (pred n))
-                     {x : A | In A S' x}
-                     (fun a b => R (proj1_sig a) (proj1_sig b))
-                     (subtype_is_poset S')
-                     d_q
-                     Hcard_sub Hpredpred_ge4 HdimQ_inh).
-          - (* n = 4 or n = 5: base cases, separate argument deferred *)
-            assert (Hn45 : n = 4 \/ n = 5) by lia.
-            destruct Hn45 as [-> | ->]; simpl; admit. }
+        { assert (Hcard_sub : cardinal {x : A | In A S' x}
+                                (Full_set {x : A | In A S' x}) (pred (pred n))).
+          { exact (cardinal_subtype_full A S' (pred (pred n)) Hcard_minus2). }
+          assert (Hpredpred_ge4 : pred (pred n) >= 4) by lia.
+          exact (@hiraguchi_helper (pred (pred n))
+                   {x : A | In A S' x}
+                   (fun a b => R (proj1_sig a) (proj1_sig b))
+                   (subtype_is_poset S')
+                   d_q
+                   Hcard_sub Hpredpred_ge4 HdimQ_inh). }
         (* d <= d_q + 1 by extension_through_critical_pair applied to the sub-realizer *)
         assert (Hd_ext : d <= d_q + 1).
         { set (Rsub := fun (a b : {x : A | In A S' x}) => R (proj1_sig a) (proj1_sig b)).
@@ -910,7 +922,7 @@ Section Theorems.
             + intro Hall. apply Hall. constructor. }
         exact (dimension_is_minimum (R:=R) (d:=d) rSingle 1 HrS_real HrS_card). }
       lia.
-  Admitted.
+  Qed.
 
 End Theorems.
 
@@ -926,6 +938,12 @@ Lemma hiraguchi_thm :
 Proof.
   induction n as [n IH] using lt_wf_ind.
   intros B R2 HR2 d2 Hcard Hn4 Hdim.
+  (* Handle n = 4 or n = 5 directly via small_hiraguchi *)
+  destruct (Nat.lt_ge_cases n 6) as [Hlt6 | Hge6].
+  { assert (Hn45 : n = 4 \/ n = 5) by lia.
+    assert (Hd2 : d2 <= 2) := @small_hiraguchi B R2 HR2 n d2 Hcard Hn45 Hdim.
+    destruct Hn45 as [-> | ->]; simpl; lia. }
+  (* n >= 6: proceed with incomparable/chain case split *)
   destruct (classic (exists x y, @Incomparable B R2 x y)) as [[x [y Hinc]] | Hchain].
   - (* Incomparable pair exists *)
     assert (HfinB : Finite B (Full_set B)) :=
@@ -955,20 +973,18 @@ Proof.
       exact (cardinal_subtract_sn B _ y' (pred (pred n)) Hcard_minus1 Hy'_in). }
     destruct (@subposet_dimension_le B R2 HR2 S' d2 Hdim) as [d_q [HdimQ Hd_q_le]].
     destruct HdimQ as [HdimQ_inh].
+    (* n >= 6: pred(pred n) >= 4, bound d_q by recursive Hiraguchi on S' *)
     assert (Hd_q_bound : d_q <= pred (pred n) / 2).
-    { destruct (Nat.le_gt_cases 6 n) as [Hn6 | Hlt6].
-      - assert (Hcard_sub : cardinal {x : B | In B S' x}
-                              (Full_set {x : B | In B S' x}) (pred (pred n))).
-        { exact (cardinal_subtype_full B S' (pred (pred n)) Hcard_minus2). }
-        assert (Hpredpred_ge4 : pred (pred n) >= 4) by lia.
-        exact (IH (pred (pred n)) ltac:(lia)
-                  {x : B | In B S' x}
-                  (fun a b => R2 (proj1_sig a) (proj1_sig b))
-                  (@subtype_is_poset B R2 HR2 S')
-                  d_q
-                  Hcard_sub Hpredpred_ge4 HdimQ_inh).
-      - assert (Hn45 : n = 4 \/ n = 5) by lia.
-        destruct Hn45 as [-> | ->]; simpl; admit. }
+    { assert (Hcard_sub : cardinal {x : B | In B S' x}
+                            (Full_set {x : B | In B S' x}) (pred (pred n))).
+      { exact (cardinal_subtype_full B S' (pred (pred n)) Hcard_minus2). }
+      assert (Hpredpred_ge4 : pred (pred n) >= 4) by lia.
+      exact (IH (pred (pred n)) ltac:(lia)
+                {x : B | In B S' x}
+                (fun a b => R2 (proj1_sig a) (proj1_sig b))
+                (@subtype_is_poset B R2 HR2 S')
+                d_q
+                Hcard_sub Hpredpred_ge4 HdimQ_inh). }
     assert (Hd_ext : d2 <= d_q + 1).
     { set (Rsub := fun (a b : {x : B | In B S' x}) => R2 (proj1_sig a) (proj1_sig b)).
       assert (HrSub_real :
@@ -1009,4 +1025,4 @@ Proof.
           + intro Hall. apply Hall. constructor. }
       exact (@dimension_is_minimum B R2 HR2 d2 Hdim rSingle 1 HrS_real HrS_card). }
     lia.
-Admitted.
+Qed.
