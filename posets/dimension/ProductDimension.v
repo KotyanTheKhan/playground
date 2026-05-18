@@ -269,8 +269,6 @@ Section ProductDimension.
       interleaving the A-realizer and B-realizer in a way that is NOT purely lexicographic.
       Formalising this requires the full Szpilrajn machinery (already present in CriticalPairs)
       and a more delicate construction than zip-of-LexOrders. *)
-  (* NOTE: product_realizer_exists has Coq-9.x rewrite/[Cannot find a relation]
-     issues in its inner proof. Statement intact; admitted. *)
   Lemma product_realizer_exists :
     forall (rA : Ensemble (A -> A -> Prop)) (rB : Ensemble (B -> B -> Prop)) (nA nB : nat),
     IsRealizer RA rA ->
@@ -283,8 +281,6 @@ Section ProductDimension.
       cardinal (A * B -> A * B -> Prop) rProd n /\
       n <= nA + nB.
   Proof.
-  Admitted.
-  (* Original proof retained as comment:
     intros rA rB nA nB HrA HrB HcardA HcardB HposA HposB.
     destruct HrA as [HrA_lin HrA_iff].
     destruct HrB as [HrB_lin HrB_iff].
@@ -304,21 +300,21 @@ Section ProductDimension.
     - (* Every L ∈ rProd is a linear extension of ProductRel *)
       intros L HL.
       destruct HL as [L HL | L HL].
-      + destruct HL as [LA HLA HLeq]. rewrite <- HLeq.
+      + destruct HL as [LA HLA y HLeq]. subst y.
         exact (lex_order_is_linear_extension LA MB0 (HrA_lin LA HLA) HMB0_lin).
-      + destruct HL as [LB HLB HLeq]. rewrite <- HLeq.
+      + destruct HL as [LB HLB y HLeq]. subst y.
         exact (revlex_is_linear_extension LA0 LB HLA0_lin (HrB_lin LB HLB)).
     - (* Intersection: ProductRel (a1,b1)(a2,b2) ↔ ∀ L ∈ rProd, L (a1,b1)(a2,b2) *)
       intros [a1 b1] [a2 b2]. split.
       + (* Forward: ProductRel → all L agree *)
         intros [HRA HRB] L HL.
         destruct HL as [L HL | L HL].
-        * destruct HL as [LA HLA HLeq]. rewrite <- HLeq. unfold LexOrder; simpl.
-          split; [exact (linear_extends a1 a2 HRA) |
-                  intros; exact (linear_extends b1 b2 HRB)].
-        * destruct HL as [LB HLB HLeq]. rewrite <- HLeq. unfold RevLex; simpl.
-          split; [exact (linear_extends b1 b2 HRB) |
-                  intros; exact (linear_extends a1 a2 HRA)].
+        * destruct HL as [LA HLA y HLeq]. subst y. unfold LexOrder; simpl.
+          split; [exact (linear_extends (HrA_lin LA HLA) a1 a2 HRA) |
+                  intros; exact (linear_extends HMB0_lin b1 b2 HRB)].
+        * destruct HL as [LB HLB y HLeq]. subst y. unfold RevLex; simpl.
+          split; [exact (linear_extends (HrB_lin LB HLB) b1 b2 HRB) |
+                  intros; exact (linear_extends HLA0_lin a1 a2 HRA)].
       + (* Backward: all L agree → ProductRel *)
         intro Hall.
         split.
@@ -332,9 +328,8 @@ Section ProductDimension.
           assert (Hex : RevLex LA0 LB (a1, b1) (a2, b2)).
           { apply Hall. right. exists LB; [exact HLB | reflexivity]. }
           exact (proj1 Hex).
-  *)
+  Qed.
 
-  (* NOTE: same projection-args issues as upstream lemmas. Admitted. *)
   Theorem product_dimension_le :
     forall (dA dB dProd : nat),
     PosetDimension RA dA ->
@@ -343,24 +338,22 @@ Section ProductDimension.
     0 < dA -> 0 < dB ->
     dProd <= dA + dB.
   Proof.
-  Admitted.
-  (* Original proof retained as comment:
     intros dA dB dProd HdA HdB HdProd HposA HposB.
     (* Extract the canonical realizers for RA and RB. *)
-    set (rA := dimension_realizer (R := RA) (d := dA)).
-    set (rB := dimension_realizer (R := RB) (d := dB)).
+    set (rA := dimension_realizer HdA).
+    set (rB := dimension_realizer HdB).
     (* By product_realizer_exists, there is a realizer of ProductRel of size ≤ dA + dB. *)
     destruct (product_realizer_exists rA rB dA dB
-        (dimension_is_realizer (R := RA) (d := dA))
-        (dimension_is_realizer (R := RB) (d := dB))
-        (dimension_cardinality (R := RA) (d := dA))
-        (dimension_cardinality (R := RB) (d := dB))
+        (dimension_is_realizer HdA)
+        (dimension_is_realizer HdB)
+        (dimension_cardinality HdA)
+        (dimension_cardinality HdB)
         HposA HposB)
       as [rProd [n [HrProd_real [HrProd_card HrProd_le]]]].
     (* Apply dimension_is_minimum: dProd ≤ n ≤ dA + dB. *)
     exact (Nat.le_trans dProd n (dA + dB)
-      (dimension_is_minimum (R := ProductRel) (d := dProd) rProd n HrProd_real HrProd_card)
+      (dimension_is_minimum HdProd rProd n HrProd_real HrProd_card)
       HrProd_le).
-  *)
+  Qed.
 
 End ProductDimension.
