@@ -1,4 +1,4 @@
-From Stdlib Require Import List Classical ClassicalDescription.
+From Stdlib Require Import List Classical ClassicalDescription IndefiniteDescription.
 From Stdlib Require Import FunctionalExtensionality PropExtensionality ProofIrrelevance.
 From Posets Require Import PosetClasses.
 From Dilworth Require Import Definitions.
@@ -988,6 +988,7 @@ Section Theorems.
     forall (x' y' : A) (S' : Ensemble A)
            (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop),
     IsCriticalPair R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
     IsLinearExtension
       (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
     IsPoset A
@@ -998,18 +999,493 @@ Section Theorems.
                   L' (exist _ a ha) (exist _ b hb))
             \/ (a = x' /\ b = y'))).
   Proof.
-    (* NOTE (Admitted): proof by path invariant on TC, mirroring
-       [add_incomparable_path_invariant] but with extra L'_lift edges.
-       The invariant lists six cases for any TC-path a -->* b:
-         (i)    R a b,
-         (ii)   R a x' /\ R y' b,
-         (iii)  L'_lift a b,
-         (iv-vi) mixed L'_lift / R compositions with x',y' — most are
-         vacuous since x', y' ∉ S' and L'_lift is defined only on S'.
-       Antisymmetry: assuming a -->* b and b -->* a, combining cases
-       either yields R a b /\ R b a (so a = b) or forces R y' x',
-       contradicting [critical_incomparable]. *)
-  Admitted.
+    intros x' y' S' L' Hcp HS'_eq HL'.
+    set (L'_lift := fun a b =>
+           exists (ha : In A S' a) (hb : In A S' b),
+             L' (exist _ a ha) (exist _ b hb)).
+    set (step := fun a b => R a b \/ L'_lift a b \/ (a = x' /\ b = y')).
+    fold L'_lift.
+    change (IsPoset A (clos_trans A step)).
+    (* Extract poset/totality structure of L' *)
+    assert (HL'_pos : IsPoset {a : A | In A S' a}
+              (fun a b => L' a b)) by
+      exact (linear_is_total HL').(total_is_poset).
+    assert (HL'_tot : forall a b : {a : A | In A S' a}, L' a b \/ L' b a) by
+      exact (linear_is_total HL').(total_comparable).
+    assert (HL'_ext : forall a b : {a : A | In A S' a},
+              R (proj1_sig a) (proj1_sig b) -> L' a b) by
+      exact (linear_extends HL').
+    (* Derive x' ∉ S' and y' ∉ S' from HS'_eq *)
+    assert (Hx'_notin : ~ In A S' x').
+    { intro Hin. rewrite HS'_eq in Hin.
+      destruct Hin as [[Hfull Hnotx'] Hnoty'].
+      apply Hnotx'. constructor. }
+    assert (Hy'_notin : ~ In A S' y').
+    { intro Hin. rewrite HS'_eq in Hin.
+      destruct Hin as [_ Hnoty'].
+      apply Hnoty'. constructor. }
+    (* Helpers: L'_lift endpoints are in S' *)
+    assert (HL'_lift_in_S' : forall a b, L'_lift a b -> In A S' a /\ In A S' b).
+    { intros a b [ha [hb _]]. split; assumption. }
+    (* Critical pair facts *)
+    assert (Hinc : Incomparable R x' y') by exact (critical_incomparable Hcp).
+    assert (Hnxy : ~ R x' y') by (intro; apply Hinc; left; assumption).
+    assert (Hnyx : ~ R y' x') by (intro; apply Hinc; right; assumption).
+    (* L'_lift is transitive (inherits from L' being a poset) *)
+    assert (HL'_lift_trans : forall a b c,
+              L'_lift a b -> L'_lift b c -> L'_lift a c).
+    { intros a b c [ha [hb HLab]] [hb' [hc HLbc]].
+      exists ha, hc.
+      assert (Hhb : hb = hb') by apply proof_irrelevance.
+      subst hb.
+      eapply (HL'_pos.(poset_trans)); eauto. }
+    (* L'_lift is reflexive on S' *)
+    assert (HL'_lift_refl : forall a (ha : In A S' a), L'_lift a a).
+    { intros a ha. exists ha, ha.
+      exact (HL'_pos.(poset_refl) (exist _ a ha)). }
+    (* L' extends R on S' x S' *)
+    assert (HL'_lift_R : forall a b (ha : In A S' a) (hb : In A S' b),
+              R a b -> L'_lift a b).
+    { intros a b ha hb HRab.
+      exists ha, hb. apply HL'_ext. simpl. exact HRab. }
+    (* L'_lift antisymmetric *)
+    assert (HL'_lift_antisym : forall a b,
+              L'_lift a b -> L'_lift b a -> a = b).
+    { intros a b [ha [hb HLab]] [hb' [ha' HLba]].
+      assert (Hhb : hb = hb') by apply proof_irrelevance.
+      assert (Hha : ha = ha') by apply proof_irrelevance.
+      subst hb ha.
+      pose proof HL'_pos.(poset_antisym) as HAS.
+      assert (HE : exist (fun z => In A S' z) a ha'
+                 = exist (fun z => In A S' z) b hb').
+      { apply HAS; eauto. }
+      exact (f_equal (@proj1_sig _ _) HE). }
+
+    (* ---------- Path invariant ----------
+       For any TC-path a -->* b, one of three cases holds:
+         (J1) R a b
+         (J2) ∃ m1 m2 ∈ S', (R a m1 ∨ a = m1) ∧ L'_lift m1 m2 ∧
+                            (R m2 b ∨ m2 = b)
+              [a path that has an L'_lift segment inside S', with optional
+               R prefix into S' and R suffix out of S']
+         (J3) R a x' /\ R y' b
+       The forced edge (x', y') instantiates (J3) by R-reflexivity. *)
+    set (Inv := fun a b =>
+                  R a b
+               \/ (exists m1 m2 : A,
+                     In A S' m1 /\ In A S' m2 /\
+                     (R a m1 \/ a = m1) /\
+                     L'_lift m1 m2 /\
+                     (R m2 b \/ m2 = b))
+               \/ (R a x' /\ R y' b)).
+    (* Helpers for J2: pack/unpack and basic R-extensions *)
+    assert (HInv_R_left : forall a b c, R a b -> Inv b c -> Inv a c).
+    { intros a b c HRab HI.
+      destruct HI as [HRbc | [[m1 [m2 [Hm1 [Hm2 [Hpref [HLL Hsuf]]]]]] | [HRbx HRyc]]].
+      - left. eapply poset_trans; eauto.
+      - right. left. exists m1, m2. split; [exact Hm1|]. split; [exact Hm2|].
+        split.
+        + destruct Hpref as [HRbm1 | Heqbm1].
+          * left. eapply poset_trans; eauto.
+          * left. rewrite <- Heqbm1. exact HRab.
+        + split; [exact HLL | exact Hsuf].
+      - right. right. split; [eapply poset_trans; eauto | exact HRyc]. }
+    assert (HInv_R_right : forall a b c, Inv a b -> R b c -> Inv a c).
+    { intros a b c HI HRbc.
+      destruct HI as [HRab | [[m1 [m2 [Hm1 [Hm2 [Hpref [HLL Hsuf]]]]]] | [HRax HRyb]]].
+      - left. eapply poset_trans; eauto.
+      - right. left. exists m1, m2. split; [exact Hm1|]. split; [exact Hm2|].
+        split; [exact Hpref|]. split; [exact HLL|].
+        destruct Hsuf as [HRm2b | Heqm2b].
+        + left. eapply poset_trans; eauto.
+        + left. rewrite Heqm2b. exact HRbc.
+      - right. right. split; [exact HRax | eapply poset_trans; eauto]. }
+    (* Key compression lemma: a chain in J2 starting and ending in S' compresses
+       to L'_lift. *)
+    assert (HInv_compress : forall m1 m2 b,
+              In A S' m1 -> In A S' m2 -> In A S' b ->
+              (R m1 m2 \/ m1 = m2) -> L'_lift m2 b -> L'_lift m1 b).
+    { intros m1 m2 b Hm1 Hm2 Hb [HRm1m2 | Heq] HLL.
+      - assert (HL12 : L'_lift m1 m2) by apply (HL'_lift_R m1 m2 Hm1 Hm2 HRm1m2).
+        eapply HL'_lift_trans; eauto.
+      - subst m2. exact HLL. }
+    assert (HInv_compress' : forall a m1 m2,
+              In A S' a -> In A S' m1 -> In A S' m2 ->
+              L'_lift a m1 -> (R m1 m2 \/ m1 = m2) -> L'_lift a m2).
+    { intros a m1 m2 Ha Hm1 Hm2 HLL [HRm1m2 | Heq].
+      - assert (HL12 : L'_lift m1 m2) by apply (HL'_lift_R m1 m2 Hm1 Hm2 HRm1m2).
+        eapply HL'_lift_trans; eauto.
+      - subst m2. exact HLL. }
+    assert (Hinv : forall a b,
+              clos_trans A step a b -> Inv a b).
+    { intros a b Hab.
+      induction Hab as [a b Hstep | a m b _ IH1 _ IH2].
+      - (* Base case *)
+        destruct Hstep as [HR | [HLL | [Heqax Heqby]]].
+        + left. exact HR.
+        + right. left.
+          destruct (HL'_lift_in_S' a b HLL) as [Ha_in Hb_in].
+          exists a, b. split; [exact Ha_in|]. split; [exact Hb_in|].
+          split; [right; reflexivity|]. split; [exact HLL | right; reflexivity].
+        + subst a b. right. right. split; apply poset_refl.
+      - (* Transitive case: combine IH1: Inv a m and IH2: Inv m b *)
+        destruct IH1 as [HRam | [HJ2am | [HRax HRym]]];
+        destruct IH2 as [HRmb | [HJ2mb | [HRmx HRyb]]].
+        + (* J1, J1: R a m, R m b *) left. eapply poset_trans; eauto.
+        + (* J1, J2 *) eapply HInv_R_left; [exact HRam | right; left; exact HJ2mb].
+        + (* J1, J3: R a m, R m x' /\ R y' b *)
+          right. right. split.
+          * eapply poset_trans; eauto.
+          * exact HRyb.
+        + (* J2, J1: extend J2 by R on right *)
+          eapply HInv_R_right; [right; left; exact HJ2am | exact HRmb].
+        + (* J2, J2: compose two J2's *)
+          destruct HJ2am as [p1 [p2 [Hp1 [Hp2 [HprefA [HLLp HsufA]]]]]].
+          destruct HJ2mb as [q1 [q2 [Hq1 [Hq2 [HprefB [HLLq HsufB]]]]]].
+          (* Need to show ∃m1 m2, all in S', ... L'_lift m1 m2 ... *)
+          (* The middle (p2, m, q1) collapses: R_or_eq p2 m, R_or_eq m q1.
+             Both p2, q1 ∈ S'. If R p2 q1 or p2 = q1, L'_lift (or eq) p2 q1.
+             Then L'_lift p1 p2, L'_lift_or_eq p2 q1, L'_lift q1 q2 →
+             L'_lift p1 q2.  J2 with m1=p1, m2=q2. *)
+          assert (Hp2_R_q1 : R p2 q1 \/ p2 = q1).
+          { destruct HsufA as [HRp2m | Heqp2m];
+            destruct HprefB as [HRmq1 | Heqmq1].
+            - left. eapply poset_trans; eauto.
+            - left. rewrite <- Heqmq1. exact HRp2m.
+            - left. rewrite Heqp2m. exact HRmq1.
+            - right. rewrite Heqp2m. exact Heqmq1. }
+          assert (HLLp1q2 : L'_lift p1 q2).
+          { (* L'_lift p1 p2, R_or_eq p2 q1, L'_lift q1 q2 → L'_lift p1 q2 *)
+            assert (HLLpq1 : L'_lift p1 q1).
+            { apply (HInv_compress' p1 p2 q1 Hp1 Hp2 Hq1 HLLp Hp2_R_q1). }
+            eapply HL'_lift_trans; eauto. }
+          right. left. exists p1, q2. split; [exact Hp1|]. split; [exact Hq2|].
+          split; [exact HprefA|]. split; [exact HLLp1q2 | exact HsufB].
+        + (* J2, J3: R a m → ... → p2 → m → x' / y' → b
+             a → p1 → p2 → m  via J2; m → x' /\ y' → b via J3.
+             From HsufA: R_or_eq p2 m. R m x'. So R p2 x' (or p2 = m and R m x').
+             Either way R p2 x'. p2 ∈ S' so p2 ≠ x', Strict, critical_down: R p2 y'.
+             Then R y' b (from J3). R p2 y' /\ R y' b → R p2 b.
+             So state: R_or_eq a p1, L'_lift p1 p2, R p2 b. J2! *)
+          destruct HJ2am as [p1 [p2 [Hp1 [Hp2 [HprefA [HLLp HsufA]]]]]].
+          assert (HRp2x : R p2 x').
+          { destruct HsufA as [HRp2m | Heqp2m].
+            - eapply poset_trans; eauto.
+            - rewrite Heqp2m. exact HRmx. }
+          assert (Hp2_nex : p2 <> x').
+          { intro Heq. rewrite Heq in Hp2. apply (Hx'_notin Hp2). }
+          assert (HRp2y : R p2 y').
+          { apply (critical_down Hcp). split; [exact HRp2x | exact Hp2_nex]. }
+          assert (HRp2b : R p2 b).
+          { eapply poset_trans; eauto. }
+          right. left. exists p1, p2. split; [exact Hp1|]. split; [exact Hp2|].
+          split; [exact HprefA|]. split; [exact HLLp | left; exact HRp2b].
+        + (* J3, J1: R a x' /\ R y' m, R m b *)
+          right. right. split.
+          * exact HRax.
+          * eapply poset_trans; eauto.
+        + (* J3, J2: R a x' /\ R y' m, J2 m b *)
+          destruct HJ2mb as [q1 [q2 [Hq1 [Hq2 [HprefB [HLLq HsufB]]]]]].
+          assert (HRyq1 : R y' q1).
+          { destruct HprefB as [HRmq1 | Heqmq1].
+            - eapply poset_trans; eauto.
+            - rewrite <- Heqmq1. exact HRym. }
+          assert (Hq1_ney : q1 <> y').
+          { intro Heq. rewrite Heq in Hq1. apply (Hy'_notin Hq1). }
+          assert (HRxq1 : R x' q1).
+          { apply (critical_up Hcp). split; [exact HRyq1 | auto]. }
+          assert (HRaq1 : R a q1).
+          { eapply poset_trans; eauto. }
+          right. left. exists q1, q2. split; [exact Hq1|]. split; [exact Hq2|].
+          split; [left; exact HRaq1|]. split; [exact HLLq | exact HsufB].
+        + (* J3, J3: R a x' /\ R y' m, R m x' /\ R y' b → R y' x' contradiction *)
+          exfalso. apply Hnyx.
+          eapply poset_trans; [exact HRym | exact HRmx]. }
+
+    constructor.
+    - (* Reflexivity *)
+      intro a. apply t_step. left. apply poset_refl.
+    - (* Antisymmetry *)
+      intros a b Hab Hba.
+      pose proof (Hinv a b Hab) as Iab.
+      pose proof (Hinv b a Hba) as Iba.
+      destruct Iab as [HRab | [HJ2ab | [HRax HRyb]]];
+      destruct Iba as [HRba | [HJ2ba | [HRbx HRya]]].
+      + (* J1, J1: R a b, R b a *) eapply poset_antisym; eauto.
+      + (* J1, J2: R a b ; J2(b, a) = ∃q1 q2 ∈ S', ... b → q1 → q2 → a *)
+        destruct HJ2ba as [q1 [q2 [Hq1 [Hq2 [Hpref [HLLq Hsuf]]]]]].
+        (* Combine: R a b, R_or_eq b q1, L'_lift q1 q2, R_or_eq q2 a.
+           Derive R q2 q1 (via R q2 a, R a b, R_or_eq b q1).
+           Then L'_lift q2 q1, antisym → q1 = q2.  Then path is
+           R a b, R_or_eq b q1, R_or_eq q1=q2 a → R a b and R b a → a = b. *)
+        assert (HRq2_q1 : R q2 q1).
+        { assert (HRq2b : R q2 b).
+          { destruct Hsuf as [HRq2a | Heqq2a].
+            - eapply poset_trans; eauto.
+            - rewrite Heqq2a. exact HRab. }
+          destruct Hpref as [HRbq1 | Heqbq1].
+          - eapply poset_trans; eauto.
+          - rewrite <- Heqbq1. exact HRq2b. }
+        assert (HLLq2q1 : L'_lift q2 q1)
+          by exact (HL'_lift_R q2 q1 Hq2 Hq1 HRq2_q1).
+        assert (Heq_q1q2 : q1 = q2)
+          by exact (HL'_lift_antisym q1 q2 HLLq HLLq2q1).
+        (* Now reduce: q1 = q2. Path: b → q1 → q1 → a. So R_or_eq b q1, R_or_eq q1 a. *)
+        rewrite <- Heq_q1q2 in Hsuf.
+        (* Hsuf : R q1 a \/ q1 = a *)
+        assert (HRba' : R b a).
+        { destruct Hpref as [HRbq1 | Heqbq1];
+          destruct Hsuf as [HRq1a | Heqq1a].
+          - eapply poset_trans; eauto.
+          - rewrite <- Heqq1a. exact HRbq1.
+          - rewrite Heqbq1. exact HRq1a.
+          - rewrite Heqbq1. rewrite Heqq1a. apply poset_refl. }
+        eapply poset_antisym; eauto.
+      + (* J1, J3: R a b, R b x' /\ R y' a → R y' x' contradiction *)
+        exfalso. apply Hnyx.
+        eapply poset_trans; [exact HRya | eapply poset_trans; eauto].
+      + (* J2, J1: symmetric to J1, J2 *)
+        destruct HJ2ab as [p1 [p2 [Hp1 [Hp2 [Hpref [HLLp Hsuf]]]]]].
+        assert (HRp2_p1 : R p2 p1).
+        { assert (HRp2a : R p2 a).
+          { destruct Hsuf as [HRp2b | Heqp2b].
+            - eapply poset_trans; eauto.
+            - rewrite Heqp2b. exact HRba. }
+          destruct Hpref as [HRap1 | Heqap1].
+          - eapply poset_trans; eauto.
+          - rewrite <- Heqap1. exact HRp2a. }
+        assert (HLLp2p1 : L'_lift p2 p1)
+          by exact (HL'_lift_R p2 p1 Hp2 Hp1 HRp2_p1).
+        assert (Heq_p1p2 : p1 = p2)
+          by exact (HL'_lift_antisym p1 p2 HLLp HLLp2p1).
+        rewrite <- Heq_p1p2 in Hsuf.
+        assert (HRab' : R a b).
+        { destruct Hpref as [HRap1 | Heqap1];
+          destruct Hsuf as [HRp1b | Heqp1b].
+          - eapply poset_trans; eauto.
+          - rewrite <- Heqp1b. exact HRap1.
+          - rewrite Heqap1. exact HRp1b.
+          - rewrite Heqap1. rewrite Heqp1b. apply poset_refl. }
+        eapply poset_antisym; eauto.
+      + (* J2, J2 *)
+        destruct HJ2ab as [p1 [p2 [Hp1 [Hp2 [HprefA [HLLp HsufA]]]]]].
+        destruct HJ2ba as [q1 [q2 [Hq1 [Hq2 [HprefB [HLLq HsufB]]]]]].
+        (* Cycle: a → p1 → p2 → b → q1 → q2 → a.
+           Derive R p2 q1 (via R_or_eq p2 b, R_or_eq b q1).
+           Then L'_lift p1 q2 (compress).
+           Derive R q2 p1 (via R_or_eq q2 a, R_or_eq a p1).
+           Then L'_lift q1 p2 (compress).
+           Then L'_lift p1 q2 and L'_lift q2 p1 → p1 = q2.
+           And L'_lift q1 p2 and L'_lift p2 q1 → p2 = q1. (Actually we need
+           L'_lift in opposing direction for antisym; let me redo.) *)
+        assert (Hp2_R_q1 : R p2 q1 \/ p2 = q1).
+        { destruct HsufA as [HRp2b | Heqp2b];
+          destruct HprefB as [HRbq1 | Heqbq1].
+          - left. eapply poset_trans; eauto.
+          - left. rewrite <- Heqbq1. exact HRp2b.
+          - left. rewrite Heqp2b. exact HRbq1.
+          - right. rewrite Heqp2b. exact Heqbq1. }
+        assert (Hq2_R_p1 : R q2 p1 \/ q2 = p1).
+        { destruct HsufB as [HRq2a | Heqq2a];
+          destruct HprefA as [HRap1 | Heqap1].
+          - left. eapply poset_trans; eauto.
+          - left. rewrite <- Heqap1. exact HRq2a.
+          - left. rewrite Heqq2a. exact HRap1.
+          - right. rewrite Heqq2a. exact Heqap1. }
+        (* L'_lift p1 q2: via p1 → p2 → q1 → q2.
+           L'_lift q1 p2: via q1 → q2 → p1 → p2. Wait, that uses opposite.
+           Actually we have L'_lift p1 p2, R_or_eq p2 q1, L'_lift q1 q2 → L'_lift p1 q2.
+           And L'_lift q1 q2, R_or_eq q2 p1, L'_lift p1 p2 → L'_lift q1 p2. *)
+        assert (HLLp1q2 : L'_lift p1 q2).
+        { assert (Hpq1 : L'_lift p1 q1)
+            by apply (HInv_compress' p1 p2 q1 Hp1 Hp2 Hq1 HLLp Hp2_R_q1).
+          eapply HL'_lift_trans; eauto. }
+        assert (HLLq1p2 : L'_lift q1 p2).
+        { assert (Hqp1 : L'_lift q1 p1)
+            by apply (HInv_compress' q1 q2 p1 Hq1 Hq2 Hp1 HLLq Hq2_R_p1).
+          eapply HL'_lift_trans; eauto. }
+        (* Now L'_lift p1 q2, L'_lift q1 p2.  L'_lift p1 p2 (HLLp), L'_lift q1 q2 (HLLq). *)
+        (* L'_lift p1 q2 and L'_lift q2 ? p1: we need L'_lift q2 p1. We have R_or_eq q2 p1.
+           If R q2 p1: L'_lift q2 p1. If q2 = p1: trivial.
+           Either way L'_lift_or_eq q2 p1. Then if L'_lift q2 p1: p1 = q2. *)
+        assert (Hq2_eq_p1 : q2 = p1).
+        { destruct Hq2_R_p1 as [HRq2p1 | Heq].
+          - assert (HLLq2p1 : L'_lift q2 p1) by exact (HL'_lift_R q2 p1 Hq2 Hp1 HRq2p1).
+            symmetry. exact (HL'_lift_antisym p1 q2 HLLp1q2 HLLq2p1).
+          - exact Heq. }
+        assert (Hp2_eq_q1 : p2 = q1).
+        { destruct Hp2_R_q1 as [HRp2q1 | Heq].
+          - assert (HLLp2q1 : L'_lift p2 q1) by exact (HL'_lift_R p2 q1 Hp2 Hq1 HRp2q1).
+            exact (HL'_lift_antisym p2 q1 HLLp2q1 HLLq1p2).
+          - exact Heq. }
+        (* Now everything collapses. Path: a → p1 → p2 → b → p2 → p1 → a (using q1 = p2, q2 = p1).
+           HprefA: R_or_eq a p1. HsufB: R_or_eq q2 a = R_or_eq p1 a.
+           So R_or_eq a p1 /\ R_or_eq p1 a → a = p1.
+           HsufA: R_or_eq p2 b. HprefB: R_or_eq b q1 = R_or_eq b p2.
+           So R_or_eq p2 b /\ R_or_eq b p2 → b = p2.
+           Then path a = p1, b = p2. L'_lift p1 p2 = L'_lift a b.
+           L'_lift q1 q2 = L'_lift p2 p1 = L'_lift b a.
+           Antisym L'_lift → a = b. *)
+        (* Hq2_eq_p1 : q2 = p1. Hp2_eq_q1 : p2 = q1.
+           HprefA: R a p1 \/ a = p1.
+           HsufB:  R q2 a \/ q2 = a, i.e. (using q2 = p1) R p1 a \/ p1 = a.
+           HsufA:  R p2 b \/ p2 = b.
+           HprefB: R b q1 \/ b = q1, i.e. (using p2 = q1) R b p2 \/ b = p2. *)
+        assert (Heq_ap1 : a = p1).
+        { destruct HprefA as [HRap1 | Heqap1].
+          - destruct HsufB as [HRq2a | Heqq2a].
+            + (* R q2 a, q2 = p1 → R p1 a, antisym with R a p1 → a = p1 *)
+              rewrite Hq2_eq_p1 in HRq2a. eapply poset_antisym; eauto.
+            + rewrite Hq2_eq_p1 in Heqq2a. symmetry. exact Heqq2a.
+          - exact Heqap1. }
+        assert (Heq_bp2 : b = p2).
+        { destruct HsufA as [HRp2b | Heqp2b].
+          - destruct HprefB as [HRbq1 | Heqbq1].
+            + rewrite <- Hp2_eq_q1 in HRbq1. symmetry. eapply poset_antisym; eauto.
+            + rewrite <- Hp2_eq_q1 in Heqbq1. exact Heqbq1.
+          - symmetry. exact Heqp2b. }
+        subst a b.
+        (* HLLp : L'_lift p1 p2; HLLq : L'_lift q1 q2.
+           Hp2_eq_q1 : p2 = q1, so q1 = p2; Hq2_eq_p1 : q2 = p1.
+           Rewriting HLLq: L'_lift q1 q2 → L'_lift p2 p1. *)
+        rewrite Hq2_eq_p1 in HLLq.
+        rewrite <- Hp2_eq_q1 in HLLq.
+        exact (HL'_lift_antisym p1 p2 HLLp HLLq).
+      + (* J2, J3 *)
+        destruct HJ2ab as [p1 [p2 [Hp1 [Hp2 [HprefA [HLLp HsufA]]]]]].
+        (* R a x' but here J2 is for (a, b) and J3 is for (b, a): R b x' /\ R y' a *)
+        (* J2(a,b): a → p1 → p2 → b. J3(b,a): R b x' /\ R y' a. *)
+        (* Strategy: From HsufA: R_or_eq p2 b. R b x' → R p2 x'.  p2 ∈ S' so
+           p2 ≠ x'. critical_down → R p2 y'.  R y' a (from J3) and R_or_eq a p1.
+           → R p2 a, then R p2 p1 (or p2 = p1 case). L'_lift p2 p1 → antisym → p1 = p2.
+           Reduce path. Show a = b or contradiction. *)
+        assert (HRp2x : R p2 x').
+        { destruct HsufA as [HRp2b | Heqp2b].
+          - eapply poset_trans; eauto.
+          - rewrite Heqp2b. exact HRbx. }
+        assert (Hp2_nex : p2 <> x').
+        { intro Heq. rewrite Heq in Hp2. apply (Hx'_notin Hp2). }
+        assert (HRp2y : R p2 y').
+        { apply (critical_down Hcp). split; [exact HRp2x | exact Hp2_nex]. }
+        assert (HRp2a : R p2 a).
+        { eapply poset_trans; eauto. }
+        assert (HRp2p1 : R p2 p1 \/ p2 = p1).
+        { destruct HprefA as [HRap1 | Heqap1].
+          - left. eapply poset_trans; eauto.
+          - left. rewrite <- Heqap1. exact HRp2a. }
+        (* Now: L'_lift p1 p2 and R_or_eq p2 p1.
+           If R p2 p1: L'_lift p2 p1, antisym → p1 = p2.
+           If p2 = p1: trivial p1 = p2. *)
+        assert (Heq_p1p2 : p1 = p2).
+        { destruct HRp2p1 as [HRp2p1 | Heq].
+          - assert (HLLp2p1 : L'_lift p2 p1) by exact (HL'_lift_R p2 p1 Hp2 Hp1 HRp2p1).
+            exact (HL'_lift_antisym p1 p2 HLLp HLLp2p1).
+          - symmetry. exact Heq. }
+        (* p1 = p2. So we have R y' a, R a p1 (or a = p1), and R p2 b (or p2 = b),
+           with p1 = p2.  R y' a, R a p1 → R y' p1 (or R y' p1 = R y' a if a = p1).
+           So R y' p1 in either case. Then R y' p1, p1 ∈ S' so p1 ≠ y'.
+           Strict R y' p1 → R x' p1 (critical_up). So R x' p1.
+           And R x' p1 → ... hmm what's the goal? We want a = b. *)
+        rewrite <- Heq_p1p2 in *.
+        (* Now p1 = p2. HLLp : L'_lift p1 p1 (refl). *)
+        (* Goal: derive a = b.
+           HprefA: R a p1 \/ a = p1.  HsufA: R p1 b \/ p1 = b.
+           HRyp1: R y' a, R_or_eq a p1 → R y' p1 (if R a p1) or R y' p1 = R y' a (if a = p1).
+           So R y' p1.
+           HRxp1: critical_up (R y' p1 strict).  p1 ∈ S', p1 ≠ y'. So R x' p1.
+           HRbx: R b x'. R x' p1 → R b p1.
+           HsufA gives R_or_eq p1 b. So R b p1 and R_or_eq p1 b → p1 = b (antisym) or p1 = b.
+           So b = p1 in either case.
+           Then p1 = b. HprefA: R a p1 = R a b, or a = p1 = b. So either way, a = b would
+           come from R y' a, R a b, R b x' → R y' x' contradiction!
+           Wait if we have R a b (from R a p1 with p1 = b), then R y' a, R a b → R y' b,
+           and R b x' → R y' x', contradiction!
+           If a = p1, then a = p1 = b, so a = b. ✓ *)
+        assert (HRyp1 : R y' p1).
+        { destruct HprefA as [HRap1 | Heqap1].
+          - eapply poset_trans; eauto.
+          - rewrite <- Heqap1. exact HRya. }
+        assert (Hp1_ney : p1 <> y').
+        { intro Heq. rewrite Heq in Hp1. apply (Hy'_notin Hp1). }
+        assert (HRxp1 : R x' p1).
+        { apply (critical_up Hcp). split; [exact HRyp1 | auto]. }
+        assert (HRbp1 : R b p1).
+        { eapply poset_trans; eauto. }
+        assert (Heq_p1b : p1 = b).
+        { destruct HsufA as [HRp1b | Heqp1b].
+          - eapply poset_antisym; eauto.
+          - exact Heqp1b. }
+        (* p1 = b. *)
+        destruct HprefA as [HRap1 | Heqap1].
+        * (* R a p1 = R a b *)
+          exfalso. apply Hnyx.
+          assert (HRab : R a b) by (rewrite <- Heq_p1b; exact HRap1).
+          eapply poset_trans; [exact HRya | eapply poset_trans; eauto].
+        * (* a = p1 = b *)
+          rewrite Heqap1. exact Heq_p1b.
+      + (* J3, J1: R a x' /\ R y' b, R b a → R y' x' contradiction *)
+        exfalso. apply Hnyx.
+        eapply poset_trans; [exact HRyb | eapply poset_trans; eauto].
+      + (* J3, J2: R a x' /\ R y' b, J2(b, a) *)
+        destruct HJ2ba as [q1 [q2 [Hq1 [Hq2 [HprefB [HLLq HsufB]]]]]].
+        (* J2(b, a): b → q1 → q2 → a. J3(a, b): R a x' /\ R y' b. *)
+        (* From HprefB: R_or_eq b q1. R y' b → R y' q1.
+           q1 ∈ S', q1 ≠ y'. critical_up → R x' q1.
+           HsufB: R_or_eq q2 a. R a x' → R q2 x'.
+           q2 ∈ S', q2 ≠ x'. critical_down → R q2 y'.
+           So R x' q1, L'_lift q1 q2, R q2 y'. Hmm.
+
+           Symmetrically: R a x' (J3), R_or_eq a p1 -- wait no, we don't have J2(a,b) here.
+
+           Approach: We have L'_lift q1 q2. R q2 y' (above derivation).
+           Also R y' q1 (above). So R q2 y' /\ R y' q1 → R q2 q1.
+           Then L'_lift q2 q1, antisym → q1 = q2.
+           Then path: b → q1 → q1 → a, i.e., R_or_eq b q1, R_or_eq q1 a.
+           So R_or_eq b a → R b a or b = a.
+           Combined with R a x' /\ R y' b (J3): R y' b /\ R b a /\ R a x' → R y' x'. False.
+           If b = a, done. *)
+        assert (HRyq1 : R y' q1).
+        { destruct HprefB as [HRbq1 | Heqbq1].
+          - eapply poset_trans; eauto.
+          - rewrite <- Heqbq1. exact HRyb. }
+        assert (Hq1_ney : q1 <> y').
+        { intro Heq. rewrite Heq in Hq1. apply (Hy'_notin Hq1). }
+        assert (HRxq1 : R x' q1).
+        { apply (critical_up Hcp). split; [exact HRyq1 | auto]. }
+        assert (HRq2x : R q2 x').
+        { destruct HsufB as [HRq2a | Heqq2a].
+          - eapply poset_trans; eauto.
+          - rewrite Heqq2a. exact HRax. }
+        assert (Hq2_nex : q2 <> x').
+        { intro Heq. rewrite Heq in Hq2. apply (Hx'_notin Hq2). }
+        assert (HRq2y : R q2 y').
+        { apply (critical_down Hcp). split; [exact HRq2x | auto]. }
+        assert (HRq2q1 : R q2 q1).
+        { eapply poset_trans; eauto. }
+        assert (HLLq2q1 : L'_lift q2 q1)
+          by exact (HL'_lift_R q2 q1 Hq2 Hq1 HRq2q1).
+        assert (Heq_q1q2 : q1 = q2)
+          by exact (HL'_lift_antisym q1 q2 HLLq HLLq2q1).
+        rewrite <- Heq_q1q2 in HsufB.
+        (* HsufB : R q1 a \/ q1 = a *)
+        destruct HprefB as [HRbq1 | Heqbq1];
+        destruct HsufB as [HRq1a | Heqq1a].
+        * exfalso. apply Hnyx.
+          assert (HRba : R b a) by (eapply poset_trans; eauto).
+          eapply poset_trans; [exact HRyb | eapply poset_trans; eauto].
+        * exfalso. apply Hnyx.
+          assert (HRba : R b a) by (rewrite <- Heqq1a; exact HRbq1).
+          eapply poset_trans; [exact HRyb | eapply poset_trans; eauto].
+        * exfalso. apply Hnyx.
+          assert (HRba : R b a) by (rewrite Heqbq1; exact HRq1a).
+          eapply poset_trans; [exact HRyb | eapply poset_trans; eauto].
+        * rewrite Heqbq1. symmetry. exact Heqq1a.
+      + (* J3, J3: R a x' /\ R y' b, R b x' /\ R y' a → R y' x' contradiction *)
+        exfalso. apply Hnyx.
+        eapply poset_trans; [exact HRya | exact HRax].
+    - (* Transitivity *)
+      intros a b c Hab Hbc. eapply t_trans; eauto.
+  Qed.
 
   (** Helper: a total order extending a poset is a linear extension of
       any sub-relation. *)
@@ -1049,11 +1525,152 @@ Section Theorems.
     - apply HL_ext. apply t_step. right. split; reflexivity.
   Qed.
 
-  (** Core admitted helper: produce the d'-element set [r_lifted] of
-      linear extensions of R, each forcing [x' < y'], whose union with
-      [L_extra] realizes R.  See the design spec. *)
+  (** Sub-lemma A: For every L' linearizing R restricted to S', there
+      exists a total order L'_full on A which (i) is a linear extension
+      of R, (ii) satisfies L'_full x' y', and (iii) agrees with L' on
+      pairs in S' x S'.  Built via [lift_and_force_is_poset] +
+      [szpilrajn_theorem]. *)
+  Lemma cp_lift_witness :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop),
+    IsCriticalPair R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    IsLinearExtension
+      (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+    exists L'_full : A -> A -> Prop,
+      IsLinearExtension R L'_full /\
+      L'_full x' y' /\
+      (forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+         L' (exist _ a ha) (exist _ b hb) -> L'_full a b).
+  Proof.
+    intros x' y' S' L' Hcp HS'_eq HL'.
+    set (P := clos_trans A
+                (fun a b =>
+                   R a b
+                   \/ (exists (ha : In A S' a) (hb : In A S' b),
+                         L' (exist _ a ha) (exist _ b hb))
+                   \/ (a = x' /\ b = y'))).
+    assert (HP_poset : IsPoset A P)
+      by exact (lift_and_force_is_poset x' y' S' L' Hcp HS'_eq HL').
+    destruct (szpilrajn_theorem A P) as [L'_full [HL_pos [HL_tot HL_ext]]].
+    exists L'_full. split; [| split].
+    - apply (total_order_is_linear_extension R L'_full HL_pos HL_tot).
+      intros a b HRab. apply HL_ext. apply t_step. left. exact HRab.
+    - apply HL_ext. apply t_step. right. right. split; reflexivity.
+    - intros a b ha hb HL'ab.
+      apply HL_ext. apply t_step. right. left.
+      exists ha, hb. exact HL'ab.
+  Qed.
+
+  (** Sub-lemma B (Admitted): the witness function from [cp_lift_witness]
+      can be chosen so that distinct L' produce distinct L'_full.
+      Strategy: any [L'_full] from the construction restricts to L' on
+      S' x S' (totality of L' gives the converse direction), so the map
+      is left-cancellative. We package this as an injective witness map
+      using [constructive_indefinite_description]. *)
+  Lemma cp_lift_function :
+    forall (x' y' : A) (S' : Ensemble A),
+    IsCriticalPair R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    exists lift : ({a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+                  -> (A -> A -> Prop),
+      forall L',
+        IsLinearExtension
+          (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+        IsLinearExtension R (lift L') /\
+        (lift L') x' y' /\
+        (forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+           L' (exist _ a ha) (exist _ b hb) -> (lift L') a b) /\
+        (forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+           (lift L') a b -> L' (exist _ a ha) (exist _ b hb)).
+  Proof.
+    intros x' y' S' Hcp HS'_eq.
+    (* Pick a witness function via classical description. *)
+    set (Q := fun (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+                  (L_out : A -> A -> Prop) =>
+                IsLinearExtension
+                  (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+                IsLinearExtension R L_out /\
+                L_out x' y' /\
+                (forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+                   L' (exist _ a ha) (exist _ b hb) -> L_out a b) /\
+                (forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+                   L_out a b -> L' (exist _ a ha) (exist _ b hb))).
+    assert (Hex : forall L', exists L_out, Q L' L_out).
+    { intros L'. unfold Q.
+      destruct (classic (IsLinearExtension
+                  (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L'))
+        as [HL' | HnL'].
+      - destruct (cp_lift_witness x' y' S' L' Hcp HS'_eq HL')
+          as [L_full [Hlin [Hxy Hext]]].
+        exists L_full. intros _.
+        split; [exact Hlin | split; [exact Hxy | split; [exact Hext |]]].
+        (* Reverse direction: L_full a b → L' (exist a ha) (exist b hb).
+           Uses totality of L' + antisymmetry of L_full (as a total order). *)
+        intros a b ha hb HLfab.
+        destruct (HL'.(linear_is_total).(total_comparable)
+                    (exist _ a ha) (exist _ b hb)) as [HLab | HLba].
+        + exact HLab.
+        + (* L'(b,a) lifts to L_full(b,a); antisym with L_full(a,b) gives
+             exist a ha = exist b hb. *)
+          assert (HLf_ba : L_full b a) by exact (Hext b a hb ha HLba).
+          pose proof Hlin.(linear_is_total).(total_is_poset) as HLposet.
+          assert (Hab_eq : a = b)
+            by exact (HLposet.(poset_antisym) a b HLfab HLf_ba).
+          (* Replace b with a; then exist _ a ha = exist _ b hb so L'(.,.) follows from refl *)
+          subst b.
+          assert (Hhh : ha = hb) by apply proof_irrelevance. subst hb.
+          exact (HL'.(linear_is_total).(total_is_poset).(poset_refl) (exist _ a ha)).
+      - exists (fun _ _ => True). intro Hk. exfalso; apply HnL'; exact Hk. }
+    set (lift := fun L' =>
+                   proj1_sig (constructive_indefinite_description
+                                _ (Hex L'))).
+    exists lift. intros L' HL'.
+    pose proof (proj2_sig (constructive_indefinite_description _ (Hex L'))) as Hspec.
+    apply Hspec. exact HL'.
+  Qed.
+
+  (** Sub-lemma C: realizer separation for the lifted set.
+      The strengthened hypothesis [Hcp_sep] expresses that for every
+      critical pair (p', q') of R, some L in the realizer reverses it.
+      With that in hand, [critical_pair_realizer_iff] (CriticalPairs.v)
+      promotes the union to a realizer of R, so any (p,q) ordered by
+      every L is forced to satisfy R p q. *)
+  Lemma cp_realizer_separation :
+    forall (x' y' : A) (S' : Ensemble A) (L_extra : A -> A -> Prop)
+           (r_lifted : Ensemble (A -> A -> Prop)),
+    Finite A (Full_set A) ->
+    IsCriticalPair R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    IsLinearExtension R L_extra ->
+    L_extra y' x' ->
+    (forall L, In _ r_lifted L -> IsLinearExtension R L /\ L x' y') ->
+    (forall p' q' : A, IsCriticalPair R p' q' ->
+       exists L, In _ (Add (A -> A -> Prop) r_lifted L_extra) L /\ L q' p') ->
+    forall p q : A,
+      (forall L, In _ (Add (A -> A -> Prop) r_lifted L_extra) L -> L p q) ->
+      R p q.
+  Proof.
+    intros x' y' S' L_extra r_lifted HfinA Hcp HS'_eq HL_extra_lin
+           HL_extra_yx Hr_lifted_spec Hcp_sep p q Hall.
+    set (realizer := Add (A -> A -> Prop) r_lifted L_extra).
+    assert (Hinh : Ensembles.Inhabited (A -> A -> Prop) realizer).
+    { exists L_extra. right. constructor. }
+    assert (Hlin : forall L, In _ realizer L -> IsLinearExtension R L).
+    { intros L HL. destruct HL as [L HL | L HL].
+      - exact (proj1 (Hr_lifted_spec L HL)).
+      - destruct HL. exact HL_extra_lin. }
+    pose proof (@critical_pair_realizer_iff A R _ HfinA realizer Hinh Hlin) as Hiff.
+    assert (Hreal : IsRealizer R realizer) by (apply Hiff; exact Hcp_sep).
+    exact (proj2 (Hreal.(realizer_intersection) p q) Hall).
+  Qed.
+
+  (** Core helper: produce the d'-element set [r_lifted] of linear
+      extensions of R, each forcing [x' < y'], whose union with
+      [L_extra] realizes R. *)
   Lemma extend_through_cp_construction :
     forall (x' y' : A) (S' : Ensemble A) (d' : nat) (L_extra : A -> A -> Prop),
+    Finite A (Full_set A) ->
     IsCriticalPair R x' y' ->
     S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
     IsLinearExtension R L_extra ->
@@ -1067,23 +1684,313 @@ Section Theorems.
       ~ In _ r_lifted L_extra /\
       IsRealizer R (Add (A -> A -> Prop) r_lifted L_extra).
   Proof.
-    (* NOTE (Admitted): this packages the bulk of the spec's Component B.
-       Construction: for each L' in r', use [lift_and_force_is_poset] to
-       obtain a poset P_{L'} := TC(R u L'_lift u {(x',y')}); apply
-       [szpilrajn_theorem] to get a total order L'_full extending P_{L'};
-       set r_lifted := Im r' (L' -> L'_full).
+    intros x' y' S' d' L_extra HfinA Hcp HS'_eq HL_extra_lin HL_extra_yx Hr'_ex.
+    destruct Hr'_ex as [r' [Hr'_real Hr'_card]].
+    pose proof (critical_incomparable Hcp) as Hcp_inc.
+    pose proof (critical_down (R:=R) (x:=x') (y:=y') Hcp) as Hcp_dn.
+    pose proof (critical_up (R:=R) (x:=x') (y:=y') Hcp) as Hcp_up.
+    assert (Hnxy : ~ R x' y') by (intro HR; apply Hcp_inc; left; exact HR).
+    assert (Hnyx : ~ R y' x') by (intro HR; apply Hcp_inc; right; exact HR).
+    assert (Hx'_neq_y' : x' <> y').
+    { intro Heq. apply Hcp_inc. left. rewrite Heq. apply poset_refl. }
+    assert (Hx'_notin_S' : ~ In A S' x').
+    { intro Hin. rewrite HS'_eq in Hin. destruct Hin as [[_ Hnx] _].
+      apply Hnx. constructor. }
+    assert (Hy'_notin_S' : ~ In A S' y').
+    { intro Hin. rewrite HS'_eq in Hin. destruct Hin as [_ Hny].
+      apply Hny. constructor. }
+    (* Boundary CP reversal lemma: given a boundary critical pair (p',q') of R
+       (one of p',q' in {x',y'}, the other in S', and (p',q') ≠ (x',y')),
+       there exists a linear extension L_b of R with both L_b x' y' AND
+       L_b q' p'.
 
-       Cardinality d': injectivity of L' -> L'_full (their restrictions
-       to S' agree with L' by the path-restriction lemma).
+       Construction:
+         (1) Build M1 = TC(R ∪ {(q',p')}) and verify it is a poset via
+             [add_incomparable_general] (using ~R p' q' ∧ ~R q' p' from the
+             CP incomparability).
+         (2) Show M1 y' x' is FALSE by case analysis on the four boundary
+             configurations.  In each case we derive a contradiction:
+             (a) p'=x',q'∈S': R y' q' Strict → R x' q' (Hcp_up), but (x',q')
+                 CP forbids R x' q'.
+             (b) p'=y',q'∈S': R p' x' = R y' x' is false (Hnyx).
+             (c) p'∈S',q'=x': R y' q' = R y' x' is false (Hnyx).
+             (d) p'∈S',q'=y': R p' x' Strict (p'≠x') → R p' y' (Hcp_dn),
+                 but (p',y') CP forbids R p' y'.
+         (3) Decide classically whether M1 x' y' is already true:
+              - If yes, Szpilrajn-extend M1 directly to get L_b.
+              - If no, add (x',y') to M1 via [add_incomparable_general]
+                using the M1-incomparability from step (2), then
+                Szpilrajn-extend the result. *)
+    assert (Hboundary_extension :
+      forall p' q' : A,
+        IsCriticalPair R p' q' ->
+        ((p' = x' /\ In A S' q') \/ (p' = y' /\ In A S' q') \/
+         (In A S' p' /\ q' = x') \/ (In A S' p' /\ q' = y')) ->
+        exists L_b : A -> A -> Prop,
+          IsLinearExtension R L_b /\ L_b x' y' /\ L_b q' p').
+    { intros p' q' Hcp' Hbnd.
+      assert (HnRp'q' : ~ R p' q')
+        by (intro HR; apply (critical_incomparable Hcp'); left; exact HR).
+      assert (HnRq'p' : ~ R q' p')
+        by (intro HR; apply (critical_incomparable Hcp'); right; exact HR).
+      assert (Hp'_neq_q' : p' <> q').
+      { intro Heq. apply (critical_incomparable Hcp').
+        left. rewrite Heq. apply poset_refl. }
+      assert (HincR : ~ (R p' q' \/ R q' p')) by tauto.
+      pose (M1 := clos_trans A (fun a b => R a b \/ (a = q' /\ b = p'))).
+      assert (HM1_pos : IsPoset A M1)
+        by exact (add_incomparable_general A R p' q' HincR).
+      assert (Hinv1 : forall a b, M1 a b -> R a b \/ (R a q' /\ R p' b)).
+      { intros a b. apply (add_incomparable_path_invariant A R p' q' HincR). }
+      assert (Hinv1_step : forall a b, R a b -> M1 a b) by
+        (intros a b HR; apply t_step; left; exact HR).
+      assert (Hinv1_pref : M1 q' p') by (apply t_step; right; split; reflexivity).
+      (* Verify M1 y' x' is FALSE in all four boundary cases. *)
+      assert (HnM1_yx : ~ M1 y' x').
+      { intro HM1yx. destruct (Hinv1 _ _ HM1yx) as [HR1 | [HRyq HRpx]].
+        - exact (Hnyx HR1).
+        - destruct Hbnd as [[Hpx Hq_in] | [[Hpy Hq_in] | [[Hp_in Hqx] | [Hp_in Hqy]]]].
+          + subst p'.
+            assert (Hyne_q : y' <> q').
+            { intro Heq. subst y'. exact (Hy'_notin_S' Hq_in). }
+            assert (Hxq : R x' q') by exact (Hcp_up q' (conj HRyq Hyne_q)).
+            apply (critical_incomparable Hcp'). left. exact Hxq.
+          + subst p'. exact (Hnyx HRpx).
+          + subst q'. exact (Hnyx HRyq).
+          + subst q'.
+            assert (Hpne_x : p' <> x').
+            { intro Heq. subst p'. exact (Hx'_notin_S' Hp_in). }
+            assert (Hpy : R p' y') by exact (Hcp_dn p' (conj HRpx Hpne_x)).
+            exact (HnRp'q' Hpy). }
+      destruct (classic (M1 x' y')) as [HM1xy | HnM1xy].
+      - destruct (szpilrajn_theorem A M1) as [L_b [HLb_pos [HLb_tot HLb_ext]]].
+        exists L_b. split; [| split].
+        + apply (total_order_is_linear_extension R L_b HLb_pos HLb_tot).
+          intros a b HRab. apply HLb_ext. exact (Hinv1_step a b HRab).
+        + apply HLb_ext. exact HM1xy.
+        + apply HLb_ext. exact Hinv1_pref.
+      - assert (HincM1_yx : ~ (M1 y' x' \/ M1 x' y')) by tauto.
+        pose (M2 := clos_trans A (fun a b => M1 a b \/ (a = x' /\ b = y'))).
+        assert (HM2_pos : IsPoset A M2)
+          by exact (@add_incomparable_general A M1 HM1_pos y' x' HincM1_yx).
+        destruct (szpilrajn_theorem A M2) as [L_b [HLb_pos [HLb_tot HLb_ext]]].
+        exists L_b. split; [| split].
+        + apply (total_order_is_linear_extension R L_b HLb_pos HLb_tot).
+          intros a b HRab. apply HLb_ext. apply t_step. left.
+          exact (Hinv1_step a b HRab).
+        + apply HLb_ext. apply t_step. right. split; reflexivity.
+        + apply HLb_ext. apply t_step. left. exact Hinv1_pref. }
+    (* Step 1: obtain the lift function via Sub-lemma B. *)
+    destruct (cp_lift_function x' y' S' Hcp HS'_eq) as [lift Hlift_spec].
+    (* Step 2: define r_lifted := Im r' lift. *)
+    set (r_lifted := Im _ _ r' lift).
+    exists r_lifted.
+    (* Establish: every L in r_lifted comes from some L' in r' that linearizes R|_S'. *)
+    assert (Hlift_each : forall L, In _ r_lifted L ->
+              exists L', In _ r' L' /\ lift L' = L /\
+                IsLinearExtension
+                  (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L').
+    { intros L HL. destruct HL as [L' HL'_in y0 HLeq].
+      exists L'. split; [exact HL'_in | split; [symmetry; exact HLeq |]].
+      exact (Hr'_real.(realizer_linear) L' HL'_in). }
+    split; [| split; [| split]].
+    - (* Property 1: every L in r_lifted is a linear extension of R and L x' y'. *)
+      intros L HL.
+      destruct (Hlift_each L HL) as [L' [HL'_in [Hleq HL'_lin]]].
+      destruct (Hlift_spec L' HL'_lin) as [Hlin [Hxy _]].
+      rewrite <- Hleq. split; [exact Hlin | exact Hxy].
+    - (* Property 2: cardinal r_lifted d'.  Use injectivity of lift on r'. *)
+      apply cardinal_Im_injective; [exact Hr'_card |].
+      intros L'1 L'2 HL'1_in HL'2_in Heq.
+      assert (HL'1_lin : IsLinearExtension
+                  (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L'1)
+        by exact (Hr'_real.(realizer_linear) L'1 HL'1_in).
+      assert (HL'2_lin : IsLinearExtension
+                  (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L'2)
+        by exact (Hr'_real.(realizer_linear) L'2 HL'2_in).
+      destruct (Hlift_spec L'1 HL'1_lin) as [_ [_ [Hext1 Hres1]]].
+      destruct (Hlift_spec L'2 HL'2_lin) as [_ [_ [Hext2 Hres2]]].
+      (* L'1 = L'2 follows: for any (a,b), use total relation derived from lift. *)
+      apply functional_extensionality. intro a.
+      apply functional_extensionality. intro b.
+      apply propositional_extensionality.
+      destruct a as [a ha]; destruct b as [b hb]. simpl.
+      split; intro HL.
+      + apply (Hres2 a b ha hb).
+        rewrite <- Heq. exact (Hext1 a b ha hb HL).
+      + apply (Hres1 a b ha hb).
+        rewrite Heq. exact (Hext2 a b ha hb HL).
+    - (* Property 3: L_extra not in r_lifted.  Since L_extra y' x' and every
+         element of r_lifted has L x' y'; if both, antisymmetry forces x' = y',
+         contradicting critical_incomparable. *)
+      intro HinExtra.
+      destruct (Hlift_each L_extra HinExtra) as [L' [HL'_in [Hleq HL'_lin]]].
+      destruct (Hlift_spec L' HL'_lin) as [Hlin_extra [Hxy_extra _]].
+      rewrite Hleq in Hxy_extra.
+      (* Hxy_extra : L_extra x' y'; HL_extra_yx : L_extra y' x'. *)
+      pose proof HL_extra_lin.(linear_is_total).(total_is_poset) as HLp.
+      assert (Heq_xy : x' = y') by exact (HLp.(poset_antisym) x' y' Hxy_extra HL_extra_yx).
+      apply (critical_incomparable Hcp). left. rewrite Heq_xy. apply poset_refl.
+    - (* Property 4: IsRealizer R (Add r_lifted L_extra). *)
+      assert (Hall_lin : forall L, In _ (Add _ r_lifted L_extra) L ->
+                IsLinearExtension R L).
+      { intros L HL. destruct HL as [L HL | L HL].
+        - destruct (Hlift_each L HL) as [L' [_ [Hleq HL'_lin]]].
+          destruct (Hlift_spec L' HL'_lin) as [Hlin _].
+          rewrite <- Hleq. exact Hlin.
+        - destruct HL. exact HL_extra_lin. }
+      assert (Hall_lift : forall L, In _ r_lifted L ->
+                IsLinearExtension R L /\ L x' y').
+      { intros L HL.
+        destruct (Hlift_each L HL) as [L' [_ [Hleq HL'_lin]]].
+        destruct (Hlift_spec L' HL'_lin) as [Hlin [Hxy _]].
+        rewrite <- Hleq. split; [exact Hlin | exact Hxy]. }
+      constructor.
+      + exact Hall_lin.
+      + intros p q. split.
+        * (* Forward: R p q → every L extends. *)
+          intros HRpq L HL. exact ((Hall_lin L HL).(linear_extends) p q HRpq).
+        * (* Reverse: dispatched to [cp_realizer_separation].  Requires
+             a critical-pair separation hypothesis [Hcp_sep] proving that
+             every critical pair of R is reversed by some L in the union
+             [r_lifted ∪ {L_extra}].  Establishing this is the heart of
+             the construction; see admits inside [Hcp_sep] below. *)
+          intros Hall.
+          assert (Hcp_sep : forall p' q' : A, IsCriticalPair R p' q' ->
+                    exists L,
+                      In _ (Add (A -> A -> Prop) r_lifted L_extra) L /\ L q' p').
+          { (* Case analysis on whether the critical pair equals (x',y'). *)
+            intros p' q' Hcp'.
+            destruct (classic (p' = x' /\ q' = y')) as [[Hpe Hqe] | Hne].
+            - (* Critical pair (x',y') itself: reversed by L_extra. *)
+              exists L_extra. split.
+              + right. constructor.
+              + subst p' q'. exact HL_extra_yx.
+            - (* Otherwise: split on whether both p', q' lie in S'.  When
+                 they do, lift a sub-realizer witness via the round-trip
+                 [Hlift_spec].  The boundary cases (p' = x' or q' = y',
+                 etc.) require the careful Hiraguchi case analysis. *)
+              assert (Hp'_neq_q' : p' <> q').
+              { intro Heq. apply (critical_incomparable Hcp').
+                left. rewrite Heq. apply poset_refl. }
+              assert (HnRp'q' : ~ R p' q')
+                by (intro HR; apply (critical_incomparable Hcp'); left; exact HR).
+              assert (HnRq'p' : ~ R q' p')
+                by (intro HR; apply (critical_incomparable Hcp'); right; exact HR).
+              destruct (classic (In A S' p' /\ In A S' q')) as [[Hp'_S' Hq'_S'] | Hboundary].
+              + (* Subtype case: lift a critical-pair separation witness from r'. *)
+                set (Rsub := fun (a b : {a : A | In A S' a}) =>
+                               R (proj1_sig a) (proj1_sig b)).
+                set (psub := exist (fun a => In A S' a) p' Hp'_S').
+                set (qsub := exist (fun a => In A S' a) q' Hq'_S').
+                assert (Hinc_sub : Incomparable Rsub psub qsub).
+                { intro Hcmp. apply (critical_incomparable Hcp').
+                  destruct Hcmp as [HRsub | HRsub];
+                  [left | right]; exact HRsub. }
+                (* Need finiteness of the subtype to invoke
+                   [incomparable_lifting_to_critical_pair] on Rsub. *)
+                assert (HfinSub : Finite {a : A | In A S' a}
+                                    (Full_set {a : A | In A S' a})).
+                { destruct (finite_cardinal A S') as [m HSm].
+                  { apply (Finite_downward_closed _ _ HfinA).
+                    intros a Ha. apply Full_intro. }
+                  apply cardinal_finite with m.
+                  exact (cardinal_subtype_full A S' m HSm). }
+                pose proof (subtype_is_poset S') as Hsub_pos.
+                destruct (@incomparable_lifting_to_critical_pair
+                            {a : A | In A S' a} Rsub Hsub_pos HfinSub
+                            psub qsub Hinc_sub)
+                  as [psub'' [qsub'' [Hpsub_rel [Hqsub_rel Hcp_sub]]]].
+                (* Use [critical_pair_realizer_iff] to find L' reversing
+                   (psub'', qsub''). *)
+                assert (Hr'_inh : Inhabited (_) r').
+                { (* r' is the d'-element realizer.  We don't directly have
+                     d' > 0; but if d' = 0, the only realizer is empty and
+                     R|_S' is trivial.  Since (psub, qsub) is incomparable
+                     in Rsub, that contradicts emptiness of r' (which would
+                     vacuously order both directions). *)
+                  destruct (Hr'_real.(realizer_intersection) psub qsub)
+                    as [_ Hback].
+                  destruct (classic (Inhabited _ r')) as [Hinh | Hninh]; [exact Hinh |].
+                  exfalso. apply Hinc_sub. left. apply Hback.
+                  intros L HL. exfalso. apply Hninh. exists L. exact HL. }
+                assert (Hr'_lin :
+                  forall L', In _ r' L' -> IsLinearExtension Rsub L')
+                  by exact Hr'_real.(realizer_linear).
+                pose proof (@critical_pair_realizer_iff
+                              {a : A | In A S' a} Rsub _ HfinSub r' Hr'_inh Hr'_lin)
+                  as Hiff_sub.
+                destruct ((proj1 Hiff_sub) Hr'_real psub'' qsub'' Hcp_sub)
+                  as [L' [HL'_in HL'_rev]].
+                (* L' is a linear extension of Rsub; lift to A via Hlift_spec. *)
+                pose proof (Hr'_real.(realizer_linear) L' HL'_in) as HL'_lin.
+                destruct (Hlift_spec L' HL'_lin) as [_ [_ [Hlift_pres _]]].
+                (* Use linearity of L' to chain L' qsub'' p'sub through R-extensions. *)
+                pose proof HL'_lin.(linear_is_total).(total_is_poset) as HL'_pos.
+                assert (HL'_qp : L' qsub psub).
+                { apply (poset_trans (R := L') qsub qsub'' psub).
+                  - exact (HL'_lin.(linear_extends) qsub qsub'' Hqsub_rel).
+                  - apply (poset_trans (R := L') qsub'' psub'' psub).
+                    + exact HL'_rev.
+                    + exact (HL'_lin.(linear_extends) psub'' psub Hpsub_rel). }
+                (* Convert to lift L' q' p' via [Hlift_pres]. *)
+                exists (lift L'). split.
+                * left. unfold r_lifted. exists L'.
+                  -- exact HL'_in.
+                  -- reflexivity.
+                * exact (Hlift_pres q' p' Hq'_S' Hp'_S' HL'_qp).
+              + (* Boundary case: p' or q' equals x' or y' (but (p',q') ≠ (x',y')).
+                   ----------------------------------------------------------------
+                   Gap: this case CANNOT be closed by the current construction.
+                   The lift function [lift] (produced by [cp_lift_function] via
+                   [constructive_indefinite_description]) is opaque: for any
+                   L' ∈ r', [lift L'] is some Szpilrajn extension of
+                   [TC(R ∪ L'_lift ∪ {(x',y')})], and we have no control over
+                   how it orders pairs involving x' or y' against S'-elements.
 
-       L_extra not in r_lifted: every L'_full has L'_full x' y' whereas
-       L_extra has L_extra y' x'.
+                   Concrete example showing the gap (case p' = x', q' ∈ S'):
+                   By [critical_up Hcp'] on b=y' (using Strict R q' y' would
+                   force R x' y', contradicting (x',y') critical), and by
+                   [critical_up Hcp] on b=q' (using Strict R y' q' would force
+                   R x' q', contradicting (x',q') critical), we get that q'
+                   and y' are incomparable in R.  Then in the construction of
+                   [cp_lift_witness], the relation P = TC(R ∪ L'_lift ∪ {(x',y')})
+                   leaves x' and q' incomparable (no path either way), so the
+                   Szpilrajn extension picks an arbitrary direction.  We cannot
+                   guarantee [(lift L') q' x'] for any L' ∈ r'.
 
-       Realizer: by [critical_pair_realizer_iff] — the critical pair
-       (x',y') itself is separated by L_extra (which has y' < x'); any
-       other critical pair (p,q) of R is also critical when restricted
-       to S' (by critical_down / critical_up arguments), so r' separates
-       it, and the corresponding L'_full lifts the separation. *)
+                   Similarly L_extra (which only knows about reversing (x',y'))
+                   can order (x', q') either way; we cannot guarantee
+                   [L_extra q' x'].
+
+                   To close this case the construction must be strengthened: e.g.
+                   index r_lifted by both an L' ∈ r' AND a choice function on
+                   boundary critical pairs, then apply a finer Szpilrajn-style
+                   argument that respects those choices.  This requires extending
+                   [cp_lift_function] and [lift_and_force_is_poset] to take an
+                   additional "boundary orientation" parameter, then proving the
+                   resulting relation is still a poset (which uses the asymmetric
+                   Hiraguchi case analysis on critical_up / critical_down of
+                   both (x', y') and (p', q')).
+
+                   Cases to handle in the strengthened construction:
+                   (a) p' = x' and q' ∈ S' (analyzed above);
+                   (b) p' = y' and q' ∈ S' (symmetric, uses critical_down);
+                   (c) p' ∈ S' and q' = x' (symmetric);
+                   (d) p' ∈ S' and q' = y' (symmetric).
+                   The remaining case (p',q') ∈ {(x',y'),(y',x')} is impossible
+                   here because (p',q') = (x',y') was filtered out, and
+                   (p',q') = (y',x') is not a critical pair of R (R y' x' false
+                   by critical_incomparable of Hcp, but a critical pair would
+                   still require x' inc y' — fine — and the asymmetric
+                   critical_down/up conditions would have to hold for (y',x')
+                   too; that's possible but Hp'_neq_q' rules out only p'=q').
+
+                   Until the strengthened construction is built, this case
+                   remains [admit]. *)
+                admit. }
+          exact (cp_realizer_separation x' y' S' L_extra r_lifted HfinA
+                   Hcp HS'_eq HL_extra_lin HL_extra_yx Hall_lift Hcp_sep p q Hall).
   Admitted.
 
   (** Main lemma: a critical pair extends a sub-realizer of size d'
@@ -1092,6 +1999,7 @@ Section Theorems.
       [extend_through_cp_construction]. *)
   Lemma extension_through_critical_pair :
     forall (x' y' : A) (S' : Ensemble A) (d' : nat),
+    Finite A (Full_set A) ->
     IsCriticalPair R x' y' ->
     S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
     (exists (r' : Ensemble ({a : A | In A S' a} -> {a : A | In A S' a} -> Prop)),
@@ -1101,13 +2009,13 @@ Section Theorems.
       IsRealizer R r /\
       cardinal (A -> A -> Prop) r (d' + 1).
   Proof.
-    intros x' y' S' d' Hcp HS'_eq Hr'_ex.
+    intros x' y' S' d' HfinA Hcp HS'_eq Hr'_ex.
     (* 1. Build L_extra reversing the critical pair. *)
     destruct (critical_pair_reversing_extension x' y' Hcp)
       as [L_extra [HL_extra_lin HL_extra_yx]].
     (* 2. Build the d'-element lifted set r_lifted with all the required
           properties via the admitted construction helper. *)
-    destruct (extend_through_cp_construction x' y' S' d' L_extra
+    destruct (extend_through_cp_construction x' y' S' d' L_extra HfinA
                 Hcp HS'_eq HL_extra_lin HL_extra_yx Hr'_ex)
       as [r_lifted [Hlift_all [Hlift_card [Hlift_notIn Hr_real]]]].
     (* 3. r := Add r_lifted L_extra has cardinality d' + 1 and is a realizer. *)
@@ -1128,6 +2036,31 @@ Section Theorems.
         * Incomparable case: a 2-element realizer exists. This subcase
           requires the full critical-pair separation construction and
           is left as a focused [admit] (see NOTE below). *)
+  (** Focused helper: for n ∈ {4,5} posets with an incomparable pair, a
+      2-element realizer exists.  This captures Hiraguchi's tight bound
+      for small n.  Proof sketch (currently admitted):
+
+      Let (x', y') be a critical pair (via [incomparable_lifting_to_critical_pair]).
+      Let L_extra be the linear extension reversing (x', y'), produced by
+      [critical_pair_reversing_extension].  Construct R_aug = TC(R ∪ {(x',y')}),
+      iteratively add (q, p) for each critical pair (p, q) of R that L_extra
+      fails to reverse — these are necessarily still incomparable in R_aug for
+      n ≤ 5 (a counting argument using |S'| ≤ 3) — and apply [szpilrajn_theorem].
+      Then {L_extra, L_aug} is a 2-realizer by [critical_pair_realizer_iff].
+
+      The fully-formal proof requires the iterative BadPairs construction
+      (joint-consistency of pairwise reversals); this is the only remaining
+      mathematical gap for small_hiraguchi. *)
+  Lemma small_two_realizer_incomp :
+    forall n,
+    cardinal A (Full_set A) n ->
+    (n = 4 \/ n = 5) ->
+    (exists x y, Incomparable R x y) ->
+    exists r : Ensemble (A -> A -> Prop),
+      IsRealizer R r /\ cardinal (A -> A -> Prop) r 2.
+  Proof.
+  Admitted.
+
   Lemma small_hiraguchi :
     forall n d,
     cardinal A (Full_set A) n ->
@@ -1137,22 +2070,11 @@ Section Theorems.
   Proof.
     intros n d Hcard Hn45 Hdim.
     destruct (classic (exists x y, Incomparable R x y)) as [Hinc_ex | Hchain].
-    - (* NOTE (admit): incomparable-pair subcase for small_hiraguchi.
-         To close: take the critical pair (x',y') from
-         [incomparable_lifting_to_critical_pair]; build
-         L_extra := szpilrajn(TC(R u {(y',x')})) reversing (x',y');
-         then either (a) all other pairs of S' = Full \ {x',y'} are
-         comparable in R1 = TC(R u {(x',y')}), in which case
-         {szpilrajn(R1), L_extra} is a 2-realizer by
-         [critical_pair_realizer_iff] (needs Inhabited witness); or
-         (b) iterate [add_incomparable_general] on R1 to absorb the
-         remaining incomparable pairs of S' (at most 3 for n=5),
-         then take {szpilrajn(R_final), L_extra}. The iteration is
-         finite because |S'| <= 3 for n in {4,5}. The genuinely hard
-         step is checking the realizer property for the 2-element set,
-         which reduces to ruling out alternating cycles using critical
-         pair structure. *)
-      admit.
+    - (* Incomparable-pair subcase: invoke focused helper for the
+         2-element realizer, then [dimension_is_minimum] yields d ≤ 2. *)
+      destruct (small_two_realizer_incomp n Hcard Hn45 Hinc_ex)
+        as [r [Hr_real Hr_card]].
+      exact (dimension_is_minimum (R:=R) (d:=d) Hdim r 2 Hr_real Hr_card).
     - (* Chain case: R is a total order, {R} is a singleton realizer. *)
       assert (HR_total : IsTotalOrder R).
       { constructor.
@@ -1176,7 +2098,7 @@ Section Theorems.
       assert (Hd1 : d <= 1)
         by exact (dimension_is_minimum (R:=R) (d:=d) Hdim rSingle 1 HrS_real HrS_card).
       lia.
-  Admitted.
+  Qed.
 
   (** Theorem: Hiraguchi's Theorem (1951)
       For a finite poset on n elements (n >= 4), dim(P) <= n/2.
@@ -1358,7 +2280,7 @@ Proof.
         as HrSub_real.
       pose proof (@dimension_cardinality {x : B | In B S' x} Rsub d_q HdimQ_inh)
         as HrSub_card.
-      destruct (extension_through_critical_pair R2 x' y' S' d_q Hcp_val HS'_eq
+      destruct (extension_through_critical_pair R2 x' y' S' d_q HfinB Hcp_val HS'_eq
           (ex_intro _ _ (conj HrSub_real HrSub_card)))
         as [r [Hr_real Hr_card]].
       exact (dimension_is_minimum (R := R2) (d := d2) Hdim r (d_q + 1) Hr_real Hr_card). }
