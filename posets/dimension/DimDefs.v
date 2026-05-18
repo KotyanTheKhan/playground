@@ -1,6 +1,8 @@
 From Stdlib Require Import Ensembles Finite_sets.
 From Posets Require Import PosetClasses.
 
+Set Primitive Projections.
+
 Section Definitions.
   Context {A : Type}.
   Context (R : A -> A -> Prop) `{IsPoset A R}.
@@ -41,3 +43,15 @@ Section Definitions.
   Definition Strict (x y : A) := R x y /\ x <> y.
 
 End Definitions.
+
+(* Make section-explicit [R] implicit on every class projection so that
+   Coq 9.x dot notation [x.(field)] still works (it requires exactly one
+   explicit parameter — the record value). *)
+Arguments linear_is_total      {A R L} _.
+Arguments linear_extends       {A R L} _ _ _ _.
+Arguments realizer_linear      {A R realizer} _ _ _.
+Arguments realizer_intersection {A R realizer} _ _ _.
+Arguments dimension_realizer    {A R d} _.
+Arguments dimension_is_realizer {A R d} _.
+Arguments dimension_cardinality {A R d} _.
+Arguments dimension_is_minimum  {A R d} _ _ _ _ _.
