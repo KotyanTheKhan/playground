@@ -1,4 +1,4 @@
-From Stdlib Require Import Ensembles Finite_sets Arith Classical.
+From Stdlib Require Import Ensembles Finite_sets Image Arith Classical Lia.
 From Posets Require Import PosetClasses.
 From Dimension Require Import DimDefs.
 

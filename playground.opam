@@ -3,7 +3,9 @@ opam-version: "2.0"
 synopsis: "Playground Coq project"
 depends: [
   "dune" {>= "3.11"}
-  "coq" {>= "8.19.0"}
+  "coq" {>= "9.1.0"}
+  "coq-stdlib" {>= "9.0.0"}
+  "coq-hammer" {>= "1.3.2+9.1"}
   "odoc" {with-doc}
 ]
 build: [
