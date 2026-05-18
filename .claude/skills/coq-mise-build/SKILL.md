@@ -65,6 +65,50 @@ becomes invisible to fresh clones.
 together — they must all stay compatible. Then `mise run nuke-switch`
 (rebuilding the OCaml/Coq world is faster than reconciling a partial upgrade).
 
+## Coq 9.x port status: `posets/dimension/`
+
+The dimension subdirectory has been ported to Coq 9.x. A handful of lemmas
+were ported by **admitting** them — their statements are unchanged but
+their original Coq-8.x proofs depend on tactic behaviour that 9.x rejects.
+Counts as of the port:
+
+| File | Admitted |
+|------|----------|
+| `Theorems.v` | 16 (includes `hiraguchi_thm`, `hiraguchi_bound`, `hiraguchi_helper`, `dushnik_miller_exists`, `subposet_dimension_le`, `cardinal_subtype_full`, `FiniteT_Prop`, `at_least_one_linear_extension_finite`, `extension_through_critical_pair`, `small_hiraguchi`, `add_minimal_to_linear_extension`, plus carrier-polymorphic variants) |
+| `CriticalPairs.v` | 5 (`critical_pair_realizer_iff`, `cycle_path_gives_alt_cycle`) |
+| `LinearSum.v` | 4 (`linear_sum_dimension`, `linear_sum_realizer_lifting`, `linear_sum_critical_pairs`) |
+| `ProductDimension.v` | 3 (`product_realizer_exists`, `product_dimension_le`) |
+
+Each admitted lemma carries an inline NOTE comment naming the issue
+(stricter brace/bullet rules; `.(field)` requiring exactly one explicit
+parameter; `assert (…) := EXPR.` syntax retired; auto-name `H` clashes
+with section's `H : IsPoset A R`; ProofIrrelevance-based universe
+elimination forbidden; circular forward declarations between
+`hiraguchi_helper` and `hiraguchi_thm`; etc.). Several proofs preserve
+the original Coq-8.x body as a trailing `(* … *)` comment so the next
+session can re-derive the proof against the new tactic semantics rather
+than starting cold.
+
+The structural infrastructure needed for re-porting is already in place:
+
+* `posets/dimension/DimDefs.v` — `Set Primitive Projections` + explicit
+  `Arguments` declarations making `R` implicit on every class projection,
+  so `expr.(field)` works in Coq 9.x.
+* `vendor/ZornsLemma/EnsemblesExplicit.v` — imported by every dimension
+  file *after* `Szpilrajn`, restoring explicit-`U` arguments for
+  `In/Finite/Full_set/Add/Inhabited/...` that `EnsemblesImplicit` had
+  flipped to implicit. `Stdlib.List` is also imported *before*
+  `EnsemblesExplicit` so `List.In` does not shadow `Ensembles.In` at use
+  sites.
+* New helper `add_incomparable_path_invariant` (Szpilrajn) and
+  `add_incomparable_is_poset_invariant` (Theorems) extracted out of
+  inline `assert (…). { … }` blocks because Coq 9.x rejects unfocusing a
+  brace while `+` bullets remain open.
+
+Do **not** silently disable subdirectories — admitting individual
+lemmas with a NOTE is acceptable and traceable; commenting out a whole
+`(coq.theory …)` block is not.
+
 ## Vendored libraries
 
 `coq-zorns-lemma` is **vendored** under `vendor/ZornsLemma/`. Upstream

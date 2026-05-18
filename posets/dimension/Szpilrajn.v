@@ -1,8 +1,37 @@
 From Stdlib Require Import Ensembles Finite_sets Arith Classical.
-From Coq Require Import FunctionalExtensionality PropExtensionality.
-From Coq Require Import Relations.Relation_Operators.
+From Stdlib Require Import FunctionalExtensionality PropExtensionality.
+From Stdlib Require Import ProofIrrelevance.
+From Stdlib Require Import Relations.Relation_Operators.
 From ZornsLemma Require Import ZornsLemma EnsemblesImplicit.
 From Posets Require Import PosetClasses.
+
+(** Path invariant: every [TC(M ∪ {(q,p)})]-path from a to b
+    either is already in M, or factors through (q,p) via [M a q /\ M p b].
+    Extracted as a top-level lemma to avoid Coq 9.x's stricter bullet/brace
+    rules inside [assert (...) { ... }]. *)
+Lemma add_incomparable_path_invariant :
+  forall (A : Type) (M : A -> A -> Prop) `{HM : IsPoset A M} (p q : A),
+  ~ (M p q \/ M q p) ->
+  forall a b,
+    @clos_trans A (fun a b => M a b \/ (a = q /\ b = p)) a b ->
+    M a b \/ (M a q /\ M p b).
+Proof.
+  intros A M HM p q Hinc a b Htc.
+  induction Htc as [a b Hstep | a m b _ IH1 _ IH2].
+  - destruct Hstep as [HMab | [Heqa Heqb]].
+    + left. exact HMab.
+    + subst a b. right. split; apply poset_refl.
+  - destruct IH1 as [Ham | [Haq Hpm]];
+    destruct IH2 as [Hmb | [Hmq Hpb]].
+    + left. eapply poset_trans. exact Ham. exact Hmb.
+    + right. split.
+      * eapply poset_trans. exact Ham. exact Hmq.
+      * exact Hpb.
+    + right. split.
+      * exact Haq.
+      * eapply poset_trans. exact Hpm. exact Hmb.
+    + exfalso. apply Hinc. left. eapply poset_trans. exact Hpm. exact Hmq.
+Qed.
 
 (** Generalized: TC(M ∪ {(q,p)}) is a poset when p and q are incomparable in M. *)
 Lemma add_incomparable_general :
@@ -12,21 +41,7 @@ Lemma add_incomparable_general :
 Proof.
   intros A M HM p q Hinc.
   set (ext := fun a b => M a b \/ (a = q /\ b = p)).
-  (* Path invariant: every path in TC(ext) from a to b satisfies
-     M a b  \/  (M a q /\ M p b). *)
-  assert (Hinv : forall a b,
-    @clos_trans A ext a b -> M a b \/ (M a q /\ M p b)).
-  { intros a b Htc.
-    induction Htc as [a b Hstep | a m b _ IH1 _ IH2].
-    - destruct Hstep as [HMab | [-> ->]].
-      + left; exact HMab.
-      + right; split; apply poset_refl.
-    - destruct IH1 as [Ham | [Haq Hpm]],
-               IH2 as [Hmb | [Hmq Hpb]].
-      + left; eapply poset_trans; eauto.
-      + right; split; [eapply poset_trans; eauto | auto].
-      + right; split; [auto | eapply poset_trans; eauto].
-      + exfalso; apply Hinc; left; eapply poset_trans; eauto. }
+  pose proof (@add_incomparable_path_invariant A M HM p q Hinc) as Hinv.
   constructor.
   - intro a; apply t_step; left; apply poset_refl.
   - intros a b Hab Hba.
@@ -79,7 +94,7 @@ Proof.
   assert (ExtOrd_ub : forall C : Ensemble Ext, chain ExtOrd C ->
     exists ub : Ext, forall s : Ext, In C s -> ExtOrd s ub).
   { intros C HC.
-    destruct (classic (Inhabited Ext C)) as [[s0 Hs0] | Hempty].
+    destruct (classic (@Inhabited Ext C)) as [[s0 Hs0] | Hempty].
     - (* Non-empty: take the union. *)
       set (union_rel := fun x y => exists s : Ext, In C s /\ proj1_sig s x y).
       assert (union_poset : IsPoset A union_rel).
