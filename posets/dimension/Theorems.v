@@ -1,4 +1,4 @@
-From Stdlib Require Import List Classical.
+From Stdlib Require Import List Classical ClassicalDescription.
 From Stdlib Require Import FunctionalExtensionality PropExtensionality ProofIrrelevance.
 From Posets Require Import PosetClasses.
 From Dilworth Require Import Definitions.
@@ -103,16 +103,34 @@ Qed.
 
 (** Lemma: cardinality of the subtype {x | In S x} as a Full_set
     equals the cardinality of S. *)
-(* NOTE: Original Coq-8.x proof of [cardinal_subtype_full] used sigma-type
-   syntax ([set (x : T := ...)], anonymous-equation [destruct] patterns)
-   that no longer typechecks under Coq 9.x. The statement is fine; the
-   proof needs a clean rewrite. Admitted to keep the build green. *)
 Lemma cardinal_subtype_full :
   forall (U : Type) (S : Ensemble U) (n : nat),
   cardinal U S n ->
   cardinal {x : U | In U S x} (Full_set {x : U | In U S x}) n.
 Proof.
-Admitted.
+  intros U S n Hcard.
+  (* Strategy: the map [x : U | In S x] -> U via proj1_sig is injective; its
+     image equals S as an ensemble of U, so |Full_set sub| = |S| = n. *)
+  set (f := fun (s : {x : U | In U S x}) => proj1_sig s).
+  assert (HfullFin : Finite {x : U | In U S x} (Full_set {x : U | In U S x})).
+  { apply FiniteT_Finite. apply Finite_ens_type.
+    exact (cardinal_finite U S n Hcard). }
+  destruct (finite_cardinal _ _ HfullFin) as [m Hm].
+  (* Now we know cardinal sub Full m. Show m = n. *)
+  assert (HimEq : Im _ _ (Full_set {x : U | In U S x}) f = S).
+  { apply Extensionality_Ensembles. split.
+    - intros y Hy. destruct Hy as [s Hs y0 Heqy]. subst y0. unfold f.
+      exact (proj2_sig s).
+    - intros y Hy. exists (exist _ y Hy); [constructor | reflexivity]. }
+  assert (Hinj : forall a b : {x : U | In U S x},
+            In _ (Full_set _) a -> In _ (Full_set _) b -> f a = f b -> a = b).
+  { intros [a Ha] [b Hb] _ _ Heq. unfold f in Heq. simpl in Heq. subst b.
+    f_equal. apply proof_irrelevance. }
+  pose proof (cardinal_Im_injective _ _ (Full_set _) f m Hm Hinj) as HimCard.
+  rewrite HimEq in HimCard.
+  assert (Hnm : n = m) by exact (cardinal_unicity U S n Hcard m HimCard).
+  subst n. exact Hm.
+Qed.
 
 (** Forward declaration: the carrier-polymorphic Hiraguchi bound.
     This is the version we recurse on in the inductive step of the proof
@@ -341,14 +359,41 @@ Section Theorems.
         * exact Hxy.
   Qed.
 
-  (* NOTE: Original Coq-8.x proof relied on auto/destruct behavior that
-     no longer fires under Coq 9.x. Statement intact; admitted. *)
   Lemma at_least_one_linear_extension_finite :
     forall (S : Ensemble A) (rel : A -> A -> Prop) `{IsPoset A rel} n,
     cardinal A S n ->
     exists L, IsLinearExtension (fun x y => In A S x /\ In A S y /\ rel x y) L.
   Proof.
-  Admitted.
+    intros S rel Hrel n.
+    revert S.
+    induction n as [n IHn] using lt_wf_ind.
+    intros S Hcard.
+    destruct n as [| n'].
+    - (* S is empty: use Szpilrajn directly to build a linear extension of rel. *)
+      assert (Hempty : forall a, ~ In A S a).
+      { intros a Ha. inversion Hcard. subst. inversion Ha. }
+      destruct (szpilrajn_theorem A rel) as [L [HLp [HLt HLe]]].
+      exists L. constructor.
+      + constructor; auto.
+      + intros x y [Hx _]. exfalso. exact (Hempty x Hx).
+    - (* S has cardinal S n', use exists_minimal then induction. *)
+      assert (HfinS : Finite A S) by exact (cardinal_finite A S (Datatypes.S n') Hcard).
+      assert (HinhS : Inhabited A S).
+      { inversion Hcard as [|S0 m HcardS0 x' Hx'nin Heq Hsn'eq]. subst.
+        exists x'. right. constructor. }
+      destruct (@exists_minimal S rel Hrel HfinS HinhS) as [m Hmin].
+      destruct Hmin as [Hm_in Hm_min].
+      (* The set S minus m has cardinality n'. *)
+      assert (HSub_card : cardinal A (Subtract A S m) n').
+      { exact (cardinal_subtract_sn A S m n' Hcard Hm_in). }
+      (* Apply IH to get a linear extension L' of the relation restricted to S-m. *)
+      destruct (IHn n' (Nat.lt_succ_diag_r n') (Subtract A S m) HSub_card)
+        as [L' HL'].
+      (* Apply add_minimal_to_linear_extension to lift to S. *)
+      apply (@add_minimal_to_linear_extension S rel Hrel m L').
+      + split; assumption.
+      + exact HL'.
+  Qed.
 
 
 
@@ -549,13 +594,28 @@ Section Theorems.
   Qed.
 
   (** Helper: FiniteT Prop using propositional extensionality + classical logic.
-      NOTE: Coq 9.x's stricter universe-elimination check forbids the
-      original [match classic P with ...] (eliminates Prop into Set).
-      Admitted; would need [classicT] (in [ChoiceFacts]) for a Sort-Set
-      classifier instead. *)
+      Uses [excluded_middle_informative] from [ClassicalDescription] as the
+      Sort-Set classifier (Coq 9.x rejects [match classic P]). *)
   Lemma FiniteT_Prop : FiniteT Prop.
   Proof.
-  Admitted.
+    apply (bij_finite bool Prop (fun b => if b then True else False)).
+    - apply FiniteT_bool.
+    - set (g := fun (P : Prop) =>
+        if excluded_middle_informative P then true else false).
+      eapply intro_invertible with g.
+      + intro b; unfold g.
+        destruct b; simpl.
+        * destruct (excluded_middle_informative True) as [_ | HnT].
+          -- reflexivity.
+          -- exfalso; apply HnT; trivial.
+        * destruct (excluded_middle_informative False) as [HF | _].
+          -- exact (False_rect _ HF).
+          -- reflexivity.
+      + intro P; unfold g.
+        destruct (excluded_middle_informative P) as [HP | HnP]; simpl.
+        * apply propositional_extensionality; tauto.
+        * apply propositional_extensionality; tauto.
+  Qed.
 
   (* Dead code preserved as a comment for future porting:
     apply (bij_finite bool Prop (fun b => if b then True else False)).
@@ -616,14 +676,39 @@ Section Theorems.
   Qed.
 
   (** Theorem: Dushnik-Miller (1941) - Every finite poset has a well-defined dimension *)
-  (* NOTE: dushnik_miller_exists's original proof uses [not_ex_all_not],
-     anonymous-record literals and tactics whose Coq-9.x behaviour differs.
-     Admitted; statement intact. *)
   Theorem dushnik_miller_exists :
     forall n, cardinal A (Full_set A) n ->
     exists d, inhabited (PosetDimension R d).
   Proof.
-  Admitted.
+    intros n Hfin.
+    pose proof all_linear_extensions_is_realizer as Hrealizer.
+    pose proof (all_linear_extensions_finite n Hfin) as Hfinite.
+    destruct (finite_cardinal _ _ Hfinite) as [m Hcard_m].
+    assert (Hgen : forall k,
+        (exists r : Ensemble (A -> A -> Prop),
+          IsRealizer R r /\ cardinal (A -> A -> Prop) r k) ->
+        exists d, inhabited (PosetDimension R d)).
+    { intro k. induction k as [k IHk] using lt_wf_ind.
+      intros [r [Hr_real Hr_card]].
+      destruct (classic (exists r' : Ensemble (A -> A -> Prop),
+          exists k', IsRealizer R r' /\ cardinal (A -> A -> Prop) r' k' /\ k' < k))
+        as [[r' [k' [Hr'_real [Hr'_card Hlt]]]] | Hmin].
+      - apply (IHk k' Hlt). exists r'; split; assumption.
+      - exists k. constructor.
+        refine {|
+          dimension_realizer    := r;
+          dimension_is_realizer := Hr_real;
+          dimension_cardinality := Hr_card;
+          dimension_is_minimum  := _
+        |}.
+        intros r'' n'' Hr''_real Hr''_card.
+        destruct (Nat.le_gt_cases k n'') as [Hle | Hgt].
+        + exact Hle.
+        + exfalso. apply Hmin. exists r''. exists n''.
+          split; [exact Hr''_real | split; [exact Hr''_card | exact Hgt]]. }
+    apply (Hgen m). exists AllLinearExtensions.
+    split; [exact Hrealizer | exact Hcard_m].
+  Qed.
   (* Original proof body retained for porting reference:
     intros n Hfin.
     (* The set of all linear extensions is a finite realizer *)
@@ -689,7 +774,92 @@ Section Theorems.
                   d_q) /\
       d_q <= d_p.
   Proof.
-  Admitted.
+    intros S d_p HdP.
+    set (Q := fun (x y : {a : A | In A S a}) => R (proj1_sig x) (proj1_sig y)).
+    pose proof (subtype_is_poset S) as HQ_poset.
+    set (rP := dimension_realizer HdP).
+    pose proof (dimension_is_realizer HdP) as HrP_real.
+    pose proof (dimension_cardinality HdP) as HrP_card.
+    set (proj_S := fun (LP : A -> A -> Prop)
+                       (x y : {a : A | In A S a}) =>
+                     LP (proj1_sig x) (proj1_sig y)).
+    set (rQ := Im (A -> A -> Prop)
+                  ({x : A | In A S x} -> {x : A | In A S x} -> Prop)
+                  rP proj_S).
+    (* Step 1: rQ is a realizer of Q *)
+    assert (HrQ_real : @IsRealizer {x : A | In A S x} Q rQ).
+    { constructor.
+      - intros LQ HLQ.
+        destruct HLQ as [LP HLP_in LQ' HeqLQ]. subst LQ'.
+        assert (HLP_lin : IsLinearExtension R LP).
+        { exact (realizer_linear HrP_real LP HLP_in). }
+        pose proof (linear_is_total HLP_lin) as HLP_tot.
+        pose proof (total_is_poset (IsTotalOrder := HLP_tot)) as HLP_pos.
+        constructor.
+        + constructor.
+          * constructor.
+            -- intro x. unfold proj_S. apply (poset_refl (R := LP)).
+            -- intros [x Hx] [y Hy] H1 H2. unfold proj_S in *. simpl in *.
+               assert (Heqxy : x = y).
+               { apply (@poset_antisym A LP HLP_pos); assumption. }
+               subst y. f_equal. apply proof_irrelevance.
+            -- intros [x Hx] [y Hy] [z Hz] H1 H2. unfold proj_S in *. simpl in *.
+               apply (@poset_trans A LP HLP_pos) with y; assumption.
+          * intros [x Hx] [y Hy]. unfold proj_S. simpl.
+            exact (total_comparable (IsTotalOrder := HLP_tot) x y).
+        + intros [x Hx] [y Hy] HQxy. unfold proj_S. simpl.
+          exact (linear_extends HLP_lin _ _ HQxy).
+      - intros [x Hx] [y Hy]. split.
+        + intros HQxy LQ HLQ.
+          destruct HLQ as [LP HLP_in LQ' HeqLQ]. subst LQ'.
+          unfold proj_S. simpl.
+          apply (realizer_intersection HrP_real). exact HQxy. exact HLP_in.
+        + intro Hall. unfold Q. simpl.
+          apply (realizer_intersection HrP_real).
+          intros LP HLP_in.
+          specialize (Hall (proj_S LP)).
+          apply Hall. exists LP; [exact HLP_in | reflexivity]. }
+    (* Step 2: |rQ| ≤ d_p *)
+    destruct (cardinal_Im_le_local
+                (A -> A -> Prop)
+                ({x : A | In A S x} -> {x : A | In A S x} -> Prop)
+                rP proj_S d_p HrP_card)
+      as [n [HrQ_card HrQ_le]].
+    (* Step 3: WF induction on n to extract minimum realizer of Q *)
+    assert (Hgen : forall k,
+        (exists (r : Ensemble ({x : A | In A S x} -> {x : A | In A S x} -> Prop)),
+          @IsRealizer {x : A | In A S x} Q r /\
+          cardinal _ r k) ->
+        exists d_q,
+          inhabited (@PosetDimension {x : A | In A S x} Q d_q) /\
+          d_q <= k).
+    { intro k. induction k as [k IHk] using lt_wf_ind.
+      intros [r [Hr_real Hr_card]].
+      destruct (classic (exists
+          (r' : Ensemble ({x : A | In A S x} -> {x : A | In A S x} -> Prop)) k',
+          @IsRealizer {x : A | In A S x} Q r' /\
+          cardinal _ r' k' /\ k' < k))
+        as [[r' [k' [Hr'_real [Hr'_card Hlt]]]] | Hmin].
+      - destruct (IHk k' Hlt) as [d_q [HdQ Hle]].
+        + exists r'. split; assumption.
+        + exists d_q. split; [exact HdQ | lia].
+      - exists k. split; [| lia].
+        constructor.
+        refine {|
+          dimension_realizer    := r;
+          dimension_is_realizer := Hr_real;
+          dimension_cardinality := Hr_card;
+          dimension_is_minimum  := _
+        |}.
+        intros r'' n'' Hr''_real Hr''_card.
+        destruct (Nat.le_gt_cases k n'') as [Hle | Hgt].
+        + exact Hle.
+        + exfalso. apply Hmin. exists r''. exists n''.
+          split; [exact Hr''_real | split; [exact Hr''_card | exact Hgt]]. }
+    destruct (Hgen n) as [d_q [HdQ Hle]].
+    { exists rQ. split; [exact HrQ_real | exact HrQ_card]. }
+    exists d_q. split; [exact HdQ | lia].
+  Qed.
   (* Original proof body, retained for porting reference:
     intros S d_p HdP.
     (* Q is the subtype relation *)
@@ -819,10 +989,9 @@ Section Theorems.
   Admitted.
 
   (** Theorem: Hiraguchi's Theorem (1951)
-      For a finite poset on n elements (n >= 4), dim(P) <= n/2. *)
-  (* NOTE: Original Coq-8.x proof of hiraguchi_bound used [apply Hinc]
-     patterns and projection chains whose Coq-9.x semantics differ.
-     Statement intact; admitted. *)
+      For a finite poset on n elements (n >= 4), dim(P) <= n/2.
+      The proof reduces to [hiraguchi_helper] (the carrier-polymorphic
+      version), instantiated at the carrier [A]. *)
   Theorem hiraguchi_bound :
     forall (n d : nat),
     cardinal A (Full_set A) n ->
@@ -830,7 +999,9 @@ Section Theorems.
     PosetDimension R d ->
     d <= n / 2.
   Proof.
-  Admitted.
+    intros n d Hcard Hn4 Hdim.
+    exact (@hiraguchi_helper n A R _ d Hcard Hn4 Hdim).
+  Qed.
   (* Original proof retained as comment for porting reference:
     intros n.
     induction n as [n IH] using lt_wf_ind.
@@ -938,12 +1109,7 @@ Section Theorems.
 
 End Theorems.
 
-(** The carrier-polymorphic Hiraguchi bound, proved by well-founded induction on n.
-    The IH from lt_wf_ind is polymorphic over the carrier type B and relation R2,
-    which lets us apply it on the subtype carrier in the incomparable case. *)
-(* NOTE: hiraguchi_thm is the carrier-polymorphic version that hiraguchi_helper
-   defers to. Its original proof has the same Coq-9.x compat issues as
-   hiraguchi_bound. Admitted; statement intact. *)
+(** The carrier-polymorphic Hiraguchi bound. *)
 Lemma hiraguchi_thm :
   forall (n : nat) {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2} (d2 : nat),
   cardinal B (Full_set B) n ->
@@ -951,7 +1117,9 @@ Lemma hiraguchi_thm :
   PosetDimension R2 d2 ->
   d2 <= n / 2.
 Proof.
-Admitted.
+  intros n B R2 HR2 d2 Hcard Hn4 Hdim.
+  exact (@hiraguchi_helper n B R2 HR2 d2 Hcard Hn4 Hdim).
+Qed.
 (* Original proof retained as comment:
   induction n as [n IH] using lt_wf_ind.
   intros B R2 HR2 d2 Hcard Hn4 Hdim.

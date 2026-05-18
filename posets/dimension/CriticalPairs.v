@@ -166,10 +166,19 @@ Section CriticalPairs.
             destruct (classic (Ensembles.Inhabited (A -> A -> Prop) realizer)) as [[L HinL] | Hempty].
             - exact (Hxney ((Hposet L HinL).(poset_antisym) x y (Hall L HinL)
                 ((Hlin L HinL).(linear_extends) y x HRyx))).
-            - (* Empty realizer case: cannot derive a contradiction from the
-                 available hypotheses alone (Hsep is vacuously satisfied, Hall
-                 is vacuously satisfied, but [R x y] need not hold). This
-                 corner case requires assuming the realizer is non-empty. *)
+            - (* NOTE [empty realizer admit, genuine logic gap]:
+                 With [realizer] empty, [Hsep] and [Hall] are both vacuously
+                 true, yet [R x y] need not hold (we are in the [HRyx] branch,
+                 where [R y x] holds but the antisymmetry of the original
+                 poset R is *not* in scope here because we cannot derive
+                 [R x y] from the vacuous hypotheses).  In fact, taking R to
+                 be a non-trivial poset and realizer := empty gives a direct
+                 counterexample to the statement of the [<-] direction. The
+                 theorem as stated is only true under the extra hypothesis
+                 [Ensembles.Inhabited (A -> A -> Prop) realizer] (or any
+                 equivalent non-emptiness assumption). Closing this admit
+                 requires adding such a hypothesis to the theorem
+                 signature. *)
               admit. }
           { assert (Hinc : Incomparable R x y) by (unfold Incomparable; tauto).
             destruct (incomparable_lifting_to_critical_pair x y Hinc) as [x' [y' [Hx'x [Hyy' Hcp]]]].
@@ -180,12 +189,11 @@ Section CriticalPairs.
               - eapply (Hposet L HinL).(poset_trans).
                 + exact HLy'x'.
                 + exact ((Hlin L HinL).(linear_extends) x' x Hx'x). }
-            (* Original used an unreadable [Heq ▸ …] term to derive
-               contradiction; here we just leave it admitted to keep the
-               build green. The intended argument: L is antisymmetric, so
-               [L x y] (from Hall) and [L y x] give x = y, which contradicts
-               [Hinc] via [poset_refl]. *)
-            admit. }
+            (* L antisymmetric: L x y (from Hall) + L y x give x = y,
+               contradicting Hinc via poset_refl. *)
+            assert (HLxy : L x y) by exact (Hall L HinL).
+            assert (Hxeqy : x = y) by exact ((Hposet L HinL).(poset_antisym) x y HLxy HLyx).
+            apply Hinc. left. rewrite Hxeqy. apply poset_refl. }
   Admitted.
 
   Fixpoint check_alternating_cycle (first_x : A) (last_y : A) (pairs : list (A * A)) : Prop :=
@@ -338,12 +346,34 @@ Section CriticalPairsReversibility.
         exact (IHqs a0 yi Hcheck_qs' HRa0y0).
   Qed.
 
+  (** Auxiliary: every pair on a [path_with_S] path is in S. *)
+  Lemma path_with_S_all_in_S : forall pairs a b,
+    path_with_S a b pairs ->
+    forall p, List.In p pairs -> Ensembles.In (A * A) S p.
+  Proof.
+    induction pairs as [| [x y] ps IH].
+    - intros a b _ p Hp. destruct Hp.
+    - intros a b Hpath p Hp.
+      simpl in Hpath. destruct Hpath as [_ [HSxy Hrest]].
+      destruct Hp as [Heq | Hrest_in].
+      + subst p. exact HSxy.
+      + exact (IH x b Hrest p Hrest_in).
+  Qed.
+
+  (** Reversing preserves [pairs <> nil]: spelled out so we don't depend on
+      a stdlib [rev_eq_nil_iff] (the 8.x WIP referenced a lemma not present
+      under that name in Coq 9.x). *)
+  Lemma rev_not_nil : forall {X : Type} (l : list X),
+    l <> nil -> rev l <> nil.
+  Proof.
+    intros X l Hne Hrev_nil.
+    apply Hne.
+    assert (Hlen : length (rev l) = 0) by (rewrite Hrev_nil; reflexivity).
+    rewrite length_rev in Hlen.
+    apply length_zero_iff_nil. exact Hlen.
+  Qed.
+
   (** From path_with_S a a pairs (cycle) with pairs non-nil, build an alternating cycle. *)
-  (* NOTE: the original WIP proof of this lemma has multiple gaps
-     (commented "Hmm, IHps needs pairs <> nil", "Hmm, need right lemma",
-     etc.) that no longer typecheck under Coq 9.x. Mark Admitted so the
-     rest of the file builds; the statement is true but needs a clean
-     rewrite. *)
   Lemma cycle_path_gives_alt_cycle : forall pairs a,
     pairs <> nil ->
     path_with_S a a pairs ->
@@ -352,7 +382,35 @@ Section CriticalPairsReversibility.
       IsAlternatingCycle R cycle.
   Proof.
     intros pairs a Hne Hpath.
-  Admitted.
+    (* Step 1: get check_alt R a a (rev pairs) *)
+    assert (Hcheck : check_alternating_cycle R a a (rev pairs))
+      by exact (path_with_S_to_check_alt pairs a a Hpath).
+    (* Step 2: all pairs in path are in S, so all pairs in rev pairs are in S *)
+    assert (HS_all : forall p, List.In p (rev pairs) -> Ensembles.In (A * A) S p).
+    { intros p Hp. rewrite <- in_rev in Hp.
+      exact (path_with_S_all_in_S pairs a a Hpath p Hp). }
+    (* Step 3: rev pairs is non-nil *)
+    assert (Hrev_ne : rev pairs <> nil) by exact (rev_not_nil pairs Hne).
+    (* Step 4: destruct rev pairs to get head *)
+    destruct (rev pairs) as [| [xk yk] rest_rev] eqn:Hrev.
+    - exfalso. apply Hrev_ne. reflexivity.
+    - (* rev pairs = (xk,yk) :: rest_rev *)
+      simpl in Hcheck. destruct Hcheck as [HRxk_a Hcheck_rest].
+      (* By check_alt_R_prefix: check_alt R xk yk rest_rev *)
+      assert (Hcheck_xk : check_alternating_cycle R xk yk rest_rev)
+        by exact (check_alt_R_prefix R rest_rev a xk yk HRxk_a Hcheck_rest).
+      exists ((xk, yk) :: rest_rev).
+      split.
+      + (* All pairs in cycle are in S *)
+        intros p Hp. exact (HS_all p Hp).
+      + (* IsAlternatingCycle *)
+        simpl. split.
+        * (* All pairs are critical pairs *)
+          intros p Hp.
+          assert (HS_p : Ensembles.In (A * A) S p) by exact (HS_all p Hp).
+          exact (HS p HS_p).
+        * exact Hcheck_xk.
+  Qed.
 
 
   (** R' is antisymmetric (under no-alternating-cycle hypothesis). *)
