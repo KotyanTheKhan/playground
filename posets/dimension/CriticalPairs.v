@@ -134,11 +134,12 @@ Section CriticalPairs.
   (** Characterization of realizers via critical pairs. *)
   Theorem critical_pair_realizer_iff :
     forall (realizer : Ensemble (A -> A -> Prop)),
+    Ensembles.Inhabited (A -> A -> Prop) realizer ->
     (forall L, Ensembles.In (A -> A -> Prop) realizer L -> IsLinearExtension R L) ->
     (IsRealizer R realizer <->
      (forall x y, IsCriticalPair x y -> exists L, Ensembles.In (A -> A -> Prop) realizer L /\ L y x)).
   Proof.
-    intros realizer Hlin.
+    intros realizer Hinh Hlin.
     assert (Hposet : forall L, Ensembles.In (A -> A -> Prop) realizer L -> IsPoset A L).
     { intros L HL. exact (Hlin L HL).(linear_is_total).(total_is_poset). }
     split.
@@ -166,20 +167,7 @@ Section CriticalPairs.
             destruct (classic (Ensembles.Inhabited (A -> A -> Prop) realizer)) as [[L HinL] | Hempty].
             - exact (Hxney ((Hposet L HinL).(poset_antisym) x y (Hall L HinL)
                 ((Hlin L HinL).(linear_extends) y x HRyx))).
-            - (* NOTE [empty realizer admit, genuine logic gap]:
-                 With [realizer] empty, [Hsep] and [Hall] are both vacuously
-                 true, yet [R x y] need not hold (we are in the [HRyx] branch,
-                 where [R y x] holds but the antisymmetry of the original
-                 poset R is *not* in scope here because we cannot derive
-                 [R x y] from the vacuous hypotheses).  In fact, taking R to
-                 be a non-trivial poset and realizer := empty gives a direct
-                 counterexample to the statement of the [<-] direction. The
-                 theorem as stated is only true under the extra hypothesis
-                 [Ensembles.Inhabited (A -> A -> Prop) realizer] (or any
-                 equivalent non-emptiness assumption). Closing this admit
-                 requires adding such a hypothesis to the theorem
-                 signature. *)
-              admit. }
+            - exact (Hempty Hinh). }
           { assert (Hinc : Incomparable R x y) by (unfold Incomparable; tauto).
             destruct (incomparable_lifting_to_critical_pair x y Hinc) as [x' [y' [Hx'x [Hyy' Hcp]]]].
             destruct (Hsep x' y' Hcp) as [L [HinL HLy'x']].
@@ -194,7 +182,7 @@ Section CriticalPairs.
             assert (HLxy : L x y) by exact (Hall L HinL).
             assert (Hxeqy : x = y) by exact ((Hposet L HinL).(poset_antisym) x y HLxy HLyx).
             apply Hinc. left. rewrite Hxeqy. apply poset_refl. }
-  Admitted.
+  Qed.
 
   Fixpoint check_alternating_cycle (first_x : A) (last_y : A) (pairs : list (A * A)) : Prop :=
     match pairs with

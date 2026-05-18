@@ -5,6 +5,7 @@ From Dilworth Require Import Definitions.
 From Dimension Require Import DimDefs CriticalPairs Szpilrajn.
 From ZornsLemma Require Import FiniteTypes EnsemblesExplicit.
 From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts Arith Lia.
+From Stdlib Require Import Relations.Relation_Operators.
 
 (** The image of a finite set under a function has cardinality ≤ that of the source. *)
 Lemma cardinal_Im_le_local :
@@ -131,17 +132,6 @@ Proof.
   assert (Hnm : n = m) by exact (cardinal_unicity U S n Hcard m HimCard).
   subst n. exact Hm.
 Qed.
-
-(** Forward declaration: the carrier-polymorphic Hiraguchi bound.
-    This is the version we recurse on in the inductive step of the proof
-    (it is admitted here and will be proved by re-running the same induction
-    with a polymorphic IH). *)
-Lemma hiraguchi_helper :
-  forall (n : nat) {B : Type} (R2 : B -> B -> Prop) `{IsPoset B R2} (d2 : nat),
-  cardinal B (Full_set B) n -> n >= 4 ->
-  PosetDimension R2 d2 -> d2 <= n / 2.
-Proof.
-Admitted.
 
 Section Theorems.
   Context {A : Type}.
@@ -960,9 +950,146 @@ Section Theorems.
     exact (ex_intro _ d_q (conj HdQ (Nat.le_trans d_q n d_p Hle HrQ_le))).
   *)
 
-  (** Skeleton lemma: a critical pair can be used to extend a sub-realizer.
-      The full Hiraguchi extension construction is beyond the current scope;
-      this admitted skeleton lets the incomparable case reference it. *)
+  (** ============================================================
+      Helpers for [extension_through_critical_pair].
+
+      The construction (informal):
+        Given critical pair (x',y') and a d'-element realizer r' of
+        R restricted to S' = A \ {x',y'}:
+
+        * For each L' in r', extend L' (lifted to A) together with R
+          and the forced edge (x',y') to a total order L'_full on A
+          using szpilrajn.  Call the resulting d'-element set r_lifted.
+
+        * Take L_extra := szpilrajn(TC(R u {(y',x')})), a total order
+          reversing the critical pair.
+
+        * Return r := Add r_lifted L_extra of cardinality d' + 1.
+
+      Each step relies on two genuinely non-trivial facts that we
+      isolate as separate lemmas:
+
+        - [lift_and_force_is_poset]:  TC(R u L'_lift u {(x',y')}) is
+          a poset (so Szpilrajn applies).  Admitted: the path-invariant
+          argument has several mixed-step cases beyond the scope here.
+
+        - [extend_through_cp_construction]:  given r' realizing
+          R|_{S'} and L_extra reversing (x',y'), there exists a
+          d'-element set r_lifted of linear extensions of R such that
+          every L in r_lifted satisfies L x' y' and the restriction
+          of (r_lifted u {L_extra}) realizes R.  Admitted: the
+          realizer argument needs the full critical-pair separation
+          analysis spelled out in the design spec.
+
+      Given these, the outer construction of [extension_through_critical_pair]
+      closes structurally with Qed. *)
+
+  Lemma lift_and_force_is_poset :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop),
+    IsCriticalPair R x' y' ->
+    IsLinearExtension
+      (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+    IsPoset A
+      (clos_trans A
+         (fun a b =>
+            R a b
+            \/ (exists (ha : In A S' a) (hb : In A S' b),
+                  L' (exist _ a ha) (exist _ b hb))
+            \/ (a = x' /\ b = y'))).
+  Proof.
+    (* NOTE (Admitted): proof by path invariant on TC, mirroring
+       [add_incomparable_path_invariant] but with extra L'_lift edges.
+       The invariant lists six cases for any TC-path a -->* b:
+         (i)    R a b,
+         (ii)   R a x' /\ R y' b,
+         (iii)  L'_lift a b,
+         (iv-vi) mixed L'_lift / R compositions with x',y' — most are
+         vacuous since x', y' ∉ S' and L'_lift is defined only on S'.
+       Antisymmetry: assuming a -->* b and b -->* a, combining cases
+       either yields R a b /\ R b a (so a = b) or forces R y' x',
+       contradicting [critical_incomparable]. *)
+  Admitted.
+
+  (** Helper: a total order extending a poset is a linear extension of
+      any sub-relation. *)
+  Lemma total_order_is_linear_extension :
+    forall (R' L : A -> A -> Prop),
+    IsPoset A L ->
+    (forall x y, L x y \/ L y x) ->
+    (forall x y, R' x y -> L x y) ->
+    IsLinearExtension R' L.
+  Proof.
+    intros R' L Hp Htot Hext.
+    constructor.
+    - constructor; [exact Hp | exact Htot].
+    - exact Hext.
+  Qed.
+
+  (** Helper: build [L_extra] reversing the critical pair (x',y').
+      Returns a linear extension L of R with [L y' x']. *)
+  Lemma critical_pair_reversing_extension :
+    forall (x' y' : A),
+    IsCriticalPair R x' y' ->
+    exists L : A -> A -> Prop,
+      IsLinearExtension R L /\ L y' x'.
+  Proof.
+    intros x' y' Hcp.
+    assert (Hinc : Incomparable R x' y') by exact (critical_incomparable Hcp).
+    (* TC(R u {(y',x')}) is a poset *)
+    set (ext := fun a b => R a b \/ (a = y' /\ b = x')).
+    set (R1 := @clos_trans A ext).
+    assert (HR1_pos : IsPoset A R1).
+    { unfold R1, ext.
+      exact (add_incomparable_general A R x' y' Hinc). }
+    destruct (szpilrajn_theorem A R1) as [L [HL_pos [HL_tot HL_ext]]].
+    exists L. split.
+    - apply (total_order_is_linear_extension R L HL_pos HL_tot).
+      intros a b Hab. apply HL_ext. apply t_step. left. exact Hab.
+    - apply HL_ext. apply t_step. right. split; reflexivity.
+  Qed.
+
+  (** Core admitted helper: produce the d'-element set [r_lifted] of
+      linear extensions of R, each forcing [x' < y'], whose union with
+      [L_extra] realizes R.  See the design spec. *)
+  Lemma extend_through_cp_construction :
+    forall (x' y' : A) (S' : Ensemble A) (d' : nat) (L_extra : A -> A -> Prop),
+    IsCriticalPair R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    IsLinearExtension R L_extra ->
+    L_extra y' x' ->
+    (exists (r' : Ensemble ({a : A | In A S' a} -> {a : A | In A S' a} -> Prop)),
+       IsRealizer (fun (a b : {a : A | In A S' a}) => R (proj1_sig a) (proj1_sig b)) r' /\
+       cardinal _ r' d') ->
+    exists r_lifted : Ensemble (A -> A -> Prop),
+      (forall L, In _ r_lifted L -> IsLinearExtension R L /\ L x' y') /\
+      cardinal (A -> A -> Prop) r_lifted d' /\
+      ~ In _ r_lifted L_extra /\
+      IsRealizer R (Add (A -> A -> Prop) r_lifted L_extra).
+  Proof.
+    (* NOTE (Admitted): this packages the bulk of the spec's Component B.
+       Construction: for each L' in r', use [lift_and_force_is_poset] to
+       obtain a poset P_{L'} := TC(R u L'_lift u {(x',y')}); apply
+       [szpilrajn_theorem] to get a total order L'_full extending P_{L'};
+       set r_lifted := Im r' (L' -> L'_full).
+
+       Cardinality d': injectivity of L' -> L'_full (their restrictions
+       to S' agree with L' by the path-restriction lemma).
+
+       L_extra not in r_lifted: every L'_full has L'_full x' y' whereas
+       L_extra has L_extra y' x'.
+
+       Realizer: by [critical_pair_realizer_iff] — the critical pair
+       (x',y') itself is separated by L_extra (which has y' < x'); any
+       other critical pair (p,q) of R is also critical when restricted
+       to S' (by critical_down / critical_up arguments), so r' separates
+       it, and the corresponding L'_full lifts the separation. *)
+  Admitted.
+
+  (** Main lemma: a critical pair extends a sub-realizer of size d'
+      to a full realizer of size d' + 1.  Closed by composing
+      [critical_pair_reversing_extension] and
+      [extend_through_cp_construction]. *)
   Lemma extension_through_critical_pair :
     forall (x' y' : A) (S' : Ensemble A) (d' : nat),
     IsCriticalPair R x' y' ->
@@ -974,10 +1101,33 @@ Section Theorems.
       IsRealizer R r /\
       cardinal (A -> A -> Prop) r (d' + 1).
   Proof.
-    admit.
-  Admitted.
+    intros x' y' S' d' Hcp HS'_eq Hr'_ex.
+    (* 1. Build L_extra reversing the critical pair. *)
+    destruct (critical_pair_reversing_extension x' y' Hcp)
+      as [L_extra [HL_extra_lin HL_extra_yx]].
+    (* 2. Build the d'-element lifted set r_lifted with all the required
+          properties via the admitted construction helper. *)
+    destruct (extend_through_cp_construction x' y' S' d' L_extra
+                Hcp HS'_eq HL_extra_lin HL_extra_yx Hr'_ex)
+      as [r_lifted [Hlift_all [Hlift_card [Hlift_notIn Hr_real]]]].
+    (* 3. r := Add r_lifted L_extra has cardinality d' + 1 and is a realizer. *)
+    exists (Add (A -> A -> Prop) r_lifted L_extra).
+    split.
+    - exact Hr_real.
+    - assert (Hcardadd : cardinal (A -> A -> Prop)
+                           (Add (A -> A -> Prop) r_lifted L_extra) (S d')).
+      { apply card_add; [exact Hlift_card | exact Hlift_notIn]. }
+      replace (d' + 1) with (S d') by lia.
+      exact Hcardadd.
+  Qed.
 
-  (** Direct proof that any poset on n ∈ {4,5} elements has dim ≤ 2 = n/2. *)
+  (** Direct proof that any poset on n ∈ {4,5} elements has dim ≤ 2 = n/2.
+      Case split on whether R has an incomparable pair:
+        * Chain case: R is a total order, so {R} is a 1-element realizer
+          and dim R = 1 <= 2.
+        * Incomparable case: a 2-element realizer exists. This subcase
+          requires the full critical-pair separation construction and
+          is left as a focused [admit] (see NOTE below). *)
   Lemma small_hiraguchi :
     forall n d,
     cardinal A (Full_set A) n ->
@@ -985,23 +1135,53 @@ Section Theorems.
     PosetDimension R d ->
     d <= 2.
   Proof.
-    admit.
+    intros n d Hcard Hn45 Hdim.
+    destruct (classic (exists x y, Incomparable R x y)) as [Hinc_ex | Hchain].
+    - (* NOTE (admit): incomparable-pair subcase for small_hiraguchi.
+         To close: take the critical pair (x',y') from
+         [incomparable_lifting_to_critical_pair]; build
+         L_extra := szpilrajn(TC(R u {(y',x')})) reversing (x',y');
+         then either (a) all other pairs of S' = Full \ {x',y'} are
+         comparable in R1 = TC(R u {(x',y')}), in which case
+         {szpilrajn(R1), L_extra} is a 2-realizer by
+         [critical_pair_realizer_iff] (needs Inhabited witness); or
+         (b) iterate [add_incomparable_general] on R1 to absorb the
+         remaining incomparable pairs of S' (at most 3 for n=5),
+         then take {szpilrajn(R_final), L_extra}. The iteration is
+         finite because |S'| <= 3 for n in {4,5}. The genuinely hard
+         step is checking the realizer property for the 2-element set,
+         which reduces to ruling out alternating cycles using critical
+         pair structure. *)
+      admit.
+    - (* Chain case: R is a total order, {R} is a singleton realizer. *)
+      assert (HR_total : IsTotalOrder R).
+      { constructor.
+        - assumption.
+        - intros a b.
+          destruct (classic (R a b)) as [Hab | Hnab]; [left; assumption |].
+          right.
+          destruct (classic (R b a)) as [Hba | Hnba]; [assumption |].
+          exfalso. apply Hchain. exists a, b.
+          unfold Incomparable. intros [H1 | H2]; contradiction. }
+      set (rSingle := Singleton (A -> A -> Prop) R).
+      assert (HrS_card : cardinal (A -> A -> Prop) rSingle 1)
+        by exact (singleton_cardinal _ R).
+      assert (HrS_real : IsRealizer R rSingle).
+      { constructor.
+        - intros L HL. destruct HL.
+          constructor; [exact HR_total | intros a b Hab; exact Hab].
+        - intros a b. split.
+          + intros HRab L HL. destruct HL. exact HRab.
+          + intro Hall. apply Hall. constructor. }
+      assert (Hd1 : d <= 1)
+        by exact (dimension_is_minimum (R:=R) (d:=d) Hdim rSingle 1 HrS_real HrS_card).
+      lia.
   Admitted.
 
   (** Theorem: Hiraguchi's Theorem (1951)
       For a finite poset on n elements (n >= 4), dim(P) <= n/2.
-      The proof reduces to [hiraguchi_helper] (the carrier-polymorphic
-      version), instantiated at the carrier [A]. *)
-  Theorem hiraguchi_bound :
-    forall (n d : nat),
-    cardinal A (Full_set A) n ->
-    n >= 4 ->
-    PosetDimension R d ->
-    d <= n / 2.
-  Proof.
-    intros n d Hcard Hn4 Hdim.
-    exact (@hiraguchi_helper n A R _ d Hcard Hn4 Hdim).
-  Qed.
+      The section-local instance is given after [End Theorems] as
+      [hiraguchi_bound] (a corollary of the polymorphic [hiraguchi_helper]). *)
   (* Original proof retained as comment for porting reference:
     intros n.
     induction n as [n IH] using lt_wf_ind.
@@ -1109,53 +1289,56 @@ Section Theorems.
 
 End Theorems.
 
-(** The carrier-polymorphic Hiraguchi bound. *)
-Lemma hiraguchi_thm :
+(** The carrier-polymorphic Hiraguchi bound, proved by strong induction on n.
+    Base case (n in {4,5}) calls [small_hiraguchi]; inductive step splits on
+    whether R2 has an incomparable pair: chain (dim <= 1) versus lifting an
+    incomparable pair to a critical pair and applying
+    [extension_through_critical_pair] combined with the IH on the (n-2)-element
+    subposet S'. *)
+Lemma hiraguchi_helper :
   forall (n : nat) {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2} (d2 : nat),
   cardinal B (Full_set B) n ->
   n >= 4 ->
   PosetDimension R2 d2 ->
   d2 <= n / 2.
 Proof.
-  intros n B R2 HR2 d2 Hcard Hn4 Hdim.
-  exact (@hiraguchi_helper n B R2 HR2 d2 Hcard Hn4 Hdim).
-Qed.
-(* Original proof retained as comment:
+  intro n.
   induction n as [n IH] using lt_wf_ind.
   intros B R2 HR2 d2 Hcard Hn4 Hdim.
   (* Handle n = 4 or n = 5 directly via small_hiraguchi *)
   destruct (Nat.lt_ge_cases n 6) as [Hlt6 | Hge6].
   { assert (Hn45 : n = 4 \/ n = 5) by lia.
-    assert (Hd2 : d2 <= 2) by exact (@small_hiraguchi B R2 HR2 n d2 Hcard Hn45 Hdim).
+    assert (Hd2 : d2 <= 2) by exact (small_hiraguchi R2 n d2 Hcard Hn45 Hdim).
     destruct Hn45 as [-> | ->]; simpl; lia. }
   (* n >= 6: proceed with incomparable/chain case split *)
   destruct (classic (exists x y, @Incomparable B R2 x y)) as [[x [y Hinc]] | Hchain].
   - (* Incomparable pair exists *)
-    assert (HfinB : Finite B (Full_set B)) by exact (cardinal_finite B (Full_set B) n Hcard)
-    assert (Hcp_ex : exists x' y', R2 x' x /\ R2 y y' /\ @IsCriticalPair B R2 HR2 HfinB x' y').
-    { exact (@incomparable_lifting_to_critical_pair B R2 HR2 HfinB x y Hinc). }
+    assert (HfinB : Finite B (Full_set B)) by exact (cardinal_finite B (Full_set B) n Hcard).
+    assert (Hcp_ex : exists x' y', R2 x' x /\ R2 y y' /\ @IsCriticalPair B R2 x' y').
+    { exact (incomparable_lifting_to_critical_pair R2 HfinB x y Hinc). }
     destruct Hcp_ex as [x' [y' [Hx'x [Hyy' Hcp_val]]]].
-    assert (Hn2 : n >= 2).
-    { destruct n as [| [| n'']].
-      - inversion Hcard; subst. exfalso. apply Hinc. left. apply poset_refl.
-      - inversion Hcard; subst. exfalso. apply Hinc. left. apply poset_refl.
-      - lia. }
-    set (S' := Subtract B (Subtract B (Full_set B) (Singleton B x')) (Singleton B y')).
-    assert (Hcard_minus1 : cardinal B (Subtract B (Full_set B) (Singleton B x')) (pred n)).
+    assert (Hn2 : n >= 2) by lia.
+    (* S' = Setminus B (Setminus B (Full_set B) {x'}) {y'} matches the
+       form expected by extension_through_critical_pair. By [Subtract = Setminus _ (Singleton)],
+       Subtract B (Subtract B (Full_set B) x') y' is definitionally equal. *)
+    set (S' := Subtract B (Subtract B (Full_set B) x') y').
+    assert (HS'_eq : S' = Setminus B (Setminus B (Full_set B) (Singleton B x')) (Singleton B y')).
+    { unfold S'. unfold Subtract. reflexivity. }
+    assert (Hcard_minus1 : cardinal B (Subtract B (Full_set B) x') (pred n)).
     { assert (Hn_pos : 0 < n) by lia.
       rewrite <- (Nat.succ_pred_pos n Hn_pos) in Hcard.
       exact (cardinal_subtract_sn B (Full_set B) x' (pred n) Hcard (Full_intro B x')). }
     assert (Hcard_minus2 : cardinal B S' (pred (pred n))).
-    { assert (Hy'_in : In B (Subtract B (Full_set B) (Singleton B x')) y').
+    { assert (Hy'_in : In B (Subtract B (Full_set B) x') y').
       { split.
         - apply Full_intro.
         - intro Heq.
-          apply (@critical_incomparable B R2 HR2 HfinB x' y' Hcp_val).
-          left. rewrite <- Heq. apply poset_refl. }
+          apply (critical_incomparable Hcp_val).
+          left. inversion Heq. apply poset_refl. }
       assert (Hpredn_pos : 0 < pred n) by lia.
       rewrite <- (Nat.succ_pred_pos (pred n) Hpredn_pos) in Hcard_minus1.
       exact (cardinal_subtract_sn B _ y' (pred (pred n)) Hcard_minus1 Hy'_in). }
-    destruct (@subposet_dimension_le B R2 HR2 S' d2 Hdim) as [d_q [HdimQ Hd_q_le]].
+    destruct (subposet_dimension_le R2 S' d2 Hdim) as [d_q [HdimQ Hd_q_le]].
     destruct HdimQ as [HdimQ_inh].
     (* n >= 6: pred(pred n) >= 4, bound d_q by recursive Hiraguchi on S' *)
     assert (Hd_q_bound : d_q <= pred (pred n) / 2).
@@ -1166,26 +1349,26 @@ Qed.
       exact (IH (pred (pred n)) ltac:(lia)
                 {x : B | In B S' x}
                 (fun a b => R2 (proj1_sig a) (proj1_sig b))
-                (@subtype_is_poset B R2 HR2 S')
+                (subtype_is_poset R2 S')
                 d_q
                 Hcard_sub Hpredpred_ge4 HdimQ_inh). }
     assert (Hd_ext : d2 <= d_q + 1).
     { set (Rsub := fun (a b : {x : B | In B S' x}) => R2 (proj1_sig a) (proj1_sig b)).
-      assert (HrSub_real :
-        @IsRealizer {x : B | In B S' x} Rsub (@subtype_is_poset B R2 HR2 S')
-          (@dimension_realizer {x : B | In B S' x} Rsub (@subtype_is_poset B R2 HR2 S')
-             d_q HdimQ_inh)) :=
-        @dimension_is_realizer {x : B | In B S' x} Rsub (@subtype_is_poset B R2 HR2 S')
-          d_q HdimQ_inh.
-      assert (HrSub_card :
-        cardinal _ (@dimension_realizer {x : B | In B S' x} Rsub
-                      (@subtype_is_poset B R2 HR2 S') d_q HdimQ_inh) d_q) :=
-        @dimension_cardinality {x : B | In B S' x} Rsub
-          (@subtype_is_poset B R2 HR2 S') d_q HdimQ_inh.
-      destruct (@extension_through_critical_pair B R2 HR2 x' y' S' d_q Hcp_val eq_refl
+      pose proof (@dimension_is_realizer {x : B | In B S' x} Rsub d_q HdimQ_inh)
+        as HrSub_real.
+      pose proof (@dimension_cardinality {x : B | In B S' x} Rsub d_q HdimQ_inh)
+        as HrSub_card.
+      destruct (extension_through_critical_pair R2 x' y' S' d_q Hcp_val HS'_eq
           (ex_intro _ _ (conj HrSub_real HrSub_card)))
         as [r [Hr_real Hr_card]].
-      exact (@dimension_is_minimum B R2 HR2 d2 Hdim r (d_q + 1) Hr_real Hr_card). }
+      exact (dimension_is_minimum (R := R2) (d := d2) Hdim r (d_q + 1) Hr_real Hr_card). }
+    (* Conclude by arithmetic: d2 <= d_q + 1 <= (n-2)/2 + 1 = n/2 for n >= 6. *)
+    assert (Hbridge : pred (pred n) / 2 + 1 <= n / 2).
+    { replace (pred (pred n)) with (n - 2) by lia.
+      assert (Heq : n / 2 = (n - 2) / 2 + 1).
+      { replace n with ((n - 2) + 1 * 2) at 1 by lia.
+        rewrite Nat.div_add by lia. lia. }
+      lia. }
     lia.
   - (* Chain: R2 is a total order, dim = 1 *)
     assert (Hd1 : d2 <= 1).
@@ -1199,13 +1382,40 @@ Qed.
         unfold Incomparable. intros [H1 | H2]; contradiction. }
       set (rSingle := Singleton (B -> B -> Prop) R2).
       assert (HrS_card : cardinal (B -> B -> Prop) rSingle 1) by exact (singleton_cardinal _ R2).
-      assert (HrS_real : @IsRealizer B R2 HR2 rSingle).
+      assert (HrS_real : @IsRealizer B R2 rSingle).
       { constructor.
         - intros L HL. destruct HL.
           constructor; [exact HR2_total | intros a b Hab; exact Hab].
         - intros a b. split.
           + intros HRab L HL. destruct HL. exact HRab.
           + intro Hall. apply Hall. constructor. }
-      exact (@dimension_is_minimum B R2 HR2 d2 Hdim rSingle 1 HrS_real HrS_card). }
+      exact (dimension_is_minimum (R := R2) (d := d2) Hdim rSingle 1 HrS_real HrS_card). }
+    (* d2 <= 1 and n >= 6, so d2 <= n / 2. *)
+    assert (Hnhalf : 1 <= n / 2) by (apply Nat.div_le_lower_bound; lia).
     lia.
-*)
+Qed.
+
+(** Hiraguchi's Theorem (1951), carrier-polymorphic form.
+    Re-exports [hiraguchi_helper] under its historical name. *)
+Lemma hiraguchi_thm :
+  forall (n : nat) {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2} (d2 : nat),
+  cardinal B (Full_set B) n ->
+  n >= 4 ->
+  PosetDimension R2 d2 ->
+  d2 <= n / 2.
+Proof.
+  intros n B R2 HR2 d2 Hcard Hn4 Hdim.
+  exact (@hiraguchi_helper n B R2 HR2 d2 Hcard Hn4 Hdim).
+Qed.
+
+(** Hiraguchi's Theorem, specialised form: section-arg corollary. *)
+Theorem hiraguchi_bound :
+  forall {A : Type} (R : A -> A -> Prop) `{IsPoset A R} (n d : nat),
+  cardinal A (Full_set A) n ->
+  n >= 4 ->
+  PosetDimension R d ->
+  d <= n / 2.
+Proof.
+  intros A R HR n d Hcard Hn4 Hdim.
+  exact (@hiraguchi_helper n A R HR d Hcard Hn4 Hdim).
+Qed.
