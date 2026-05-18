@@ -8,5 +8,7 @@
  (synopsis "Playground Coq project")
  (allow_empty)
  (depends
-  (coq (>= 8.19.0))
+  (coq (>= 9.1.0))
+  (coq-stdlib (>= 9.0.0))
+  (coq-hammer (>= "1.3.2+9.1"))
  ))

@@ -1,137 +1,191 @@
-# mise configuration for Coq project
+# mise configuration for the playground Coq project.
+#
+# Reproducibility model:
+#   * `[tools]`           — pinned OCaml + opam, provided by mise.
+#   * `[env]`             — every task runs against the local `./_opam` switch.
+#   * `COQ_VERSION` etc.  — every opam package has an exact version.
+#                           Bumping a version here is the only place to do it.
+#   * Vendored libs       — coq-zorns-lemma (10.2.0) is checked in under
+#                           `vendor/ZornsLemma/` because upstream pins
+#                           coq < 8.21 and we run Coq 9.x. See its dune file.
 
 [tools]
-opam = "2.4.1"
-ocaml = "5.1.0"
-# Dune and Coq are managed via opam (no mise plugins available)
-# Versions specified in dune-project and playground.opam
+opam   = "2.4.1"
+ocaml  = "5.1.0"
 
 [env]
-# Ensure opam environment gets loaded for tasks
 OPAMSWITCH = "."
+# Pinned versions — keep these in sync with `install-deps`.
+COQ_VERSION             = "9.1.0"
+ROCQ_RUNTIME_VERSION    = "9.1.0"
+COQ_STDLIB_VERSION      = "9.0.0"   # coq-stdlib metapkg lives at 9.0.0 even under Coq 9.1
+ROCQ_STDLIB_VERSION     = "9.0.0"
+COQ_HAMMER_VERSION      = "1.3.2+9.1"
+DUNE_VERSION            = "3.20.2"
+OCAMLFORMAT_VERSION     = "0.27.0"
 
 # ============================================================================
-# Setup Tasks - Run once to initialize the project
+# Setup / environment lifecycle
 # ============================================================================
 
 [tasks.setup]
-description = "Complete first-time setup (run once after 'mise install')"
-run = "mise run opam-init && mise run switch && mise run install-deps && mise run pin && echo '✅ Setup complete!' || (echo '❌ Setup failed!' && exit 1)"
+description = "First-time setup: opam init + switch + pinned deps + local pin"
+run = "mise run opam-init && mise run switch && mise run install-deps && mise run pin && echo '✅ Setup complete!'"
 
 [tasks.opam-init]
-description = "Initialize opam"
-run = "opam init -y --bare && echo '✅ Opam initialized!' || (echo '❌ Opam init failed!' && exit 1)"
+description = "Initialize opam (no-op if already initialised)"
+run = "opam init -y --bare --disable-sandboxing=false"
 
 [tasks.switch]
-description = "Create (or reuse) local opam switch with specified OCaml"
-run = "(opam switch create . ocaml-base-compiler.5.1.0 --no-install || opam switch set .) && echo '✅ Switch ready!' || (echo '❌ Switch failed!' && exit 1)"
-
-[tasks.install-deps]
-description = "Install dune, coq, and development tools"
-run = "eval $(opam env) && opam install -y dune coq ocamlformat && echo '✅ Dependencies installed!' || (echo '❌ Install failed!' && exit 1)"
-
-[tasks.pin]
-description = "Pin the local package for development"
-run = "opam pin add -y playground . && echo '✅ Package pinned!' || (echo '❌ Pin failed!' && exit 1)"
-
-# ============================================================================
-# Maintenance Tasks
-# ============================================================================
-
-[tasks.init]
-description = "Quick init for existing setup (skips opam init)"
-run = "mise run switch && mise run install-deps && mise run pin && echo '✅ Init complete!' || (echo '❌ Init failed!' && exit 1)"
-
-[tasks.reinstall]
-description = "Reinstall dependencies and repin"
-run = "eval $(opam env) && mise run install-deps && mise run pin && echo '✅ Reinstall complete!' || (echo '❌ Reinstall failed!' && exit 1)"
-
-[tasks.update]
-description = "Update opam packages"
-run = "opam update && opam upgrade -y && echo '✅ Update complete!' || (echo '❌ Update failed!' && exit 1)"
-
-# ============================================================================
-# Build Tasks
-# ============================================================================
-
-[tasks.build]
-description = "Build the project (or specific module: mise run build [MODULE])"
+description = "Create local opam switch with pinned OCaml (idempotent)"
 run = '''
-#!/bin/bash
-eval $(opam env --switch=. --set-switch)
-if [ -z "${1:-}" ]; then
-  if dune build @all; then
-    echo "✅ Build successful!"
-  else
-    echo "❌ Build failed!"
-    exit 1
-  fi
+if opam switch list --short 2>/dev/null | grep -qx '.'; then
+  echo "✓ Switch ./ already exists, selecting"
+  opam switch set .
 else
-  if dune build "$1"; then
-    echo "✅ Build successful!"
-  else
-    echo "❌ Build failed!"
-    exit 1
-  fi
+  opam switch create . ocaml-base-compiler.5.1.0 --no-install
 fi
 '''
 
-[tasks.build-basics]
-description = "Build only the basics subproject"
-run = "opam exec -- dune build basics && echo '✅ Build successful!' || (echo '❌ Build failed!' && exit 1)"
+[tasks.install-deps]
+description = "Install exact pinned versions of coq + tooling (idempotent)"
+run = '''
+eval $(opam env --switch=. --set-switch)
+opam install -y \
+  "dune.${DUNE_VERSION}" \
+  "coq.${COQ_VERSION}" \
+  "coq-core.${COQ_VERSION}" \
+  "rocq-runtime.${ROCQ_RUNTIME_VERSION}" \
+  "rocq-stdlib.${ROCQ_STDLIB_VERSION}" \
+  "coq-stdlib.${COQ_STDLIB_VERSION}" \
+  "coq-hammer.${COQ_HAMMER_VERSION}" \
+  "coq-hammer-tactics.${COQ_HAMMER_VERSION}" \
+  "ocamlformat.${OCAMLFORMAT_VERSION}"
+'''
 
-[tasks.build-advanced]
-description = "Build only the advanced subproject"
-run = "opam exec -- dune build advanced && echo '✅ Build successful!' || (echo '❌ Build failed!' && exit 1)"
+[tasks.pin]
+description = "Pin the local playground package for development"
+run = "opam pin add -y -n playground ."
 
-[tasks.build-theories]
-description = "Build only the theories subproject"
-run = "opam exec -- dune build theories && echo '✅ Build successful!' || (echo '❌ Build failed!' && exit 1)"
+[tasks.lock]
+description = "Regenerate opam lock file from current switch (for the curious)"
+run = "eval $(opam env --switch=. --set-switch) && opam lock . -o playground.opam.locked"
+
+# ============================================================================
+# Maintenance
+# ============================================================================
+
+[tasks.init]
+description = "Quick init for existing setup (no opam init)"
+run = "mise run switch && mise run install-deps && mise run pin && echo '✅ Init complete!'"
+
+[tasks.reinstall]
+description = "Reinstall pinned deps and re-pin"
+run = "mise run install-deps && mise run pin && echo '✅ Reinstall complete!'"
+
+[tasks.nuke-switch]
+description = "Destroy and recreate the local switch (slow; use when env is broken)"
+run = '''
+if [ -d _opam ]; then
+  opam switch remove -y . || rm -rf _opam
+fi
+mise run switch && mise run install-deps && mise run pin
+'''
+
+# ============================================================================
+# Build
+# ============================================================================
+
+[tasks.build]
+description = "Build the project (or a sub-path: mise run build posets/dimension)"
+run = '''
+#!/usr/bin/env bash
+set -e
+eval $(opam env --switch=. --set-switch)
+target="${1:-@all}"
+dune build "$target"
+echo "✅ Build successful: $target"
+'''
 
 [tasks.build-posets]
-description = "Build only the posets subproject"
-run = "opam exec -- dune build posets && echo '✅ Build successful!' || (echo '❌ Build failed!' && exit 1)"
+description = "Build posets/"
+run = "opam exec -- dune build posets"
+
+[tasks.build-list]
+description = "Build list/"
+run = "opam exec -- dune build list"
+
+[tasks.build-tree]
+description = "Build tree/"
+run = "opam exec -- dune build tree"
+
+[tasks.build-happenedbefore]
+description = "Build happenedBefore/"
+run = "opam exec -- dune build happenedBefore"
+
+[tasks.build-eventualconsistency]
+description = "Build eventualConsistency/"
+run = "opam exec -- dune build eventualConsistency"
 
 [tasks.build-standard-example]
-description = "Build only the standard example (S(n,k) poset proofs)"
-run = "opam exec -- dune build posets/standard_example && echo '✅ Build successful!' || (echo '❌ Build failed!' && exit 1)"
+description = "Build standard_example/ (S(n,k) poset proofs)"
+run = "opam exec -- dune build standard_example"
+
+[tasks.build-abhishek]
+description = "Build abhishek/"
+run = "opam exec -- dune build abhishek"
+
+[tasks.build-chipala-book]
+description = "Build chipala_book/"
+run = "opam exec -- dune build chipala_book"
+
+[tasks.build-zornslemma]
+description = "Build vendored ZornsLemma library"
+run = "opam exec -- dune build vendor/ZornsLemma"
 
 [tasks.check]
-description = "Quick check - builds standard example for proof verification"
-run = "opam exec -- dune build posets && echo '✅ Check successful!' || (echo '❌ Check failed!' && exit 1)"
+description = "Quick check - build posets/"
+run = "opam exec -- dune build posets"
 
 [tasks.check-all]
 description = "Check all Coq proofs in the project"
-run = "opam exec -- dune build @check && echo '✅ All checks passed!' || (echo '❌ Some checks failed!' && exit 1)"
+run = "opam exec -- dune build @check"
 
 [tasks.watch]
 description = "Build in watch mode"
 run = "opam exec -- dune build --watch @all"
 
-[tasks.watch-basics]
-description = "Watch and build basics subproject"
-run = "opam exec -- dune build --watch basics"
-
 [tasks.clean]
 description = "Clean build artifacts"
-run = "opam exec -- dune clean && echo '✅ Clean successful!'"
+run = "opam exec -- dune clean && echo '✅ Clean!'"
 
 # ============================================================================
-# Development Tasks
+# Development
 # ============================================================================
 
 [tasks.coqtop]
-description = "Start Coq REPL"
+description = "Start Coq REPL in the pinned switch"
 run = "opam exec -- coqtop"
 
 [tasks.format]
 description = "Format OCaml/dune files (Coq files use coq-lsp in editor)"
-run = "opam exec -- dune build @fmt --auto-promote && echo '✅ Format successful!' || (echo '❌ Format failed!' && exit 1)"
+run = "opam exec -- dune build @fmt --auto-promote"
 
 [tasks.format-check]
 description = "Check formatting without modifying files"
-run = "opam exec -- dune build @fmt && echo '✅ Format check passed!' || (echo '❌ Format check failed!' && exit 1)"
+run = "opam exec -- dune build @fmt"
 
 [tasks.env]
-description = "Show opam environment"
-run = "opam env"
+description = "Show opam environment for the local switch"
+run = "opam env --switch=. --set-switch"
+
+[tasks.versions]
+description = "Print pinned tool versions (sanity check)"
+run = '''
+eval $(opam env --switch=. --set-switch) 2>/dev/null || true
+echo "ocaml:        $(ocaml -version 2>/dev/null || echo MISSING)"
+echo "opam:         $(opam --version 2>/dev/null || echo MISSING)"
+echo "dune:         $(dune --version 2>/dev/null || echo MISSING)"
+echo "coqc:         $(coqc --version 2>/dev/null | head -1 || echo MISSING)"
+echo "coq-hammer:   $(opam show -f version coq-hammer 2>/dev/null || echo MISSING)"
+'''
