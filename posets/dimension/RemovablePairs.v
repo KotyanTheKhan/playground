@@ -1068,6 +1068,94 @@ Section RemovablePairs.
   Qed.
 
   (** ==================================================================
+      Step 4 of the Trotter redesign — per-L' boundary assignment.
+      ==================================================================
+
+      For each linear extension L' of R restricted to the residual S' of
+      a critical pair (x', y'), we must produce a boundary reversal set
+      B such that the augmented relation
+        Aug B := R u L'_lift u {(x',y')} u {(b,a) | (a,b) in B}
+      is acyclic (i.e., its transitive closure is antisymmetric).
+
+      For Step 4 we exhibit the simplest possible witness, [B := nil].
+      With [B = nil], [List.In _ nil] is [False], so [Aug nil] collapses
+      to exactly the three-clause relation
+        fun a b => R a b
+                u (exists ha hb, L' (exist _ a ha) (exist _ b hb))
+                u (a = x' /\ b = y')
+      that [lift_and_force_is_poset] already proves to have a poset TC.
+      Antisymmetry of that TC gives the required acyclicity directly.
+
+      Note: this version drops the "coverage" clause from the design
+      doc — that is, it does not yet guarantee B covers every boundary
+      critical pair. That strengthening is deferred to Step 5 (where
+      the coverage requirement is dictated by which CPs need to be
+      reversed by the union of lifts to realize R). *)
+  Lemma boundary_assignment_exists_weak :
+    forall n (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop),
+    cardinal A (Full_set A) n ->
+    IsCriticalPair R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    IsLinearExtension
+      (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+    exists B : list (A * A),
+      IsBoundaryReversalSet x' y' B /\
+      (forall a b, a <> b ->
+         clos_trans A
+           (fun a b =>
+              R a b
+              \/ (exists (ha : In A S' a) (hb : In A S' b),
+                    L' (exist _ a ha) (exist _ b hb))
+              \/ (a = x' /\ b = y')
+              \/ List.In (b, a) B) a b ->
+         clos_trans A
+           (fun a b =>
+              R a b
+              \/ (exists (ha : In A S' a) (hb : In A S' b),
+                    L' (exist _ a ha) (exist _ b hb))
+              \/ (a = x' /\ b = y')
+              \/ List.In (b, a) B) b a ->
+         False).
+  Proof.
+    intros n x' y' S' L' Hcard Hcp HS'_eq HL'.
+    exists nil. split.
+    - exact (boundary_set_nil_valid x' y').
+    - intros a b Hneq Hab_aug Hba_aug.
+      (* Step relation in [lift_and_force_is_poset] (3 clauses). *)
+      set (step3 := fun a b =>
+                      R a b
+                   \/ (exists (ha : In A S' a) (hb : In A S' b),
+                         L' (exist _ a ha) (exist _ b hb))
+                   \/ (a = x' /\ b = y')).
+      (* Augmented relation with [B := nil] (4 clauses; last is [False]). *)
+      set (step4 := fun a b =>
+                      R a b
+                   \/ (exists (ha : In A S' a) (hb : In A S' b),
+                         L' (exist _ a ha) (exist _ b hb))
+                   \/ (a = x' /\ b = y')
+                   \/ List.In (b, a) (@nil (A * A))).
+      (* Bridge: step4 a b <-> step3 a b for all a, b. *)
+      assert (Hbridge : forall u v, step4 u v <-> step3 u v).
+      { intros u v. unfold step3, step4. simpl. tauto. }
+      (* Bridge clos_trans: clos_trans step4 implies clos_trans step3. *)
+      assert (Hct_bridge : forall u v, clos_trans A step4 u v ->
+                                       clos_trans A step3 u v).
+      { intros u v Hct. induction Hct as [u v Huv | u w v Huw IHuw Hwv IHwv].
+        - apply t_step. apply Hbridge. exact Huv.
+        - eapply t_trans; eauto. }
+      (* Poset structure of clos_trans step3 from [lift_and_force_is_poset]. *)
+      pose proof (lift_and_force_is_poset R x' y' S' L' Hcp HS'_eq HL')
+        as Hpos3.
+      (* Translate Hab_aug, Hba_aug into clos_trans step3. *)
+      assert (Hab3 : clos_trans A step3 a b) by exact (Hct_bridge a b Hab_aug).
+      assert (Hba3 : clos_trans A step3 b a) by exact (Hct_bridge b a Hba_aug).
+      (* Antisymmetry yields a = b, contradicting Hneq. *)
+      apply Hneq.
+      exact (poset_antisym (R := clos_trans A step3) a b Hab3 Hba3).
+  Qed.
+
+  (** ==================================================================
       Trotter's non-antichain removable pair lemma — focused gap.
       ==================================================================
 
