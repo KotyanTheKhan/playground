@@ -133,4 +133,142 @@ Section RemovablePairs.
     intros d' r' Hr'_real Hr'_card.
   Admitted.
 
+  (** ==================================================================
+      TROTTER'S REMOVABLE-PAIR LEMMA — STRUCTURAL DECOMPOSITION
+      ==================================================================
+
+      Goal: every finite poset on n >= 4 elements with at least one
+      incomparable pair has a removable pair (in the realizer-existence
+      sense of [IsRemovablePair]).
+
+      Status: outer lemma [removable_pair_exists] is ADMITTED. The
+      structural decomposition below introduces one Qed sub-lemma and
+      one HONESTLY Admitted sub-lemma; the outer lemma's body is
+      mechanically composed from them.
+
+      --------------------------------------------------------------
+      DECOMPOSITION
+      --------------------------------------------------------------
+
+      Sub-lemma (A) [admissible_critical_pair_is_removable] — Qed.
+        If (x', y') is a critical pair of R such that every critical
+        pair (p, q) of R EITHER equals (x', y') OR has both endpoints
+        in Residual x' y' (we call this "admissible"), then (x', y')
+        is a removable pair. This follows mechanically from the already-
+        Qed [extension_through_critical_pair] in Theorems.v.
+
+      Sub-lemma (B) [removable_pair_exists_witness] — Admitted.
+        For every finite R on n >= 4 with an incomparable pair, SOME
+        pair (x, y) is a removable pair.
+
+        IMPORTANT NEGATIVE RESULT: the obvious specialization
+            "an admissible critical pair exists"
+        is FALSE in general. Counterexample: the n-element antichain
+        (n >= 4). In an antichain, every distinct pair is a critical
+        pair, so for ANY proposed (x', y') and any third element c,
+        (x', c) is a critical pair with one endpoint outside
+        Residual x' y'. So no critical pair is admissible.
+
+        Yet the antichain DOES have removable pairs in the
+        realizer-existence sense (every pair is removable; see
+        [antichain_removable_pair], partially proved). Conclusion:
+        [removable_pair_exists] must be proved by a different route
+        for antichain-like posets, namely by producing the realizer
+        directly without going through "every critical pair forced".
+
+      --------------------------------------------------------------
+      WHAT'S MISSING TO CLOSE (B)
+      --------------------------------------------------------------
+
+      Trotter's actual proof (Ch. 6) does NOT route through an
+      admissible CP at the outer level. Instead it constructs the
+      lift-and-reverse extensions directly, handling boundary CPs
+      by a more careful Szpilrajn construction that ORIENTS the
+      lift to also reverse a chosen boundary CP. This requires
+      strengthening [cp_lift_function] / [lift_and_force_is_poset]
+      to accept a "boundary orientation" parameter — see the long
+      gap comment in [extend_through_cp_construction] in
+      Theorems.v lines 2026–2074.
+
+      The honest path forward (not pursued in this task due to the
+      60-minute budget) is:
+
+        1. Generalize [lift_and_force_is_poset] to accept a finite
+           set S_b of boundary-CP orientations, proving the
+           transitive closure of (R ∪ L'_lift ∪ {(x',y')} ∪ S_b)
+           is a poset under suitable assumptions on the boundary
+           CPs (using the asymmetric critical_up / critical_down).
+        2. Build [cp_lift_function_with_boundary] selecting a
+           lift map whose lifts simultaneously reverse all required
+           boundary CPs.
+        3. Use a CHOICE function on boundary CPs (each L' ∈ r'
+           chooses which boundary CPs to reverse, based on its
+           sub-realizer structure) so that the union
+           [Im r' lift_b ∪ {L_extra}] reverses every critical pair.
+        4. Conclude [removable_pair_exists] without ever needing
+           the false "admissible CP" condition.
+      ================================================================== *)
+
+  (** A critical pair (x', y') of R is "admissible" iff every critical
+      pair (p, q) of R either equals (x', y') or has both endpoints in
+      Residual x' y'. NB: in general (e.g., the antichain) no admissible
+      critical pair exists; see comment block above. *)
+  Definition AdmissibleCP (x' y' : A) : Prop :=
+    IsCriticalPair R x' y' /\
+    forall p q : A, IsCriticalPair R p q ->
+      (p = x' /\ q = y') \/ (In A (Residual x' y') p /\ In A (Residual x' y') q).
+
+  (** Convert between the [Residual] form used in [IsRemovablePair] and
+      the [Setminus] form used in [extension_through_critical_pair]. *)
+  Lemma Residual_eq_Setminus :
+    forall x y : A,
+      Residual x y =
+      Setminus A (Setminus A (Full_set A) (Singleton A x)) (Singleton A y).
+  Proof. intros; reflexivity. Qed.
+
+  (** Sub-lemma (A): an admissible critical pair is removable.
+      Closed via [extension_through_critical_pair]. *)
+  Lemma admissible_critical_pair_is_removable :
+    forall (x' y' : A),
+      Finite A (Full_set A) ->
+      AdmissibleCP x' y' ->
+      IsRemovablePair x' y'.
+  Proof.
+    intros x' y' HfinA [Hcp Hno_boundary].
+    assert (Hxy_neq : x' <> y').
+    { intro Heq.
+      apply (critical_incomparable Hcp).
+      left. rewrite Heq. apply poset_refl. }
+    split; [exact Hxy_neq |].
+    intros d' r' Hr'_real Hr'_card.
+    set (S' := Residual x' y').
+    assert (HS'_eq : S' =
+                     Setminus A (Setminus A (Full_set A) (Singleton A x'))
+                              (Singleton A y'))
+      by reflexivity.
+    (* Apply extension_through_critical_pair.
+       [R] is passed explicitly because [extension_through_critical_pair]
+       is defined in a closed section. *)
+    exact (extension_through_critical_pair R x' y' S' d' HfinA Hcp HS'_eq
+             Hno_boundary
+             (ex_intro _ r' (conj Hr'_real Hr'_card))).
+  Qed.
+
+  (** Trotter's removable-pair lemma — outer statement. ADMITTED.
+
+      Cannot be closed via [admissible_critical_pair_is_removable]
+      because admissible critical pairs do not always exist (see comment
+      block above; the antichain is a counterexample).
+
+      To prove this lemma a stronger boundary-aware construction is
+      needed (see the "WHAT'S MISSING" section above). *)
+  Lemma removable_pair_exists :
+    forall n,
+    cardinal A (Full_set A) n ->
+    n >= 4 ->
+    (exists a b, Incomparable R a b) ->
+    exists x y, IsRemovablePair x y.
+  Proof.
+  Admitted.
+
 End RemovablePairs.
