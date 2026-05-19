@@ -1111,6 +1111,48 @@ Proof.
     + intro Hin. destruct Hin. apply HL_neq. reflexivity.
 Qed.
 
+(** ==================================================================
+    Focused admit for the non-antichain non-chain small case.
+
+    [nonantichain_nonchain_small_two_realizer] : for n ∈ {4, 5} and R a
+    poset that is neither an antichain (has a strict edge) nor a chain
+    (has an incomparable pair), R has a two-element realizer.
+
+    This is mathematically true: the smallest poset with dim ≥ 3 is the
+    standard example S_3 on six elements, so every poset on n ≤ 5
+    elements has dim ≤ 2.  Closing it inside Coq requires either:
+
+    - Finding a removable pair (x, y) whose residual is a CHAIN — then
+      d_q ≤ 1 and the lift via [removable_pair_dimension_bound] gives
+      d ≤ 2.  Whether such a pair exists depends on the isomorphism
+      class of the poset; the n=4 "two-strict-edges-forming-a-V" and
+      "two-disjoint-chains" cases are problematic.
+
+    - An explicit two-element realizer for each isomorphism class.
+      For n=4 the non-antichain non-chain classes are (up to dualities):
+        (a) one strict edge a<b, two isolated points c, d;
+        (b) chain a<b<c, one isolated point d;
+        (c) V: a<b, a<c, isolated d;
+        (d) ∧: a<c, b<c, isolated d;
+        (e) two disjoint chains: a<b and c<d;
+        (f) N-shape: a<b, c<b, c<d.
+      For n=5 the enumeration is larger.
+
+    The Trotter combinatorial argument that classifies "removable pair
+    with chain residual" cases handles all of these uniformly, but the
+    enumeration is delicate.  We factor it out as a single named
+    Admitted lemma so [hiraguchi_small_case] composes cleanly. *)
+Lemma nonantichain_nonchain_small_two_realizer :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2} (n : nat),
+  cardinal B (Full_set B) n ->
+  (n = 4 \/ n = 5) ->
+  ~ (forall a b : B, R2 a b -> a = b) ->
+  (exists a b : B, @Incomparable B R2 a b) ->
+  exists r : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r /\ cardinal (B -> B -> Prop) r 2.
+Proof.
+Admitted.
+
 (** Hiraguchi's bound for the small base cases n in {4, 5}.
 
     For these sizes the inductive step in [hiraguchi_helper] would
@@ -1132,21 +1174,13 @@ Qed.
       Note this is the tightness witness for Hiraguchi at n = 4
       (the 4-antichain has dim = 2 = 4/2).
 
-    - **Non-antichain non-chain case**: a genuine small-finite gap.
-      The recursive approach via [removable_pair_exists] reduces to a
-      residual of [n - 2] in {2, 3} elements, but the 2-element
-      antichain has dimension 2, so the residual can have dim_q up to 2,
-      giving only [d2 <= d_q + 1 = 3] — not tight.  The tight bound
-      requires either selecting a removable pair (x, y) whose residual is
-      a chain (so [d_q <= 1] and the lift gives [d2 <= 2]) or an explicit
-      two-element realizer construction.  Both depend on the strict-edge
-      structure of [R2] (which differs between the few isomorphism
-      classes of non-antichain non-chain posets on {4, 5} elements);
-      we leave this as a focused [admit].
+    - **Non-antichain non-chain case**: routed through the focused
+      Admitted helper [nonantichain_nonchain_small_two_realizer] which
+      produces a 2-realizer directly.  [dimension_is_minimum] then
+      gives d2 <= 2.
 
-    The lemma is therefore still [Admitted] overall (the non-antichain
-    non-chain [admit] is the lone remaining gap); the antichain case and
-    the chain case are closed. *)
+    With the focused helper in place, this lemma is [Qed]; the only
+    remaining gap is the helper's body. *)
 Lemma hiraguchi_small_case :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
          (n d2 : nat),
@@ -1171,16 +1205,11 @@ Proof.
                   (ex_intro _ a (ex_intro _ b Hab_neq)))
         as [r [Hr_real Hr_card]].
       exact (dimension_is_minimum (R := R2) (d := d2) Hdim r 2 Hr_real Hr_card).
-    + (* Non-antichain case: R2 has a strict edge.  Genuine small-finite
-         gap.  The fact d2 <= 2 is true (the smallest poset with dim >= 3
-         is the standard example S_3 on 6 elements; any poset on n <= 5
-         elements has dimension <= 2).  But proving it inside Coq for an
-         arbitrary 4-or-5-element non-antichain non-chain poset requires
-         finding a removable pair (x, y) whose residual is a CHAIN: then
-         d_q <= 1 and the lift via [removable_pair_dimension_bound] gives
-         d2 <= 2.  Selecting that pair depends on the strict-edge
-         structure of R2 and the time budget did not allow us to close it. *)
-      admit.
+    + (* Non-antichain non-chain case: use focused Admitted helper. *)
+      destruct (@nonantichain_nonchain_small_two_realizer B R2 HR2 n
+                  Hcard Hn45 HR2_nonantichain Hinc_ex)
+        as [r [Hr_real Hr_card]].
+      exact (dimension_is_minimum (R := R2) (d := d2) Hdim r 2 Hr_real Hr_card).
   - (* Chain case: R2 is a total order, dim R2 <= 1 <= 2.
        Construction mirrors the chain branch of [hiraguchi_helper]. *)
     assert (Hd1 : d2 <= 1).
@@ -1205,7 +1234,7 @@ Proof.
       exact (dimension_is_minimum (R := R2) (d := d2) Hdim rSingle 1
                HrS_real HrS_card). }
     lia.
-Admitted.
+Qed.
 
 (** * Hiraguchi's Theorem via removable pairs.
 
