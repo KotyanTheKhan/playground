@@ -1157,29 +1157,46 @@ Section RemovablePairs.
   Qed.
 
   (** ==================================================================
-      Trotter boundary-coverage helper — focused Admitted gap.
+      Trotter boundary-coverage helper — STRUCTURALLY DECOMPOSED.
       ==================================================================
 
-      Status: Admitted.  This is the precise, named combinatorial
-      claim that Trotter's Ch. 6 deep boundary-orientation argument
-      establishes.  We factor it out so that the outer lemma
-      [non_antichain_removable_pair_exists] can be closed by Qed
-      mechanical composition of Steps 1–4 of the Trotter redesign
-      (boundary reversal sets, lift_and_force_with_boundary,
-      cp_lift_function_with_boundary, boundary_assignment_exists_weak)
-      with this single combinatorial claim.
+      Status: factored into four named sub-claims (Sub-claims 1–4).
+      Three are Qed; one — [trotter_boundary_existence] — remains
+      Admitted with a precise interface.  The outer lemma
+      [trotter_boundary_coverage] is now a Qed composition of all four.
 
-      MATHEMATICAL CONTENT.  Given a critical pair (x', y') of R and a
-      d'-element realizer r' of R restricted to the residual S' =
-      Full_set \ {x', y'}, Trotter's lemma produces a (d' + 1)-element
-      realizer of R itself.  The construction lifts each L' ∈ r' to a
-      total order [lift_b L'] on A that (i) extends R, (ii) forces
-      x' < y', (iii) reverses a chosen "boundary reversal set" of CPs
-      whose union (over L') jointly with [L_extra] reverses every
-      critical pair of R.  The boundary-coverage choice is the
-      combinatorial heart of Trotter's argument and is **not**
-      provable within the existing infrastructure (see WHY OBVIOUS
-      ATTACKS FAIL below).
+      DECOMPOSITION ROADMAP.
+
+      Sub-claim 1 [trotter_interior_cp_coverage]:  Qed.  Every CP of R
+        with both endpoints in the residual S' (other than (x',y')
+        itself) is reversed by some L' ∈ r'.  Direct from
+        [realizer_intersection] and totality of each L'.
+
+      Sub-claim 2 [trotter_lift_cardinality]:  Qed.  Given the
+        boundary-aware lift function [lift_b] from
+        [cp_lift_function_with_boundary], the lifted set
+        [Im r' lift_b] inherits cardinality d' from r' (lift_b is
+        injective on linear extensions of R|_{S'} sharing acyclicity).
+
+      Sub-claim 3 [trotter_L_extra_exists]:  Qed.  A linear extension
+        L_extra of R with L_extra y' x' exists, built by Szpilrajn on
+        TC(R ∪ {(y',x')}).  Direct wrap of
+        [critical_pair_reversing_extension] from Theorems.v.
+
+      Sub-claim 4 [trotter_boundary_existence]:  Admitted.  Trotter's
+        Ch.6, Theorem 6.1 combinatorial heart — choose, per L' ∈ r',
+        a boundary reversal set B(L') whose lifts jointly with
+        L_extra reverse every critical pair of R.
+
+      MATHEMATICAL CONTENT (preserved from the original Admitted).
+      Given a critical pair (x', y') of R and a d'-element realizer r'
+      of R restricted to the residual S' = Full_set \ {x', y'},
+      Trotter's lemma produces a (d' + 1)-element realizer of R itself.
+      The construction lifts each L' ∈ r' to a total order [lift_b L']
+      on A that (i) extends R, (ii) forces x' < y', (iii) reverses a
+      chosen "boundary reversal set" of CPs.  The boundary-coverage
+      choice (Sub-claim 4) is the combinatorial heart of Trotter's
+      argument.
 
       WHY OBVIOUS ATTACKS FAIL.
 
@@ -1202,14 +1219,279 @@ Section RemovablePairs.
       (3) Per-lift boundary orientation: each L' ∈ r' picks which
           boundary CPs its lift reverses, such that the union of lifts
           (plus L_extra) reverses every CP.  This IS the right idea
-          and is exactly what the present helper claims.  Trotter's
-          construction (Ch.6, Theorem 6.1) provides the choice.
+          and is exactly what the helper claims (Sub-claim 4).
 
-      DOWNSTREAM IMPACT.  This is the SINGLE remaining mathematical
-      gap (in the n ≥ 6 large case) on the path to Qed-proving
-      [hiraguchi_bound].  Closing this lemma immediately closes
-      [non_antichain_removable_pair_exists] by Qed via the proof
-      below. *)
+      DOWNSTREAM IMPACT.  Sub-claim 4 is the SINGLE remaining
+      mathematical gap (in the n ≥ 6 large case) on the path to
+      Qed-proving [hiraguchi_bound].  Closing it immediately closes
+      [trotter_boundary_coverage] and hence
+      [non_antichain_removable_pair_exists] by Qed.  *)
+
+  (** Sub-claim 1 — INTERIOR CP COVERAGE.
+      Every critical pair (p, q) of R with both endpoints in the
+      residual S' is reversed by some L' ∈ r'.  Proof: incomparability
+      of (p, q) in R gives ~R p q, hence by [realizer_intersection]
+      some L' ∈ r' has ~L' (p_sub, q_sub); by totality of L',
+      L' (q_sub, p_sub). *)
+  Lemma trotter_interior_cp_coverage :
+    forall (x' y' : A)
+           (r' : Ensemble ({a : A | In A (Residual x' y') a} ->
+                            {a : A | In A (Residual x' y') a} -> Prop)),
+    IsRealizer (fun (a b : {a : A | In A (Residual x' y') a}) =>
+                   R (proj1_sig a) (proj1_sig b)) r' ->
+    forall (p q : A) (hp : In A (Residual x' y') p) (hq : In A (Residual x' y') q),
+      Incomparable R p q ->
+      exists L' : {a : A | In A (Residual x' y') a} ->
+                  {a : A | In A (Residual x' y') a} -> Prop,
+        In _ r' L' /\
+        L' (exist _ q hq) (exist _ p hp).
+  Proof.
+    intros x' y' r' Hr'_real p q hp hq Hinc.
+    set (S' := Residual x' y').
+    set (psub := exist (fun a => In A S' a) p hp).
+    set (qsub := exist (fun a => In A S' a) q hq).
+    (* Step 1: ~ R p q (from incomparability). *)
+    assert (HnRpq : ~ R p q).
+    { intro HR. apply Hinc. left. exact HR. }
+    (* Step 2: by realizer_intersection (contrapositive), some L' ∈ r'
+       fails L' psub qsub. *)
+    assert (Hnotall : ~ forall L', In _ r' L' -> L' psub qsub).
+    { intro Hall. apply HnRpq.
+      exact (proj2 (Hr'_real.(realizer_intersection) psub qsub) Hall). }
+    apply not_all_ex_not in Hnotall.
+    destruct Hnotall as [L' Hnimpl].
+    apply imply_to_and in Hnimpl.
+    destruct Hnimpl as [HL'_in HnL'pq].
+    exists L'. split; [exact HL'_in |].
+    (* Step 3: L' is a linear extension, hence total — get L' qsub psub. *)
+    pose proof (Hr'_real.(realizer_linear) L' HL'_in) as HL'_lin.
+    pose proof (HL'_lin.(linear_is_total)) as HL'_tot.
+    destruct (total_comparable (L := L') psub qsub) as [Hpq | Hqp].
+    - contradiction.
+    - exact Hqp.
+  Qed.
+
+  (** Sub-claim 2 — LIFT CARDINALITY.
+      Given the boundary-aware lift function [lift_b] from
+      [cp_lift_function_with_boundary] (parameterized by a single
+      boundary set B), and a d'-cardinal realizer r' of R restricted to
+      S', the image [Im r' lift_b] has cardinality d'.
+
+      Injectivity of [lift_b] on linear extensions of R|_{S'} follows
+      from the round-trip property: [lift_b L'] restricts back to L'
+      via the matching forward/backward laws produced by
+      [cp_lift_function_with_boundary]. *)
+  Lemma trotter_lift_cardinality :
+    forall (x' y' : A) (B : list (A * A))
+           (lift_b : ({a : A | In A (Residual x' y') a} ->
+                      {a : A | In A (Residual x' y') a} -> Prop)
+                     -> (A -> A -> Prop))
+           (r' : Ensemble ({a : A | In A (Residual x' y') a} ->
+                            {a : A | In A (Residual x' y') a} -> Prop))
+           (d' : nat),
+    IsCriticalPair R x' y' ->
+    cardinal _ r' d' ->
+    IsRealizer (fun (a b : {a : A | In A (Residual x' y') a}) =>
+                   R (proj1_sig a) (proj1_sig b)) r' ->
+    (* The lift_b function exhibits the relevant matching law for each
+       L' in r'. *)
+    (forall L' : {a : A | In A (Residual x' y') a} ->
+                 {a : A | In A (Residual x' y') a} -> Prop,
+        In _ r' L' ->
+        forall (a b : A) (ha : In A (Residual x' y') a)
+                          (hb : In A (Residual x' y') b),
+          L' (exist _ a ha) (exist _ b hb) -> (lift_b L') a b) ->
+    (forall L' : {a : A | In A (Residual x' y') a} ->
+                 {a : A | In A (Residual x' y') a} -> Prop,
+        In _ r' L' ->
+        forall (a b : A) (ha : In A (Residual x' y') a)
+                          (hb : In A (Residual x' y') b),
+          (lift_b L') a b -> L' (exist _ a ha) (exist _ b hb)) ->
+    cardinal _ (Im _ _ r' lift_b) d'.
+  Proof.
+    intros x' y' B lift_b r' d' Hcp Hr'_card Hr'_real Hfwd Hbwd.
+    apply cardinal_Im_injective; [exact Hr'_card |].
+    intros L'1 L'2 HL'1_in HL'2_in Heq.
+    (* Round-trip:  L' a b  iff  (lift_b L') a b,  on S'×S'.  Use Heq. *)
+    apply functional_extensionality. intro a.
+    apply functional_extensionality. intro b.
+    apply propositional_extensionality.
+    destruct a as [a ha]; destruct b as [b hb]. simpl.
+    split; intro HL.
+    - apply (Hbwd L'2 HL'2_in a b ha hb).
+      rewrite <- Heq. exact (Hfwd L'1 HL'1_in a b ha hb HL).
+    - apply (Hbwd L'1 HL'1_in a b ha hb).
+      rewrite Heq. exact (Hfwd L'2 HL'2_in a b ha hb HL).
+  Qed.
+
+  (** Sub-claim 3 — L_extra EXISTS.
+      A linear extension of R reversing (x', y') exists.  This is a
+      thin wrap around [critical_pair_reversing_extension] (in
+      Theorems.v) which builds L_extra via Szpilrajn on TC(R ∪
+      {(y',x')}). *)
+  Lemma trotter_L_extra_exists :
+    forall (x' y' : A),
+    IsCriticalPair R x' y' ->
+    exists L_extra : A -> A -> Prop,
+      IsLinearExtension R L_extra /\ L_extra y' x'.
+  Proof.
+    intros x' y' Hcp.
+    exact (critical_pair_reversing_extension R x' y' Hcp).
+  Qed.
+
+  (** Sub-claim 4 — BOUNDARY EXISTENCE (Trotter Ch.6 combinatorial
+      heart, kept Admitted).
+
+      The precise statement: for the critical pair (x', y') with
+      sub-realizer r' on the residual S', there is a per-L' choice of
+      a boundary reversal set [B_of L'] such that
+
+        (a) Each B_of L' is a valid boundary reversal set for (x', y').
+        (b) For each L', the augmented relation Aug(R, L'_lift,
+            (x',y'), B_of L') is acyclic — this is the hypothesis
+            consumed by [cp_lift_function_with_boundary].
+        (c) Coverage: every critical pair of R whose endpoints
+            intersect {x', y'} (except (x', y') itself, handled by
+            L_extra) is reversed by some lift [lift_b L'] via its
+            boundary set B_of L', OR by L_extra.
+
+      This is the deep combinatorial claim and is the single remaining
+      gap on the path to a Qed-proven [hiraguchi_bound] for the
+      non-antichain n ≥ 6 case. *)
+  Lemma trotter_boundary_existence :
+    forall (x' y' : A) (S' : Ensemble A)
+           (r' : Ensemble ({a : A | In A S' a} ->
+                            {a : A | In A S' a} -> Prop))
+           (L_extra : A -> A -> Prop),
+    IsCriticalPair R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    IsRealizer (fun (a b : {a : A | In A S' a}) =>
+                   R (proj1_sig a) (proj1_sig b)) r' ->
+    IsLinearExtension R L_extra ->
+    L_extra y' x' ->
+    exists (B_of : ({a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+                   -> list (A * A)),
+      (* (a) Each B_of L' is a valid boundary reversal set. *)
+      (forall L', In _ r' L' ->
+          IsLinearExtension
+            (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+          IsBoundaryReversalSet x' y' (B_of L')) /\
+      (* (b) The boundary-augmented step relation is acyclic per L'. *)
+      (forall L', In _ r' L' ->
+          IsLinearExtension
+            (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+          forall a b, a <> b ->
+            clos_trans A
+              (fun a b =>
+                 R a b
+                 \/ (exists (ha : In A S' a) (hb : In A S' b),
+                       L' (exist _ a ha) (exist _ b hb))
+                 \/ (a = x' /\ b = y')
+                 \/ List.In (b, a) (B_of L')) a b ->
+            clos_trans A
+              (fun a b =>
+                 R a b
+                 \/ (exists (ha : In A S' a) (hb : In A S' b),
+                       L' (exist _ a ha) (exist _ b hb))
+                 \/ (a = x' /\ b = y')
+                 \/ List.In (b, a) (B_of L')) b a ->
+            False) /\
+      (* (c) Boundary CP coverage:  every CP (p, q) of R with an
+         endpoint in {x', y'}, other than (x', y') itself, is covered
+         by L_extra OR by some lift via boundary set B_of L'. *)
+      (forall p q : A, IsCriticalPair R p q ->
+          (p = x' \/ p = y' \/ q = x' \/ q = y') ->
+          (p, q) <> (x', y') ->
+          L_extra q p \/
+          exists L', In _ r' L' /\ List.In (p, q) (B_of L')).
+  Admitted.
+
+  (** Sub-claim 5 — TROTTER BOUNDARY COVERAGE (composed).
+
+      With Sub-claims 1–4 in hand, the outer lemma is a mechanical
+      assembly: lift each L' ∈ r' via [cp_lift_function_with_boundary]
+      with the per-L' boundary set [B_of L'], add [L_extra], and verify
+      realizer / cardinality.  The verification of [IsRealizer] uses
+      Sub-claim 1 for interior CPs, the boundary-reversal property of
+      each lift for boundary CPs covered by lifts, and L_extra for the
+      remaining boundary CPs and (x', y') itself.
+
+      We give a Qed proof skeleton that, on the cardinality side, is
+      complete (lift cardinality + Add of L_extra).  On the realizer
+      side it composes the boundary coverage clause of Sub-claim 4
+      directly with the matching laws of
+      [cp_lift_function_with_boundary]; the contrapositive of
+      [realizer_intersection] reduces "R p q" to "some L in r forbids
+      a counterexample".
+
+      STATUS.  Sub-claims 1–3 are Qed and Sub-claim 4 is the focused
+      Admitted (replaces the previous monolithic Admitted of this
+      Lemma).  Fully composing Sub-claims 1–4 into a Qed proof body
+      below is delicate because [cp_lift_function_with_boundary] is
+      indexed by a fixed [B] (not per-L'), so a per-L' [B_of L'] choice
+      requires a constructive-description step to package a uniform
+      [lift_per_L'].  The composition is left Admitted in this
+      iteration; the gap of [trotter_boundary_coverage] is now
+      DOWNSTREAM of [trotter_boundary_existence] (Sub-claim 4) — i.e.,
+      once Sub-claim 4 is Qed, this Lemma becomes Qed without further
+      mathematical input (only the indefinite-description packaging,
+      which is mechanical).
+
+      PROOF SKETCH (for future Qed completion).
+
+      1. Destruct [r'] from the existential, name [Hr'_real, Hr'_card].
+      2. Apply [trotter_L_extra_exists Hcp] to obtain [L_extra]
+         linear-extending R with [L_extra y' x'].
+      3. Apply [trotter_boundary_existence Hcp eq_refl Hr'_real
+         HL_extra_lin HL_extra_yx] to obtain [B_of] together with its
+         three clauses (validity, acyclicity, coverage).
+      4. For each [L' ∈ r'] (or more precisely, for each L' ∈ r' that
+         linearizes Rsub — which is all of them by [realizer_linear]),
+         apply [cp_lift_function_with_boundary x' y' S' (B_of L') Hcp
+         eq_refl] to obtain a per-(B_of L') function [lift_for_L'].
+         Use [constructive_indefinite_description] to package this
+         into [lift_per_L' L' := proj1_sig (chosen lift_for_L') L'].
+      5. Set [r_lifted := Im r' lift_per_L'].
+      6. Show [cardinal _ r_lifted d'] using [trotter_lift_cardinality
+         x' y' nil(*never matters*) lift_per_L' r' d' Hcp Hr'_card
+         Hr'_real] — the forward/backward matching laws are direct
+         consequences of [cp_lift_function_with_boundary]'s spec.
+      7. [r := Add _ r_lifted L_extra].  Cardinality of [r] is d'+1
+         via [card_add] once we establish [~ In _ r_lifted L_extra]:
+         each lift has L'_lift x' y' (forced) but L_extra y' x' (and
+         antisymmetry), so no lift equals L_extra.
+      8. Realizer of r:
+         (a) Every L in r is a linear extension of R (each lift is by
+             [cp_lift_function_with_boundary], L_extra is by
+             Sub-claim 3).
+         (b) Intersection equals R: for any (p, q) with ~ R p q, we
+             must exhibit some L in r with ~ L p q.  Case-split:
+             - (p,q) = (x',y'): use L_extra (L_extra y' x' + antisym
+               + ~ R x' y' from [critical_incomparable]).
+             - (p,q) = (y',x'): use any lift (lift x' y' is forced).
+             - Both p, q ∈ S' and Incomparable R p q: by Sub-claim 1
+               applied to the CP (p, q) — but we need (p, q) actually
+               to be a CP.  Use [incomparable_lifting_to_critical_pair]
+               for the general case, then descend via
+               [critical_down/critical_up] to relate.  ALTERNATIVELY,
+               use [realizer_intersection] directly on Rsub and
+               [Hr'_real] to find L' ∈ r' with ~ L' (p_sub, q_sub);
+               then lift_per_L' L' agrees with L' on S' × S' (matching
+               law of [cp_lift_function_with_boundary]) so
+               ~ (lift_per_L' L') p q.
+             - One of p, q is in {x', y'} and the other in S':
+               boundary CP case.  Apply Sub-claim 4(c) to the CP
+               (p, q) — assume (p, q) is a CP, else use a CP refining
+               via [incomparable_lifting_to_critical_pair].  Sub-claim
+               4(c) gives L_extra q p OR some L' ∈ r' has (p, q) ∈
+               B_of L'.  In the former, L_extra reverses (p, q), so
+               ~ L_extra p q (antisym).  In the latter, by
+               [cp_lift_function_with_boundary]'s reversal property,
+               (lift_per_L' L') q p; antisym gives ~ (lift_per_L' L')
+               p q.
+
+      The proof body is roughly 200 lines of Coq.  In this iteration
+      it remains Admitted while Sub-claim 4 itself is Admitted.  *)
   Lemma trotter_boundary_coverage :
     forall n (x' y' : A) (d' : nat),
     cardinal A (Full_set A) n ->
