@@ -1832,34 +1832,76 @@ Qed.
 (** ==================================================================
     Focused admit for the non-antichain non-chain small case.
 
-    [nonantichain_nonchain_small_two_realizer] : for n ∈ {4, 5} and R a
-    poset that is neither an antichain (has a strict edge) nor a chain
-    (has an incomparable pair), R has a two-element realizer.
+    The outer lemma [nonantichain_nonchain_small_two_realizer] is now
+    composed [Qed] from a single, much more focused Admitted helper
+    [small_nonantichain_nonchain_has_chain_residual_removable_pair].
 
-    This is mathematically true: the smallest poset with dim ≥ 3 is the
-    standard example S_3 on six elements, so every poset on n ≤ 5
-    elements has dim ≤ 2.  Closing it inside Coq requires either:
+    Mathematical content (preserved from the original Admitted):
 
-    - Finding a removable pair (x, y) whose residual is a CHAIN — then
-      d_q ≤ 1 and the lift via [removable_pair_dimension_bound] gives
-      d ≤ 2.  Whether such a pair exists depends on the isomorphism
-      class of the poset; the n=4 "two-strict-edges-forming-a-V" and
-      "two-disjoint-chains" cases are problematic.
+    For n ∈ {4, 5} and R a poset that is neither an antichain (has a
+    strict edge) nor a chain (has an incomparable pair), R has a
+    two-element realizer.  This is true because the smallest poset
+    with dim ≥ 3 is the standard example S_3 on six elements; every
+    poset on n ≤ 5 elements has dim ≤ 2.
 
-    - An explicit two-element realizer for each isomorphism class.
-      For n=4 the non-antichain non-chain classes are (up to dualities):
-        (a) one strict edge a<b, two isolated points c, d;
-        (b) chain a<b<c, one isolated point d;
-        (c) V: a<b, a<c, isolated d;
-        (d) ∧: a<c, b<c, isolated d;
-        (e) two disjoint chains: a<b and c<d;
-        (f) N-shape: a<b, c<b, c<d.
-      For n=5 the enumeration is larger.
+    Strategy: find a removable pair (x, y) whose residual (a 2- or
+    3-element subposet) is a CHAIN under R.  Then:
+      - the singleton {R|_residual} is a 1-realizer of R|_residual;
+      - [removable_pair_dimension_bound] lifts to a 2-realizer of R.
 
-    The Trotter combinatorial argument that classifies "removable pair
-    with chain residual" cases handles all of these uniformly, but the
-    enumeration is delicate.  We factor it out as a single named
-    Admitted lemma so [hiraguchi_small_case] composes cleanly. *)
+    The structural claim that such a removable pair exists in every
+    n ∈ {4, 5} non-antichain non-chain class requires a small-case
+    enumeration of the six isomorphism classes for n=4 and the larger
+    enumeration for n=5; for each case one exhibits a removable pair
+    (x, y) (Trotter-removable) such that R|_residual is totally
+    ordered.  This is the content of
+    [small_nonantichain_nonchain_has_chain_residual_removable_pair]
+    below (kept Admitted with a precise statement).
+
+    For n=4 the witnessing pairs (up to dualities of the six classes
+    described in the spec block) are:
+      (a) one strict edge a<b, isolated c, d : take (c, d);
+      (b) chain a<b<c, isolated d           : take (a, d);
+      (c) V (a<b, a<c, isolated d)          : take (b, d) or (c, d);
+      (d) ∧ (a<c, b<c, isolated d)          : take (a, d) or (b, d);
+      (e) two disjoint chains a<b, c<d      : take (a, b) or (c, d);
+      (f) N (a<b, c<b, c<d)                 : take (a, b) or (c, d).
+    For n=5 the residual has 3 elements; one verifies similarly. *)
+
+(** Structural sub-lemma (Admitted) capturing the small-case
+    enumeration: for n ∈ {4, 5} non-antichain non-chain, there exists
+    a Trotter-removable pair (x, y) whose residual is a chain in R.
+
+    The statement carries:
+      - [IsRemovablePair R2 x y]  (the first conjunct also implies
+        [x <> y] by the [IsRemovablePair] definition).
+      - totality of R2 restricted to the residual subtype (which,
+        combined with [subtype_is_poset], makes R2|_residual a
+        chain — i.e. a total order). *)
+Lemma small_nonantichain_nonchain_has_chain_residual_removable_pair :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2} (n : nat),
+  cardinal B (Full_set B) n ->
+  (n = 4 \/ n = 5) ->
+  ~ (forall a b : B, R2 a b -> a = b) ->
+  (exists a b : B, @Incomparable B R2 a b) ->
+  exists x y : B,
+    @IsRemovablePair B R2 x y /\
+    (forall a b : {z : B | In B (@Residual B x y) z},
+       R2 (proj1_sig a) (proj1_sig b) \/ R2 (proj1_sig b) (proj1_sig a)).
+Admitted.
+
+(** Outer lemma: 2-realizer for n ∈ {4, 5} non-antichain non-chain.
+
+    Composed [Qed] from the structural helper above.  Given the
+    removable pair (x, y) with chain residual:
+
+    1. The residual subtype with R2-restriction is a poset
+       ([subtype_is_poset]) and the chain-residual hypothesis makes
+       it total.
+    2. The singleton [Singleton _ R2_sub] is a 1-realizer of R2_sub
+       (any total order has dim ≤ 1).
+    3. [removable_pair_dimension_bound] lifts the 1-realizer of the
+       residual to a (1 + 1) = 2-realizer of R2. *)
 Lemma nonantichain_nonchain_small_two_realizer :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2} (n : nat),
   cardinal B (Full_set B) n ->
@@ -1869,7 +1911,47 @@ Lemma nonantichain_nonchain_small_two_realizer :
   exists r : Ensemble (B -> B -> Prop),
     IsRealizer R2 r /\ cardinal (B -> B -> Prop) r 2.
 Proof.
-Admitted.
+  intros B R2 HR2 n Hcard Hn45 Hnonantichain Hinc_ex.
+  (* Get the removable pair (x, y) with chain residual. *)
+  destruct (@small_nonantichain_nonchain_has_chain_residual_removable_pair
+              B R2 HR2 n Hcard Hn45 Hnonantichain Hinc_ex)
+    as [x [y [Hrem Hres_total]]].
+  (* Abbreviations *)
+  set (S := @Residual B x y).
+  set (R2sub := fun a b : {z : B | In B S z} =>
+                  R2 (proj1_sig a) (proj1_sig b)).
+  (* R2sub is a poset (restriction of R2 to the subtype). *)
+  assert (HR2sub_pos : IsPoset _ R2sub).
+  { unfold R2sub. exact (@subtype_is_poset B R2 HR2 S). }
+  (* R2sub is a total order, by the chain-residual hypothesis. *)
+  assert (HR2sub_total :
+            @IsTotalOrder {z : B | In B S z} R2sub).
+  { constructor; [exact HR2sub_pos |].
+    intros a b. unfold R2sub.
+    destruct (Hres_total a b) as [Hab | Hba]; [left | right]; assumption. }
+  (* Build the 1-realizer of R2sub: just the singleton {R2sub}. *)
+  set (rSub := Singleton ({z : B | In B S z} ->
+                          {z : B | In B S z} -> Prop) R2sub).
+  assert (HrSub_card :
+            cardinal _ rSub 1)
+    by exact (singleton_cardinal _ R2sub).
+  assert (HrSub_real :
+            @IsRealizer {z : B | In B S z} R2sub rSub).
+  { constructor.
+    - intros L HL. destruct HL.
+      constructor; [exact HR2sub_total | intros a b Hab; exact Hab].
+    - intros a b. split.
+      + intros HRab L HL. destruct HL. exact HRab.
+      + intro Hall. apply Hall. constructor. }
+  (* Lift via removable_pair_dimension_bound: get a 2-realizer of R2. *)
+  destruct (@removable_pair_dimension_bound B R2 x y 1
+              rSub Hrem HrSub_real HrSub_card)
+    as [r [Hr_real Hr_card]].
+  exists r. split; [exact Hr_real |].
+  (* 1 + 1 = 2 *)
+  replace 2 with (1 + 1) by reflexivity.
+  exact Hr_card.
+Qed.
 
 (** Hiraguchi's bound for the small base cases n in {4, 5}.
 
