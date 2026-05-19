@@ -1495,6 +1495,72 @@ Section Theorems.
       intros a b c Hab Hbc. eapply t_trans; eauto.
   Qed.
 
+  (** Boundary-augmented variant of [lift_and_force_is_poset].
+
+      Takes an extra list [B : list (A * A)] of *boundary reversal*
+      edges (each pair [(u, v) ∈ B] becomes an edge [v → u] in the
+      augmented relation). Unlike [lift_and_force_is_poset], which
+      proves the path invariant directly using critical-pair structure,
+      this version takes acyclicity as a hypothesis. The hard
+      combinatorial work shifts to the caller (who must establish
+      acyclicity for their particular choice of [B]).
+
+      Acyclicity hypothesis form: for all [a ≠ b], it is not the case
+      that the TC-augmented relation contains both [a →+ b] and
+      [b →+ a]. (Stating it as "no [a →+ a]" would be too strong since
+      [step a a] already holds via [R]-reflexivity.) *)
+  Lemma lift_and_force_with_boundary_is_poset :
+    forall (x' y' : A) (S' : Ensemble A) (B : list (A * A))
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop),
+    IsCriticalPair R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    IsLinearExtension
+      (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+    (forall a b, a <> b ->
+       clos_trans A
+         (fun a b =>
+            R a b
+            \/ (exists (ha : In A S' a) (hb : In A S' b),
+                  L' (exist _ a ha) (exist _ b hb))
+            \/ (a = x' /\ b = y')
+            \/ List.In (b, a) B) a b ->
+       clos_trans A
+         (fun a b =>
+            R a b
+            \/ (exists (ha : In A S' a) (hb : In A S' b),
+                  L' (exist _ a ha) (exist _ b hb))
+            \/ (a = x' /\ b = y')
+            \/ List.In (b, a) B) b a ->
+       False) ->
+    IsPoset A
+      (clos_trans A
+         (fun a b =>
+            R a b
+            \/ (exists (ha : In A S' a) (hb : In A S' b),
+                  L' (exist _ a ha) (exist _ b hb))
+            \/ (a = x' /\ b = y')
+            \/ List.In (b, a) B)).
+  Proof.
+    intros x' y' S' B L' Hcp HS'_eq HL' Hacyclic.
+    set (step := fun a b =>
+                   R a b
+                \/ (exists (ha : In A S' a) (hb : In A S' b),
+                      L' (exist _ a ha) (exist _ b hb))
+                \/ (a = x' /\ b = y')
+                \/ List.In (b, a) B).
+    fold step.
+    change (IsPoset A (clos_trans A step)).
+    constructor.
+    - (* Reflexivity: R is reflexive, lift via t_step *)
+      intro a. apply t_step. left. apply poset_refl.
+    - (* Antisymmetry: from Hacyclic by case analysis on a = b *)
+      intros a b Hab Hba.
+      destruct (classic (a = b)) as [Heq | Hneq]; [exact Heq |].
+      exfalso. exact (Hacyclic a b Hneq Hab Hba).
+    - (* Transitivity: clos_trans is transitive *)
+      intros a b c Hab Hbc. eapply t_trans; eauto.
+  Qed.
+
   (** Helper: a total order extending a poset is a linear extension of
       any sub-relation. *)
   Lemma total_order_is_linear_extension :
