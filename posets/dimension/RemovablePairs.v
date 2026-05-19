@@ -1031,6 +1031,86 @@ Section RemovablePairs.
 
 End RemovablePairs.
 
+(** Hiraguchi's bound for an antichain of size ≥ 2 is exactly 2.
+
+    Construction: take any linear extension [L] of [R = eq] via
+    [szpilrajn_theorem]; its converse [L_rev a b := L b a] is also a
+    total order extending [eq].  Together [{L, L_rev}] is a 2-element
+    realizer of [R] since their intersection collapses to equality.
+    The cardinality is exactly 2 whenever [A] contains ≥ 2 distinct
+    elements (so that [L ≠ L_rev]). *)
+Lemma antichain_two_realizer :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
+  (forall a b : B, R2 a b -> a = b) ->
+  (exists a b : B, a <> b) ->
+  exists r : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r /\ cardinal (B -> B -> Prop) r 2.
+Proof.
+  intros B R2 HR2 Hdiscrete Hne2.
+  (* 1. Build L = any total order on B via Szpilrajn applied to R2. *)
+  destruct (szpilrajn_theorem B R2) as [L [HL_pos [HL_tot HL_ext]]].
+  (* 2. L_rev is the converse of L. *)
+  set (L_rev := fun a b : B => L b a).
+  assert (HLrev_pos : IsPoset B L_rev).
+  { constructor; unfold L_rev.
+    - intro a. apply HL_pos.(poset_refl).
+    - intros a b H1 H2.
+      symmetry. exact (HL_pos.(poset_antisym) b a H1 H2).
+    - intros a b c H1 H2. exact (HL_pos.(poset_trans) c b a H2 H1). }
+  assert (HLrev_tot : forall a b, L_rev a b \/ L_rev b a).
+  { intros a b. unfold L_rev. destruct (HL_tot b a) as [|]; auto. }
+  assert (HLrev_ext : forall a b, R2 a b -> L_rev a b).
+  { intros a b HR. unfold L_rev.
+    assert (Heq : a = b) by exact (Hdiscrete _ _ HR).
+    subst b. apply HL_pos.(poset_refl). }
+  assert (HL_lin : IsLinearExtension R2 L).
+  { constructor.
+    - constructor; [exact HL_pos | exact HL_tot].
+    - exact HL_ext. }
+  assert (HLrev_lin : IsLinearExtension R2 L_rev).
+  { constructor.
+    - constructor; [exact HLrev_pos | exact HLrev_tot].
+    - exact HLrev_ext. }
+  (* 3. The realizer set {L, L_rev}. *)
+  set (r := Add (B -> B -> Prop) (Singleton _ L) L_rev).
+  exists r. split.
+  - (* IsRealizer R2 r. *)
+    constructor.
+    + (* All members are linear extensions. *)
+      intros L' HL'. destruct HL' as [L' HL' | L' HL'].
+      * destruct HL'. exact HL_lin.
+      * destruct HL'. exact HLrev_lin.
+    + (* Intersection = R2. *)
+      intros a b. split.
+      * intros HRab L' HL'. destruct HL' as [L' HL' | L' HL'].
+        { destruct HL'. exact (HL_lin.(linear_extends) a b HRab). }
+        { destruct HL'. exact (HLrev_lin.(linear_extends) a b HRab). }
+      * intros Hall.
+        (* Hall L holds and Hall L_rev holds, so L a b ∧ L b a → a = b → R2 a b. *)
+        assert (HLab : L a b)
+          by exact (Hall L (Union_introl _ _ _ _ (In_singleton _ _))).
+        assert (HLrev_ab : L_rev a b)
+          by exact (Hall L_rev (Union_intror _ _ _ _ (In_singleton _ _))).
+        unfold L_rev in HLrev_ab.
+        assert (Hab_eq : a = b) by exact (HL_pos.(poset_antisym) a b HLab HLrev_ab).
+        subst b. apply HR2.(poset_refl).
+  - (* Cardinal 2. *)
+    assert (HL_neq : L <> L_rev).
+    { intro Heq.
+      destruct Hne2 as [a [b Hab]].
+      destruct (HL_tot a b) as [HLab | HLba].
+      - assert (HLrev_ab : L_rev a b) by (rewrite <- Heq; exact HLab).
+        unfold L_rev in HLrev_ab.
+        exact (Hab (HL_pos.(poset_antisym) a b HLab HLrev_ab)).
+      - assert (HLrev_ba : L_rev b a) by (rewrite <- Heq; exact HLba).
+        unfold L_rev in HLrev_ba.
+        exact (Hab (HL_pos.(poset_antisym) a b HLrev_ba HLba)). }
+    unfold r.
+    apply card_add.
+    + exact (singleton_cardinal _ L).
+    + intro Hin. destruct Hin. apply HL_neq. reflexivity.
+Qed.
+
 (** Hiraguchi's bound for the small base cases n in {4, 5}.
 
     For these sizes the inductive step in [hiraguchi_helper] would
@@ -1040,25 +1120,33 @@ End RemovablePairs.
     the antichain).
 
     The proof here case-splits on whether [R2] has any incomparable
-    pair:
+    pair, and then on whether [R2] is an antichain:
 
     - **Chain case** (no incomparable pair): [R2] is a total order so
       the singleton [Singleton _ R2] is a 1-element realizer.  This
-      gives [d2 <= 1 <= 2].  Closed cleanly using the same construction
-      as [hiraguchi_helper]'s chain branch.
+      gives [d2 <= 1 <= 2].  Closed cleanly.
 
-    - **Non-chain case**: a genuine small-finite gap.  The recursive
-      approach via [removable_pair_exists] reduces to a residual of
-      [n - 2] in {2, 3} elements.  But the 2-element antichain has
-      dimension 2 (both [a<b] and [b<a] linear extensions are needed),
-      so the residual can have dim_q up to 2, giving only
-      [d2 <= d_q + 1 = 3] — not tight.  The tight bound requires a
-      construction outside the [IsRemovablePair] interface; we leave
-      this as a focused [admit].
+    - **Antichain non-chain case** (R2 = eq, some pair incomparable):
+      closed via [antichain_two_realizer] — opposite total orders form
+      a 2-element realizer of any antichain with ≥ 2 distinct elements.
+      Note this is the tightness witness for Hiraguchi at n = 4
+      (the 4-antichain has dim = 2 = 4/2).
 
-    The lemma is therefore still [Admitted] overall (the non-chain
-    [admit] is the lone remaining gap), but the structural case split
-    is now visible in the proof body and the chain case is closed. *)
+    - **Non-antichain non-chain case**: a genuine small-finite gap.
+      The recursive approach via [removable_pair_exists] reduces to a
+      residual of [n - 2] in {2, 3} elements, but the 2-element
+      antichain has dimension 2, so the residual can have dim_q up to 2,
+      giving only [d2 <= d_q + 1 = 3] — not tight.  The tight bound
+      requires either selecting a removable pair (x, y) whose residual is
+      a chain (so [d_q <= 1] and the lift gives [d2 <= 2]) or an explicit
+      two-element realizer construction.  Both depend on the strict-edge
+      structure of [R2] (which differs between the few isomorphism
+      classes of non-antichain non-chain posets on {4, 5} elements);
+      we leave this as a focused [admit].
+
+    The lemma is therefore still [Admitted] overall (the non-antichain
+    non-chain [admit] is the lone remaining gap); the antichain case and
+    the chain case are closed. *)
 Lemma hiraguchi_small_case :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
          (n d2 : nat),
@@ -1069,25 +1157,30 @@ Lemma hiraguchi_small_case :
 Proof.
   intros B R2 HR2 n d2 Hcard Hn45 Hdim.
   destruct (classic (exists a b, @Incomparable B R2 a b)) as [Hinc_ex | Hchain].
-  - (* Non-chain case: genuine small-finite gap.
+  - (* Non-chain case.  Split on whether R2 is an antichain. *)
+    destruct (classic (forall a b : B, R2 a b -> a = b)) as [HR2_antichain | HR2_nonantichain].
+    + (* Antichain case: construct a 2-realizer directly via
+         [antichain_two_realizer], using opposite total orders.
 
-       The fact d2 <= 2 is true (the smallest poset with dim >= 3 is
-       the standard example S_3 on 6 elements; any poset on n <= 5
-       elements has dimension <= 2).  But proving it inside Coq for
-       arbitrary 4-and-5-element non-chain posets requires either:
-
-       (a) Showing for every non-chain n in {4, 5} poset there is a
-           removable pair (x, y) whose residual is a CHAIN (so d_q <= 1
-           and the lift via removable_pair_dimension_bound gives d2 <= 2),
-           which involves nontrivial finite case-analysis; or
-
-       (b) An explicit two-element realizer construction using the
-           [szpilrajn_with_prefs] helper above with carefully chosen
-           preferences ensuring every critical pair is reversed by at
-           least one of L1, L2.  For arbitrary 4-and-5-element posets
-           the choice of preferences depends on poset structure and
-           we did not close this in the time budget. *)
-    admit.
+         The incomparable pair (a, b) provides two distinct elements
+         needed for the 2-realizer to have cardinality exactly 2. *)
+      destruct Hinc_ex as [a [b Hinc_ab]].
+      assert (Hab_neq : a <> b).
+      { intro Heq. apply Hinc_ab. left. rewrite Heq. apply HR2.(poset_refl). }
+      destruct (@antichain_two_realizer B R2 HR2 HR2_antichain
+                  (ex_intro _ a (ex_intro _ b Hab_neq)))
+        as [r [Hr_real Hr_card]].
+      exact (dimension_is_minimum (R := R2) (d := d2) Hdim r 2 Hr_real Hr_card).
+    + (* Non-antichain case: R2 has a strict edge.  Genuine small-finite
+         gap.  The fact d2 <= 2 is true (the smallest poset with dim >= 3
+         is the standard example S_3 on 6 elements; any poset on n <= 5
+         elements has dimension <= 2).  But proving it inside Coq for an
+         arbitrary 4-or-5-element non-antichain non-chain poset requires
+         finding a removable pair (x, y) whose residual is a CHAIN: then
+         d_q <= 1 and the lift via [removable_pair_dimension_bound] gives
+         d2 <= 2.  Selecting that pair depends on the strict-edge
+         structure of R2 and the time budget did not allow us to close it. *)
+      admit.
   - (* Chain case: R2 is a total order, dim R2 <= 1 <= 2.
        Construction mirrors the chain branch of [hiraguchi_helper]. *)
     assert (Hd1 : d2 <= 1).
