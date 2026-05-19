@@ -3208,10 +3208,59 @@ Proof.
   (* Decide whether ANY other off-diagonal pair is in R2. *)
   destruct (classic (exists x y : B, x <> y /\ R2 x y /\
                        ~ (x = p /\ y = q))) as [Hother | Honly].
-  - (* Some other strict edge exists: route to the residual admit. *)
-    apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard); [| exact Hinc_ex].
-    intro Hid. destruct Hother as [x [y [Hxy_neq [HRxy _]]]].
-    apply Hxy_neq. exact (Hid x y HRxy).
+  - (* Some other strict edge exists.  Extract the other 2 elements
+       [r, s] via [carrier_4_destructure] and try to route to class
+       (e) (disjoint chains) if the other edge has disjoint endpoints
+       from (p, q) and there is no third strict edge. *)
+    destruct (@carrier_4_destructure B p q Hcard Hpq_neq)
+      as [r [s [Hpr_neq [Hps_neq [Hqr_neq [Hqs_neq [Hrs_neq Hcov4]]]]]]].
+    (* Test: is R2 r s the second strict edge, with no third edge? *)
+    destruct (classic (R2 r s /\
+                       forall x y : B, x <> y -> R2 x y ->
+                         (x = p /\ y = q) \/ (x = r /\ y = s)))
+      as [Hclass_e_rs | Hnot_e_rs].
+    + (* Class (e), edges (p, q) and (r, s). *)
+      apply (@n4_disjoint_chains_two_realizer B R2 HR2 Hcard).
+      destruct Hclass_e_rs as [HRrs HR_only_e].
+      exists p, q, r, s.
+      repeat (split; [first [exact Hpq_neq | exact Hpr_neq | exact Hps_neq
+                            | exact Hqr_neq | exact Hqs_neq | exact Hrs_neq] |]).
+      split; [exact HRpq |].
+      split; [exact HRrs |].
+      intros a b HRab.
+      destruct (classic (a = b)) as [Heq | Hneq]; [left; exact Heq |].
+      destruct (HR_only_e a b Hneq HRab) as [[Hap Hbq] | [Har Hbs]].
+      * right; left; split; assumption.
+      * right; right; split; assumption.
+    + (* Test: is R2 s r the second strict edge, with no third edge?
+         (This handles disjoint chains where the second edge points
+         the other way among the {r, s} pair.) *)
+      destruct (classic (R2 s r /\
+                         forall x y : B, x <> y -> R2 x y ->
+                           (x = p /\ y = q) \/ (x = s /\ y = r)))
+        as [Hclass_e_sr | Hnot_e_sr].
+      * (* Class (e), edges (p, q) and (s, r). *)
+        apply (@n4_disjoint_chains_two_realizer B R2 HR2 Hcard).
+        destruct Hclass_e_sr as [HRsr HR_only_e].
+        exists p, q, s, r.
+        (* Distinctness for p, q, s, r: rearrangement of {p,q,r,s}. *)
+        split; [exact Hpq_neq |].
+        split; [exact Hps_neq |].
+        split; [exact Hpr_neq |].
+        split; [exact Hqs_neq |].
+        split; [exact Hqr_neq |].
+        split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
+        split; [exact HRpq |].
+        split; [exact HRsr |].
+        intros a b HRab.
+        destruct (classic (a = b)) as [Heq | Hneq]; [left; exact Heq |].
+        destruct (HR_only_e a b Hneq HRab) as [[Hap Hbq] | [Has Hbr]].
+        -- right; left; split; assumption.
+        -- right; right; split; assumption.
+      * (* Neither (r,s) nor (s,r) pattern matches.  Route to admit. *)
+        apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard); [| exact Hinc_ex].
+        intro Hid. destruct Hother as [x [y [Hxy_neq [HRxy _]]]].
+        apply Hxy_neq. exact (Hid x y HRxy).
   - (* No other strict edge: only (p, q) is a non-trivial relation.
        This is exactly class (a). *)
     apply (@n4_one_edge_two_realizer B R2 HR2 Hcard).
