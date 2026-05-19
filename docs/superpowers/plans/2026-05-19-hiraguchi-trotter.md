@@ -111,31 +111,27 @@ Insert after the section's `Context` lines, before any other content:
 Run: `opam exec -- dune build posets/dimension/RemovablePairs.vo`
 Expected: success.
 
-- [ ] **Step 3: Add `IsRemovablePair` definition**
+- [ ] **Step 3: Add `IsRemovablePair` definition** (REVISED post-Task 4 warm-up)
 
-Append after the `Residual_intro` lemma:
+The original single-L formulation was unsatisfiable in antichains. Use Trotter's realizer-existence form. Append after `Residual_intro`:
 
 ```coq
-  (** A pair (x, y) is removable iff every linear extension L' of R restricted
-      to the residual set lifts to a linear extension L of R that also reverses
-      every critical pair of R touching {x, y} (other than (x, y) itself). This
-      is Trotter's formulation: the key is that L's choices for boundary CPs
-      are JOINTLY CONSISTENT — they can all be honoured by a single linear
-      extension. *)
+  (** A pair (x, y) is removable iff for every realizer of R restricted to
+      the residual set, there exists a realizer of R with one more linear
+      extension. This is Trotter's formulation; the hard work of producing
+      that extra linear extension is encapsulated in this property and
+      proved (existentially) by [removable_pair_exists]. *)
   Definition IsRemovablePair (x y : A) : Prop :=
     x <> y /\
-    forall (L' : {a : A | In A (Residual x y) a} ->
-                  {a : A | In A (Residual x y) a} -> Prop),
-      IsLinearExtension (fun a b => R (proj1_sig a) (proj1_sig b)) L' ->
-      exists L : A -> A -> Prop,
-        IsLinearExtension R L /\
-        (forall (a b : {a : A | In A (Residual x y) a}),
-            L' a b -> L (proj1_sig a) (proj1_sig b)) /\
-        L y x /\
-        (forall p q : A, IsCriticalPair R p q ->
-            (p = x /\ q = y) \/
-            (In A (Residual x y) p /\ In A (Residual x y) q) \/
-            L q p).
+    forall (d' : nat)
+           (r' : Ensemble ({a : A | In A (Residual x y) a} ->
+                            {a : A | In A (Residual x y) a} -> Prop)),
+      IsRealizer (fun (a b : {a : A | In A (Residual x y) a}) =>
+                     R (proj1_sig a) (proj1_sig b)) r' ->
+      cardinal _ r' d' ->
+      exists r : Ensemble (A -> A -> Prop),
+        IsRealizer R r /\
+        cardinal (A -> A -> Prop) r (d' + 1).
 ```
 
 - [ ] **Step 4: Build and verify**
@@ -154,7 +150,7 @@ git commit -m "feat(RemovablePairs): IsRemovablePair definition + Residual set l
 
 ## Task 3: Prove `removable_pair_dimension_bound`
 
-This is the "easier" direction: assuming a removable pair, build the realizer.
+**REVISED post-Task 4 warm-up:** Under the Trotter realizer-existence definition, this lemma becomes definitionally trivial — it's essentially an unfolding of `IsRemovablePair`'s second conjunct. The proof body is `intros; apply Hrem; eassumption.` or similar. All the hard work moves to Task 5 (`removable_pair_exists`).
 
 **Files:**
 - Modify: `posets/dimension/RemovablePairs.v`

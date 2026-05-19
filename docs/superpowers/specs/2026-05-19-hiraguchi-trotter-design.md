@@ -39,14 +39,17 @@ The two key new lemmas:
 
 These replace the false `exists_critical_pair_no_boundary` / `extension_through_critical_pair` chain.
 
-### Definition: "removable pair"
+### Definition: "removable pair" (Trotter realizer-existence form)
 
-A pair `{x, y}` (with `x ≠ y`) in a finite poset `P` is **removable** iff every critical pair of `P` either:
-1. **Is the pair `(x, y)` or `(y, x)` itself**, or
-2. **Has both endpoints in `P \ {x, y}`** (a "fully internal" critical pair), or
-3. **Is reversible in a fixed linear extension `L_xy`** (built from `{x, y}`'s structure).
+**Update (2026-05-19, after Task 4 warm-up):** The original draft of this definition required a single linear extension `L` to reverse all "boundary" critical pairs in clause 3. That formulation is **unsatisfiable in any antichain** (both directed CPs `(p, q)` and `(q, p)` exist for any p ≠ q, but L can only reverse one direction). Revised to Trotter's actual formulation:
 
-Condition (3) is the technical heart of Trotter's lemma — it's what handles the antichain case the previous design missed. For an antichain, every pair `(p, q)` with `p ∉ {x, y}` and `q ∈ {x, y}` is a critical pair, but Trotter's `L_xy` can be chosen to reverse all such "boundary" pairs simultaneously because in an antichain they don't interact.
+A pair `{x, y}` (with `x ≠ y`) in a finite poset `P` is **removable** iff:
+- `x ≠ y`, and
+- for every `d'`-element realizer of `P \ {x, y}`, there exists a `(d' + 1)`-element realizer of `P`.
+
+This makes `removable_pair_dimension_bound` definitionally true (essentially an unfolding). The hard mathematical content moves entirely to `removable_pair_exists`, where it belongs.
+
+**Why this is satisfiable for antichains:** the n-antichain has `dim = 2`. The (n-2)-antichain also has `dim = 2`. So `dim(antichain on n) ≤ 2 ≤ 2 + 1 = dim(antichain on n-2) + 1` holds, and any pair `{x, y}` of distinct elements is removable.
 
 ### Why Trotter's lemma is true (informal)
 
@@ -83,28 +86,20 @@ and uses its main theorem.
 Definition cp_digraph (A : Type) (R : A -> A -> Prop) `{IsPoset A R} :
   A -> A -> Prop := fun x y => IsCriticalPair R x y.
 
-(* A pair {x, y} is "removable" iff for every L that linearises R|_{P \ {x, y}},
-   there exists a 1-element extension to a linear extension of R. *)
+(* REVISED definition (Trotter realizer-existence form, post-Task 4 warm-up).
+   Original "single-L joint-consistency" form was unsatisfiable in antichains. *)
 Definition IsRemovablePair (A : Type) (R : A -> A -> Prop) `{IsPoset A R}
                            (x y : A) : Prop :=
   x <> y /\
-  forall (L' : {a : A | In A (Setminus A (Setminus A (Full_set A)
-                                   (Singleton A x)) (Singleton A y)) a} ->
-                {a : A | In A (Setminus A (Setminus A (Full_set A)
-                                   (Singleton A x)) (Singleton A y)) a} -> Prop),
-    IsLinearExtension (fun a b => R (proj1_sig a) (proj1_sig b)) L' ->
-    exists L : A -> A -> Prop, IsLinearExtension R L /\
-                               (forall a b, L' a b -> L (proj1_sig a) (proj1_sig b)) /\
-                               (* Carries enough info to reverse all critical pairs
-                                  touching {x, y}, except (y, x). *)
-                               (L y x \/ L x y) /\
-                               (forall p q, IsCriticalPair R p q ->
-                                  In A (Setminus A (Setminus A (Full_set A)
-                                          (Singleton A x)) (Singleton A y)) p \/
-                                  In A (Setminus A (Setminus A (Full_set A)
-                                          (Singleton A x)) (Singleton A y)) q \/
-                                  (* (p, q) is reversed by L *)
-                                  L q p).
+  forall (d' : nat)
+         (r' : Ensemble ({a : A | In A (Residual x y) a} ->
+                          {a : A | In A (Residual x y) a} -> Prop)),
+    IsRealizer (fun (a b : {a : A | In A (Residual x y) a}) =>
+                   R (proj1_sig a) (proj1_sig b)) r' ->
+    cardinal _ r' d' ->
+    exists r : Ensemble (A -> A -> Prop),
+      IsRealizer R r /\
+      cardinal (A -> A -> Prop) r (d' + 1).
 ```
 
 ### Key lemmas

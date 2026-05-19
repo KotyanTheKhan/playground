@@ -3,7 +3,7 @@
 
 From Stdlib Require Import List Classical Arith Lia.
 From Stdlib Require Import FunctionalExtensionality PropExtensionality ProofIrrelevance.
-From Stdlib Require Import IndefiniteDescription.
+From Stdlib Require Import IndefiniteDescription ClassicalDescription.
 From Stdlib Require Import Relations.Relation_Operators.
 From Posets Require Import PosetClasses.
 From Dimension Require Import DimDefs CriticalPairs Szpilrajn Theorems.
@@ -78,60 +78,667 @@ Section RemovablePairs.
   Qed.
 
   (** When R is the discrete poset (an antichain), every distinct pair (x, y)
-      is removable. Provable in principle under the new definition because
-      Hiraguchi's bound is loose for antichains: [dim(antichain on n) = 2]
-      (for [n ≥ 2]) and the residual realizer [r'] of size [d'] gives plenty
-      of "room" — we only need to produce a realizer of [R] of size [d' + 1],
-      and one of size 2 is always enough.
+      is removable. Construction:
 
-      NOTE — left Admitted within the warm-up time budget.
-
-      Math sketch (clear, but Coq construction is fiddly):
-
-        - Lift each [L' ∈ r'] to a linear extension [lift L'] of [R] on the
-          full carrier, e.g., by extending [L'] (a total order on the residual
-          [S']) via Szpilrajn applied to the union of [L'] (transported by
-          [proj1_sig]) with [(y, x)] (and reflexivity). Call this map [lift].
-        - [lift] is injective on [r'] (analogous to the argument in the old
-          [removable_pair_dimension_bound]), so [Im r' lift] has cardinality
-          [d'].
-        - Add one further linear extension [L_extra] of [R] in which [x < y]
-          (so [L_extra ≠ lift L']  for any [L'], distinguishing the new
-          extension from the lifted ones).
+        - Lift each [L' ∈ r'] to a total order [lift L'] of A by placing
+          residual elements (ordered by L') below [y], and [y] below [x].
+          This is built via [szpilrajn_theorem] on the transitive closure
+          of the prescribed augmentation; an antichain has no nontrivial
+          base relation, so the prescription is acyclic by construction.
+        - [lift] is injective on [r'] (round-trip on subtype pairs), so
+          [Im r' lift] has cardinality [d'].
+        - Add one further linear extension [L_extra] of [R] in which
+          [x < y] (so [L_extra] disagrees with every [lift L'] on (x,y)).
         - The resulting [r := Add (Im r' lift) L_extra] has cardinality
-          [d' + 1].
-        - [r] is a realizer of [R]: for every critical pair [(p, q)] of [R]
-          (which, in an antichain, is just any pair with [p ≠ q]),
-            * if [p, q ∈ S']: use [r']'s realizer property on [Rsub] (still
-              an antichain) to find an [L' ∈ r'] reversing [(p, q)], and the
-              lifted [lift L'] reverses it on the full carrier.
-            * if [p = x, q = y]: [L_extra] reverses [(x, y)] by construction.
-            * if [p = y, q = x]: every [lift L'] reverses [(y, x)] by the
-              choice of lift.
-            * if exactly one of [p, q] is in [{x, y}]: pick [lift L'] for any
-              [L' ∈ r']; the lift can be designed to place [x, y] at
-              extremes relative to [S'] so that this critical pair is
-              reversed.
+          [d' + 1] and realizes [R = eq] because every pair (a, b) with
+          [a ≠ b] is "split" by at least one of the lift orientations
+          (residual < y < x in every lift, x < y < ... in L_extra). *)
 
-      The last sub-case (one endpoint in [{x, y}], one in [S']) is where
-      the proof needs care: the lift must be chosen consistently so that
-      [x] (or [y]) is at one extreme. A more direct route is to build TWO
-      [L_extra]-style extensions (one with [x < y], one with [y < x]) and
-      take [Add (Add (Im r' lift) L1) L2] of cardinality [d' + 2]; that
-      would give [dim(R) ≤ d' + 2], stronger than needed and easier to
-      build. But the [IsRemovablePair] definition requires exactly
-      [d' + 1], so we need the injective-lift + one-extra construction.
-
-      This warm-up is left Admitted; the genuine combinatorics is in
-      [removable_pair_exists] (Task 5). *)
-  Lemma antichain_removable_pair :
+  (** Helper: build a total order on A realising the prescription
+      "residual elements (ordered by L') below y below x" via Szpilrajn,
+      where the base R is the antichain (R = eq).  Returns the lifted
+      total order [L_full] together with the structural properties
+      needed downstream. *)
+  Lemma antichain_lift_witness :
     (forall a b : A, R a b -> a = b) ->
-    forall x y : A, x <> y -> IsRemovablePair x y.
+    forall (x y : A) (L' : {a : A | In A (Residual x y) a} ->
+                            {a : A | In A (Residual x y) a} -> Prop),
+    x <> y ->
+    IsLinearExtension
+      (fun a b : {a : A | In A (Residual x y) a} => R (proj1_sig a) (proj1_sig b)) L' ->
+    exists L_full : A -> A -> Prop,
+      IsLinearExtension R L_full /\
+      L_full y x /\
+      (forall a, In A (Residual x y) a -> L_full a y) /\
+      (forall a, In A (Residual x y) a -> L_full a x) /\
+      (forall (a b : A) (ha : In A (Residual x y) a) (hb : In A (Residual x y) b),
+         L' (exist _ a ha) (exist _ b hb) -> L_full a b) /\
+      (forall (a b : A) (ha : In A (Residual x y) a) (hb : In A (Residual x y) b),
+         L_full a b -> L' (exist _ a ha) (exist _ b hb)) /\
+      (~ L_full x y) /\
+      (forall a, In A (Residual x y) a -> ~ L_full y a) /\
+      (forall a, In A (Residual x y) a -> ~ L_full x a).
+  Proof.
+    intros Hdiscrete x y L' Hxy_neq HL'.
+    (* Build the prescribed relation P on A. *)
+    set (P := clos_trans A (fun a b =>
+                a = b
+                \/ (exists (ha : In A (Residual x y) a) (hb : In A (Residual x y) b),
+                      L' (exist _ a ha) (exist _ b hb))
+                \/ (In A (Residual x y) a /\ b = y)
+                \/ (In A (Residual x y) a /\ b = x)
+                \/ (a = y /\ b = x))).
+    (* Show P is a poset: only need antisymmetry (transitivity is t_trans). *)
+    assert (HL'_pos : IsPoset _ L') by exact HL'.(linear_is_total).(total_is_poset).
+    assert (HL'_tot : forall a b, L' a b \/ L' b a) by exact HL'.(linear_is_total).(total_comparable).
+    (* Key invariant: any P-path from a to b implies either a=b, or there is a
+       "level" classification: P decomposes the carrier into three blocks
+       residual < {y} < {x}; within residual P agrees with L' lifted. *)
+    (* Helper: level/rank function. residual = 0, y = 1, x = 2.
+       Any P-step preserves rank <= 2 and within residual respects L'. *)
+    set (rank := fun a : A =>
+                   if excluded_middle_informative (a = x) then 2%nat
+                   else if excluded_middle_informative (a = y) then 1%nat else 0%nat).
+    assert (Hrank_x : rank x = 2%nat).
+    { unfold rank.
+      destruct (excluded_middle_informative (x = x)); [reflexivity | contradiction]. }
+    assert (Hrank_y : rank y = 1%nat).
+    { unfold rank.
+      destruct (excluded_middle_informative (y = x)); [contradiction Hxy_neq; auto |].
+      destruct (excluded_middle_informative (y = y)); [reflexivity | contradiction]. }
+    assert (Hrank_res : forall a, In A (Residual x y) a -> rank a = 0%nat).
+    { intros a Ha. unfold rank.
+      destruct (excluded_middle_informative (a = x)) as [Heq | _].
+      - exfalso. apply (Residual_not_x _ _ _ Ha Heq).
+      - destruct (excluded_middle_informative (a = y)) as [Heq | _].
+        + exfalso. apply (Residual_not_y _ _ _ Ha Heq).
+        + reflexivity. }
+    (* P-step preserves rank a <= rank b. *)
+    assert (Hstep_rank : forall a b,
+              (a = b
+               \/ (exists (ha : In A (Residual x y) a) (hb : In A (Residual x y) b),
+                     L' (exist _ a ha) (exist _ b hb))
+               \/ (In A (Residual x y) a /\ b = y)
+               \/ (In A (Residual x y) a /\ b = x)
+               \/ (a = y /\ b = x)) ->
+              rank a <= rank b).
+    { intros a b [Heq | [[ha [hb _]] | [[Hin Hb] | [[Hin Hb] | [Ha Hb]]]]].
+      - subst; lia.
+      - rewrite (Hrank_res _ ha), (Hrank_res _ hb). lia.
+      - rewrite (Hrank_res _ Hin), Hb, Hrank_y. lia.
+      - rewrite (Hrank_res _ Hin), Hb, Hrank_x. lia.
+      - rewrite Ha, Hb, Hrank_y, Hrank_x. lia. }
+    (* P preserves rank a <= rank b (by induction on transitive closure). *)
+    assert (HP_rank : forall a b, P a b -> rank a <= rank b).
+    { intros a b HPab. unfold P in HPab.
+      induction HPab as [a b Hstep | a m b _ IH1 _ IH2].
+      - apply Hstep_rank, Hstep.
+      - lia. }
+    (* P within residual = L' lifted (or equality). *)
+    assert (HP_res : forall a b (ha : In A (Residual x y) a) (hb : In A (Residual x y) b),
+              P a b -> L' (exist _ a ha) (exist _ b hb)).
+    { intros a b ha hb HPab.
+      unfold P in HPab.
+      (* Generalize over the endpoints' residual proofs. We prove the slightly
+         stronger statement by induction. *)
+      cut (forall a b, P a b ->
+             forall (ha : In A (Residual x y) a) (hb : In A (Residual x y) b),
+               L' (exist _ a ha) (exist _ b hb)).
+      { intros Hcut. apply Hcut. apply HPab. }
+      clear a b ha hb HPab.
+      intros a b HPab.
+      induction HPab as [a b Hstep | a m b HPab1 IH1 HPab2 IH2].
+      - intros ha hb.
+        destruct Hstep as [Heq | [[ha' [hb' Hext]] | [[Hin Hbeq] | [[Hin Hbeq] | [Haeq Hbeq]]]]].
+        + (* a = b. Use reflexivity of L'. *)
+          subst b. assert (Hha_eq : ha = hb) by apply proof_irrelevance.
+          rewrite Hha_eq. apply HL'_pos.(poset_refl).
+        + assert (Hha_eq : ha = ha') by apply proof_irrelevance.
+          assert (Hhb_eq : hb = hb') by apply proof_irrelevance.
+          rewrite Hha_eq, Hhb_eq. exact Hext.
+        + exfalso. subst b. exact (Residual_not_y x y y hb eq_refl).
+        + exfalso. subst b. exact (Residual_not_x x y x hb eq_refl).
+        + exfalso. subst b. exact (Residual_not_x x y x hb eq_refl).
+      - intros ha hb.
+        (* Need In A (Residual x y) m to invoke IH. Rank-bound m: 0 <= rank m <= 0
+           since rank a = 0 = rank b. So rank m = 0, i.e., m ∈ Residual. *)
+        assert (Hra : rank a = 0) by exact (Hrank_res _ ha).
+        assert (Hrb : rank b = 0) by exact (Hrank_res _ hb).
+        assert (Hrm_le : rank m <= rank b) by exact (HP_rank _ _ HPab2).
+        assert (Hra_le : rank a <= rank m) by exact (HP_rank _ _ HPab1).
+        assert (Hrm : rank m = 0) by lia.
+        assert (Hm_res : In A (Residual x y) m).
+        { apply Residual_intro.
+          - intro Heq. subst m. rewrite Hrank_x in Hrm. discriminate.
+          - intro Heq. subst m. rewrite Hrank_y in Hrm. discriminate. }
+        eapply HL'_pos.(poset_trans).
+        + exact (IH1 ha Hm_res).
+        + exact (IH2 Hm_res hb). }
+    (* Antisymmetry. *)
+    assert (HP_antisym : forall a b, P a b -> P b a -> a = b).
+    { intros a b HPab HPba.
+      assert (Hra_le : rank a <= rank b) by exact (HP_rank _ _ HPab).
+      assert (Hrb_le : rank b <= rank a) by exact (HP_rank _ _ HPba).
+      assert (Hreq : rank a = rank b) by lia.
+      destruct (classic (a = b)) as [|Hne]; [assumption|].
+      destruct (excluded_middle_informative (a = x)) as [Hax | Hnax].
+      - subst a. destruct (excluded_middle_informative (b = x)) as [|];
+          [subst; reflexivity|].
+        rewrite Hrank_x in Hreq.
+        destruct (excluded_middle_informative (b = y)) as [Hby | Hnby].
+        + subst b. rewrite Hrank_y in Hreq. discriminate.
+        + assert (Hb_res : In A (Residual x y) b) by exact (Residual_intro _ _ _ n Hnby).
+          rewrite (Hrank_res _ Hb_res) in Hreq. discriminate.
+      - destruct (excluded_middle_informative (a = y)) as [Hay | Hnay].
+        + subst a. rewrite Hrank_y in Hreq.
+          destruct (excluded_middle_informative (b = x)) as [Hbx | Hnbx].
+          { subst b. rewrite Hrank_x in Hreq. discriminate. }
+          destruct (excluded_middle_informative (b = y)) as [|];
+            [subst; reflexivity|].
+          assert (Hb_res : In A (Residual x y) b) by exact (Residual_intro _ _ _ Hnbx n).
+          rewrite (Hrank_res _ Hb_res) in Hreq. discriminate.
+        + assert (Ha_res : In A (Residual x y) a) by exact (Residual_intro _ _ _ Hnax Hnay).
+          destruct (excluded_middle_informative (b = x)) as [Hbx | Hnbx].
+          { subst b. rewrite (Hrank_res _ Ha_res), Hrank_x in Hreq. discriminate. }
+          destruct (excluded_middle_informative (b = y)) as [Hby | Hnby].
+          { subst b. rewrite (Hrank_res _ Ha_res), Hrank_y in Hreq. discriminate. }
+          assert (Hb_res : In A (Residual x y) b) by exact (Residual_intro _ _ _ Hnbx Hnby).
+          (* Both in residual: use L' antisymmetry on the lifted pair. *)
+          assert (HL'ab : L' (exist _ a Ha_res) (exist _ b Hb_res))
+            by exact (HP_res a b Ha_res Hb_res HPab).
+          assert (HL'ba : L' (exist _ b Hb_res) (exist _ a Ha_res))
+            by exact (HP_res b a Hb_res Ha_res HPba).
+          assert (Heqs : exist (fun z => In A (Residual x y) z) a Ha_res
+                        = exist _ b Hb_res)
+            by exact (HL'_pos.(poset_antisym) _ _ HL'ab HL'ba).
+          exact (f_equal (@proj1_sig _ _) Heqs). }
+    assert (HP_pos : IsPoset A P).
+    { constructor.
+      - intro a. apply t_step. left; reflexivity.
+      - exact HP_antisym.
+      - intros a b c HPab HPbc. eapply t_trans; eauto. }
+    (* Use Szpilrajn to extend P to a total order. *)
+    destruct (szpilrajn_theorem A P) as [L_full [HL_pos [HL_tot HL_ext]]].
+    exists L_full.
+    (* Helpers for building all the conjuncts. *)
+    assert (Hext_R : forall a b, R a b -> L_full a b).
+    { intros a b HRab. apply HL_ext. apply t_step. left.
+      apply Hdiscrete. exact HRab. }
+    assert (Hext_yx : L_full y x).
+    { apply HL_ext. apply t_step. right. right. right. right. split; reflexivity. }
+    assert (Hext_resy : forall a, In A (Residual x y) a -> L_full a y).
+    { intros a Ha. apply HL_ext. apply t_step. right. right. left. split; [exact Ha | reflexivity]. }
+    assert (Hext_resx : forall a, In A (Residual x y) a -> L_full a x).
+    { intros a Ha. apply HL_ext. apply t_step. right. right. right. left. split; [exact Ha | reflexivity]. }
+    assert (Hext_L' : forall (a b : A) (ha : In A (Residual x y) a) (hb : In A (Residual x y) b),
+              L' (exist _ a ha) (exist _ b hb) -> L_full a b).
+    { intros a b ha hb HLab. apply HL_ext. apply t_step.
+      right. left. exists ha, hb. exact HLab. }
+    assert (Hnot_xy : ~ L_full x y).
+    { intro Hxy.
+      pose proof Hext_yx as Hyx.
+      assert (Heq : x = y) by exact (HL_pos.(poset_antisym) _ _ Hxy Hyx).
+      contradiction. }
+    assert (Hnot_yres : forall a, In A (Residual x y) a -> ~ L_full y a).
+    { intros a Ha Hya. pose proof (Hext_resy a Ha) as Hay.
+      assert (Heq : a = y) by exact (HL_pos.(poset_antisym) _ _ Hay Hya).
+      apply (Residual_not_y x y a Ha Heq). }
+    assert (Hnot_xres : forall a, In A (Residual x y) a -> ~ L_full x a).
+    { intros a Ha Hxa. pose proof (Hext_resx a Ha) as Hax.
+      assert (Heq : a = x) by exact (HL_pos.(poset_antisym) _ _ Hax Hxa).
+      apply (Residual_not_x x y a Ha Heq). }
+    assert (Hround : forall (a b : A) (ha : In A (Residual x y) a) (hb : In A (Residual x y) b),
+              L_full a b -> L' (exist _ a ha) (exist _ b hb)).
+    { intros a b ha hb Hfab.
+      destruct (HL'_tot (exist _ a ha) (exist _ b hb)) as [HLab | HLba].
+      - exact HLab.
+      - assert (Hfba : L_full b a) by exact (Hext_L' b a hb ha HLba).
+        assert (Heq : a = b) by exact (HL_pos.(poset_antisym) _ _ Hfab Hfba).
+        subst b. assert (Hha_eq : ha = hb) by apply proof_irrelevance.
+        rewrite Hha_eq. apply HL'_pos.(poset_refl). }
+    split; [| split; [| split; [| split; [| split; [| split; [| split; [| split]]]]]]].
+    - apply (total_order_is_linear_extension R L_full HL_pos HL_tot Hext_R).
+    - exact Hext_yx.
+    - exact Hext_resy.
+    - exact Hext_resx.
+    - exact Hext_L'.
+    - exact Hround.
+    - exact Hnot_xy.
+    - exact Hnot_yres.
+    - exact Hnot_xres.
+  Qed.
+
+  (** Lift function, packaged via classical description. *)
+  Lemma antichain_lift_function :
+    (forall a b : A, R a b -> a = b) ->
+    forall x y : A,
+    x <> y ->
+    exists lift : ({a : A | In A (Residual x y) a} ->
+                    {a : A | In A (Residual x y) a} -> Prop)
+                  -> (A -> A -> Prop),
+      forall L',
+        IsLinearExtension
+          (fun a b : {a : A | In A (Residual x y) a} => R (proj1_sig a) (proj1_sig b)) L' ->
+        IsLinearExtension R (lift L') /\
+        (lift L') y x /\
+        (forall a, In A (Residual x y) a -> (lift L') a y) /\
+        (forall a, In A (Residual x y) a -> (lift L') a x) /\
+        (forall (a b : A) (ha : In A (Residual x y) a) (hb : In A (Residual x y) b),
+           L' (exist _ a ha) (exist _ b hb) -> (lift L') a b) /\
+        (forall (a b : A) (ha : In A (Residual x y) a) (hb : In A (Residual x y) b),
+           (lift L') a b -> L' (exist _ a ha) (exist _ b hb)) /\
+        (~ (lift L') x y) /\
+        (forall a, In A (Residual x y) a -> ~ (lift L') y a) /\
+        (forall a, In A (Residual x y) a -> ~ (lift L') x a).
   Proof.
     intros Hdiscrete x y Hxy_neq.
+    set (Q := fun (L' : {a : A | In A (Residual x y) a} ->
+                          {a : A | In A (Residual x y) a} -> Prop)
+                  (L_out : A -> A -> Prop) =>
+                IsLinearExtension
+                  (fun a b : {a : A | In A (Residual x y) a} => R (proj1_sig a) (proj1_sig b)) L' ->
+                IsLinearExtension R L_out /\
+                L_out y x /\
+                (forall a, In A (Residual x y) a -> L_out a y) /\
+                (forall a, In A (Residual x y) a -> L_out a x) /\
+                (forall (a b : A) (ha : In A (Residual x y) a) (hb : In A (Residual x y) b),
+                   L' (exist _ a ha) (exist _ b hb) -> L_out a b) /\
+                (forall (a b : A) (ha : In A (Residual x y) a) (hb : In A (Residual x y) b),
+                   L_out a b -> L' (exist _ a ha) (exist _ b hb)) /\
+                (~ L_out x y) /\
+                (forall a, In A (Residual x y) a -> ~ L_out y a) /\
+                (forall a, In A (Residual x y) a -> ~ L_out x a)).
+    assert (Hex : forall L', exists L_out, Q L' L_out).
+    { intros L'. unfold Q.
+      destruct (classic (IsLinearExtension
+                  (fun a b : {a : A | In A (Residual x y) a} =>
+                     R (proj1_sig a) (proj1_sig b)) L')) as [HL' | HnL'].
+      - destruct (antichain_lift_witness Hdiscrete x y L' Hxy_neq HL')
+          as [L_full Hall].
+        exists L_full. intros _. exact Hall.
+      - exists (fun _ _ => True). intro Hk. exfalso; apply HnL'; exact Hk. }
+    set (lift := fun L' =>
+                   proj1_sig (constructive_indefinite_description _ (Hex L'))).
+    exists lift. intros L' HL'.
+    pose proof (proj2_sig (constructive_indefinite_description _ (Hex L'))) as Hspec.
+    apply Hspec. exact HL'.
+  Qed.
+
+  (** NOTE on hypotheses: the statement we can prove requires
+      |A| ≥ 4 (equivalently, the residual has at least 2 elements).
+      Without this, a degenerate antichain with |A| ∈ {2, 3} admits
+      the empty realizer [r' = ∅] of [Rsub] with [d' = 0], yet no
+      1-realizer of [R = eq] on A exists, so [IsRemovablePair x y]
+      is mathematically false in these degenerate cases.
+
+      We package the [n ≥ 4] hypothesis below.  In any realistic
+      use of this lemma (Hiraguchi's theorem requires n ≥ 4),
+      the hypothesis is available. *)
+
+  (** Helper: derive [Inhabited r'] from a realizer-of-eq on a subtype
+      with ≥ 2 distinct elements. *)
+  Lemma antichain_realizer_inhabited :
+    (forall a b : A, R a b -> a = b) ->
+    forall x y : A,
+    (exists a b, In A (Residual x y) a /\ In A (Residual x y) b /\ a <> b) ->
+    forall (r' : Ensemble ({a : A | In A (Residual x y) a} ->
+                              {a : A | In A (Residual x y) a} -> Prop)),
+      IsRealizer (fun (a b : {a : A | In A (Residual x y) a}) =>
+                     R (proj1_sig a) (proj1_sig b)) r' ->
+      Ensembles.Inhabited _ r'.
+  Proof.
+    intros Hdiscrete x y [a [b [Ha [Hb Hab_neq]]]] r' Hr'_real.
+    destruct (classic (Ensembles.Inhabited _ r')) as [Hinh | Hempty]; [exact Hinh|].
+    exfalso.
+    (* If r' is empty, then by realizer_intersection, Rsub everywhere holds.
+       But Rsub a b iff R a b iff a = b (by discrete).  Pick a, b distinct,
+       so Rsub a b is false, contradiction. *)
+    set (asub := exist (fun z => In A (Residual x y) z) a Ha).
+    set (bsub := exist (fun z => In A (Residual x y) z) b Hb).
+    assert (Hall : forall L, In _ r' L -> L asub bsub).
+    { intros L HL. exfalso. apply Hempty. exists L; exact HL. }
+    assert (HRab : R a b)
+      by exact (proj2 (Hr'_real.(realizer_intersection) asub bsub) Hall).
+    exact (Hab_neq (Hdiscrete _ _ HRab)).
+  Qed.
+
+  Lemma antichain_removable_pair :
+    (forall a b : A, R a b -> a = b) ->
+    forall x y : A, x <> y ->
+    (exists a b, In A (Residual x y) a /\ In A (Residual x y) b /\ a <> b) ->
+    IsRemovablePair x y.
+  Proof.
+    intros Hdiscrete x y Hxy_neq Hres_pair.
     split; [exact Hxy_neq |].
     intros d' r' Hr'_real Hr'_card.
-  Admitted.
+    pose proof (antichain_realizer_inhabited Hdiscrete x y Hres_pair r' Hr'_real)
+      as Hr'_inh.
+    (* Step 1: get the lift function. *)
+    destruct (antichain_lift_function Hdiscrete x y Hxy_neq) as [lift Hlift_spec].
+    (* Step 2: build L_extra — a total order on A with prescribed structure:
+       x < y < (residual).  This satisfies:
+         - L_extra x y                                (forced by build)
+         - L_extra x a   for every a ∈ Residual      (x is the bottom)
+         - L_extra y a   for every a ∈ Residual      (y is second-bottom)
+       Each lift L' from antichain_lift_witness has residual < y < x, so
+       the lifted orders disagree with L_extra on (x, y), giving disjointness,
+       and disagree on boundary pairs (p, x) / (p, y) for p ∈ residual,
+       so {L_extra} together with the lifts realises R. *)
+    assert (HL_extra_witness : exists L_extra : A -> A -> Prop,
+              IsLinearExtension R L_extra /\
+              L_extra x y /\
+              (forall a, In A (Residual x y) a -> L_extra x a) /\
+              (forall a, In A (Residual x y) a -> L_extra y a) /\
+              ~ L_extra y x /\
+              (forall a, In A (Residual x y) a -> ~ L_extra a x) /\
+              (forall a, In A (Residual x y) a -> ~ L_extra a y)).
+    { (* Build prescription Pe forcing: x = a, or x → y, or x → residual, or y → residual.
+         Also reflexivity for all (a=b). *)
+      set (Pe := clos_trans A (fun a b =>
+                  a = b
+                  \/ (a = x /\ b = y)
+                  \/ (a = x /\ In A (Residual x y) b)
+                  \/ (a = y /\ In A (Residual x y) b))).
+      (* Show Pe is a poset using a rank function: rank x = 0, rank y = 1,
+         rank residual = 2.  Pe-steps preserve rank a ≤ rank b. *)
+      set (rank := fun a : A =>
+                     if excluded_middle_informative (a = x) then 0%nat
+                     else if excluded_middle_informative (a = y) then 1%nat else 2%nat).
+      assert (Hrank_x : rank x = 0%nat).
+      { unfold rank.
+        destruct (excluded_middle_informative (x = x)); [reflexivity | contradiction]. }
+      assert (Hrank_y : rank y = 1%nat).
+      { unfold rank.
+        destruct (excluded_middle_informative (y = x)); [contradiction Hxy_neq; auto |].
+        destruct (excluded_middle_informative (y = y)); [reflexivity | contradiction]. }
+      assert (Hrank_res : forall a, In A (Residual x y) a -> rank a = 2%nat).
+      { intros a Ha. unfold rank.
+        destruct (excluded_middle_informative (a = x)) as [Heq | _].
+        - exfalso. apply (Residual_not_x _ _ _ Ha Heq).
+        - destruct (excluded_middle_informative (a = y)) as [Heq | _].
+          + exfalso. apply (Residual_not_y _ _ _ Ha Heq).
+          + reflexivity. }
+      assert (Hstep_rank : forall a b,
+                (a = b
+                 \/ (a = x /\ b = y)
+                 \/ (a = x /\ In A (Residual x y) b)
+                 \/ (a = y /\ In A (Residual x y) b)) ->
+                rank a <= rank b).
+      { intros a b [Heq | [[Hax Hby] | [[Hax Hbr] | [Hay Hbr]]]].
+        - subst; lia.
+        - subst; rewrite Hrank_x, Hrank_y; lia.
+        - subst; rewrite Hrank_x, (Hrank_res _ Hbr); lia.
+        - subst; rewrite Hrank_y, (Hrank_res _ Hbr); lia. }
+      assert (HPe_rank : forall a b, Pe a b -> rank a <= rank b).
+      { intros a b HPab. induction HPab as [a b Hstep | a m b _ IH1 _ IH2].
+        - apply Hstep_rank, Hstep.
+        - lia. }
+      assert (HPe_pos : IsPoset A Pe).
+      { constructor.
+        - intro a. apply t_step. left; reflexivity.
+        - intros a b HPab HPba.
+          assert (Hra_le : rank a <= rank b) by exact (HPe_rank _ _ HPab).
+          assert (Hrb_le : rank b <= rank a) by exact (HPe_rank _ _ HPba).
+          assert (Hreq : rank a = rank b) by lia.
+          (* a = b in all three rank-classes (singleton at ranks 0 and 1; for rank 2,
+             use Pe's path-invariant). *)
+          destruct (excluded_middle_informative (a = x)) as [Hax | Hnax].
+          + subst a. destruct (excluded_middle_informative (b = x)) as [|];
+              [subst; reflexivity|].
+            rewrite Hrank_x in Hreq.
+            destruct (excluded_middle_informative (b = y)) as [Hby | Hnby].
+            * subst b. rewrite Hrank_y in Hreq. discriminate.
+            * assert (Hb_res : In A (Residual x y) b) by exact (Residual_intro _ _ _ n Hnby).
+              rewrite (Hrank_res _ Hb_res) in Hreq. discriminate.
+          + destruct (excluded_middle_informative (a = y)) as [Hay | Hnay].
+            * subst a. destruct (excluded_middle_informative (b = x)) as [Hbx | Hnbx].
+              { subst b. rewrite Hrank_y, Hrank_x in Hreq. discriminate. }
+              destruct (excluded_middle_informative (b = y)) as [|];
+                [subst; reflexivity|].
+              assert (Hb_res : In A (Residual x y) b) by exact (Residual_intro _ _ _ Hnbx n).
+              rewrite Hrank_y, (Hrank_res _ Hb_res) in Hreq. discriminate.
+            * assert (Ha_res : In A (Residual x y) a) by exact (Residual_intro _ _ _ Hnax Hnay).
+              destruct (excluded_middle_informative (b = x)) as [Hbx | Hnbx].
+              { subst b. rewrite (Hrank_res _ Ha_res), Hrank_x in Hreq. discriminate. }
+              destruct (excluded_middle_informative (b = y)) as [Hby | Hnby].
+              { subst b. rewrite (Hrank_res _ Ha_res), Hrank_y in Hreq. discriminate. }
+              assert (Hb_res : In A (Residual x y) b) by exact (Residual_intro _ _ _ Hnbx Hnby).
+              (* Both in residual.  Use Pe path-invariant: a Pe-path from a (residual)
+                 to b is either trivial (a = b) — no Pe-step can take a residual
+                 element anywhere except itself (no rule applies for "a residual"). *)
+              assert (Hpath_res : forall c d, Pe c d -> In A (Residual x y) c -> c = d).
+              { intros c d HPcd Hc_res.
+                induction HPcd as [c d Hstep | c m d _ IH1 _ IH2].
+                - destruct Hstep as [Heq | [[Hcx _] | [[Hcx _] | [Hcy _]]]].
+                  + exact Heq.
+                  + exfalso. apply (Residual_not_x _ _ _ Hc_res Hcx).
+                  + exfalso. apply (Residual_not_x _ _ _ Hc_res Hcx).
+                  + exfalso. apply (Residual_not_y _ _ _ Hc_res Hcy).
+                - assert (Hcm : c = m) by exact (IH1 Hc_res).
+                  subst m. exact (IH2 Hc_res). }
+              exact (Hpath_res a b HPab Ha_res).
+        - intros a b c HPab HPbc. eapply t_trans; eauto. }
+      destruct (szpilrajn_theorem A Pe) as [Le [HLe_pos [HLe_tot HLe_ext]]].
+      assert (Hext_R : forall a b, R a b -> Le a b).
+      { intros a b HRab. apply HLe_ext, t_step. left. apply Hdiscrete. exact HRab. }
+      assert (Hext_xy : Le x y) by (apply HLe_ext, t_step; right; left; split; reflexivity).
+      assert (Hext_xres : forall a, In A (Residual x y) a -> Le x a).
+      { intros a Ha. apply HLe_ext, t_step. right. right. left. split; [reflexivity | exact Ha]. }
+      assert (Hext_yres : forall a, In A (Residual x y) a -> Le y a).
+      { intros a Ha. apply HLe_ext, t_step. right. right. right. split; [reflexivity | exact Ha]. }
+      assert (Hnot_yx : ~ Le y x).
+      { intro Hyx. assert (Heq : x = y) by exact (HLe_pos.(poset_antisym) _ _ Hext_xy Hyx).
+        contradiction. }
+      assert (Hnot_resx : forall a, In A (Residual x y) a -> ~ Le a x).
+      { intros a Ha Hax. pose proof (Hext_xres a Ha) as Hxa.
+        assert (Heq : x = a) by exact (HLe_pos.(poset_antisym) _ _ Hxa Hax).
+        apply (Residual_not_x x y a Ha (eq_sym Heq)). }
+      assert (Hnot_resy : forall a, In A (Residual x y) a -> ~ Le a y).
+      { intros a Ha Hay. pose proof (Hext_yres a Ha) as Hya.
+        assert (Heq : y = a) by exact (HLe_pos.(poset_antisym) _ _ Hya Hay).
+        apply (Residual_not_y x y a Ha (eq_sym Heq)). }
+      exists Le. split; [| split; [| split; [| split; [| split; [| split]]]]].
+      - apply (total_order_is_linear_extension R Le HLe_pos HLe_tot Hext_R).
+      - exact Hext_xy.
+      - exact Hext_xres.
+      - exact Hext_yres.
+      - exact Hnot_yx.
+      - exact Hnot_resx.
+      - exact Hnot_resy. }
+    destruct HL_extra_witness as [L_extra [HL_extra_lin
+      [HL_extra_xy [HL_extra_xres [HL_extra_yres
+       [HL_extra_nyx [HL_extra_nresx HL_extra_nresy]]]]]]].
+    (* Step 3: assemble r = Add (Im r' lift) L_extra. *)
+    set (r_lifted := Im _ _ r' lift).
+    exists (Add (A -> A -> Prop) r_lifted L_extra).
+    (* Helper: each element of r_lifted comes from some L' ∈ r'. *)
+    assert (Hlift_each : forall L, In _ r_lifted L ->
+              exists L', In _ r' L' /\ lift L' = L /\
+                IsLinearExtension
+                  (fun a b : {a : A | In A (Residual x y) a} => R (proj1_sig a) (proj1_sig b)) L').
+    { intros L HL. destruct HL as [L' HL'_in y0 HLeq].
+      exists L'. split; [exact HL'_in | split; [symmetry; exact HLeq |]].
+      exact (Hr'_real.(realizer_linear) L' HL'_in). }
+    (* L_extra is not in r_lifted: L_extra has x < y but every lift has NOT x < y. *)
+    assert (Hextra_notin : ~ In _ r_lifted L_extra).
+    { intro HinExtra.
+      destruct (Hlift_each L_extra HinExtra) as [L' [HL'_in [Hleq HL'_lin]]].
+      destruct (Hlift_spec L' HL'_lin) as [_ [_ [_ [_ [_ [_ [Hnotxy _]]]]]]].
+      apply Hnotxy. rewrite Hleq. exact HL_extra_xy. }
+    (* Cardinality of r_lifted. *)
+    assert (Hlift_card : cardinal (A -> A -> Prop) r_lifted d').
+    { apply cardinal_Im_injective; [exact Hr'_card |].
+      intros L'1 L'2 HL'1_in HL'2_in Heq.
+      assert (HL'1_lin : IsLinearExtension
+                  (fun a b : {a : A | In A (Residual x y) a} =>
+                     R (proj1_sig a) (proj1_sig b)) L'1)
+        by exact (Hr'_real.(realizer_linear) L'1 HL'1_in).
+      assert (HL'2_lin : IsLinearExtension
+                  (fun a b : {a : A | In A (Residual x y) a} =>
+                     R (proj1_sig a) (proj1_sig b)) L'2)
+        by exact (Hr'_real.(realizer_linear) L'2 HL'2_in).
+      destruct (Hlift_spec L'1 HL'1_lin) as [_ [_ [_ [_ [Hext1 [Hres1 _]]]]]].
+      destruct (Hlift_spec L'2 HL'2_lin) as [_ [_ [_ [_ [Hext2 [Hres2 _]]]]]].
+      apply functional_extensionality. intro a.
+      apply functional_extensionality. intro b.
+      apply propositional_extensionality.
+      destruct a as [a ha]; destruct b as [b hb]. simpl.
+      split; intro HL.
+      + apply (Hres2 a b ha hb).
+        rewrite <- Heq. exact (Hext1 a b ha hb HL).
+      + apply (Hres1 a b ha hb).
+        rewrite Heq. exact (Hext2 a b ha hb HL). }
+    split.
+    - (* IsRealizer R (Add r_lifted L_extra). *)
+      assert (Hall_lin : forall L, In _ (Add _ r_lifted L_extra) L ->
+                IsLinearExtension R L).
+      { intros L HL. destruct HL as [L HL | L HL].
+        - destruct (Hlift_each L HL) as [L' [_ [Hleq HL'_lin]]].
+          destruct (Hlift_spec L' HL'_lin) as [Hlin _].
+          rewrite <- Hleq. exact Hlin.
+        - destruct HL. exact HL_extra_lin. }
+      constructor.
+      + exact Hall_lin.
+      + intros p q. split.
+        * intros HRpq L HL. exact ((Hall_lin L HL).(linear_extends) p q HRpq).
+        * intros Hall.
+          (* R = eq.  We want R p q.  Suffices to show p = q.  Suppose not. *)
+          destruct (classic (p = q)) as [Heq | Hne]; [subst; apply poset_refl |].
+          exfalso.
+          (* Helper for picking ANY L' ∈ r' (available since cardinal r' d',
+             but we may also have d' = 0).  We will only need such an L'
+             when its absence forces |Residual| ≤ 1, which rules out the
+             residual-cases below. *)
+          (* Helper: from realizer-intersection on r', if NOT (R psub qsub),
+             extract some L' ∈ r' with NOT L' psub qsub. *)
+          assert (Hsub_split :
+            forall (p q : A) (hp : In A (Residual x y) p) (hq : In A (Residual x y) q),
+              p <> q ->
+              exists L', In _ r' L' /\ ~ L' (exist _ p hp) (exist _ q hq)).
+          { intros p0 q0 hp hq Hneq.
+            set (psub := exist (fun a => In A (Residual x y) a) p0 hp).
+            set (qsub := exist (fun a => In A (Residual x y) a) q0 hq).
+            assert (HnRsub : ~ R p0 q0)
+              by (intro HR; exact (Hneq (Hdiscrete _ _ HR))).
+            assert (Hnotall : ~ forall L', In _ r' L' -> L' psub qsub).
+            { intro Hall'. apply HnRsub.
+              exact (proj2 (Hr'_real.(realizer_intersection) psub qsub) Hall'). }
+            apply not_all_ex_not in Hnotall.
+            destruct Hnotall as [L' Hnimpl].
+            apply imply_to_and in Hnimpl.
+            exists L'. exact Hnimpl. }
+          (* Case-analysis on whether p, q are in the residual. *)
+          destruct (classic (In A (Residual x y) p)) as [Hp_res | Hp_nres].
+          { destruct (classic (In A (Residual x y) q)) as [Hq_res | Hq_nres].
+            - (* Both in residual: use sub-realizer property of r'. *)
+              destruct (Hsub_split p q Hp_res Hq_res Hne) as [L' [HL'_in HnL'pq]].
+              pose proof (Hr'_real.(realizer_linear) L' HL'_in) as HL'_lin.
+              destruct (Hlift_spec L' HL'_lin)
+                as [_ [_ [_ [_ [_ [Hres _]]]]]].
+              assert (HinR : In _ r_lifted (lift L'))
+                by exact (Im_intro _ _ _ lift L' HL'_in (lift L') eq_refl).
+              assert (Hlift_pq : lift L' p q)
+                by exact (Hall (lift L') (Union_introl _ _ _ _ HinR)).
+              apply HnL'pq.
+              exact (Hres p q Hp_res Hq_res Hlift_pq).
+            - (* p ∈ res, q ∉ res, so q = x or q = y. *)
+              destruct (classic (q = x)) as [Hqx | Hqnx].
+              + (* q = x: need NOT L p x for some L.  L_extra has NOT L_extra p x. *)
+                subst q.
+                assert (HLep : L_extra p x)
+                  by exact (Hall L_extra (Union_intror _ _ _ _ (In_singleton _ _))).
+                exact (HL_extra_nresx p Hp_res HLep).
+              + destruct (classic (q = y)) as [Hqy | Hqny].
+                * (* q = y. *)
+                  subst q.
+                  assert (HLep : L_extra p y)
+                    by exact (Hall L_extra (Union_intror _ _ _ _ (In_singleton _ _))).
+                  exact (HL_extra_nresy p Hp_res HLep).
+                * exfalso. apply Hq_nres. apply Residual_intro; assumption. }
+          { (* p ∉ res, so p = x or p = y. *)
+            destruct (classic (p = x)) as [Hpx | Hpnx].
+            - subst p.
+              destruct (classic (q = y)) as [Hqy | Hqny].
+              + (* (p, q) = (x, y): need NOT L x y for some L.
+                   Every lift has NOT (lift L') x y.  We need some L' ∈ r'
+                   to obtain such a lift; we obtain one if r' is non-empty.
+                   If r' is empty, d' = 0 and r_lifted is empty, so
+                   only L_extra is in r.  But L_extra x y is true.
+                   In that case, x = q = y → x = y, contradicting Hxy_neq.
+
+                   We don't need to special-case: if d' = 0 then |Residual| ≤ 1
+                   so |A| ≤ 3, but x ≠ y still doesn't force the realizer
+                   property.  Actually, we need to be careful: when r' is empty,
+                   we have NO lift to pick.  But we still have L_extra in r.
+                   And L_extra x y is true (Hall L_extra x y) is consistent;
+                   we'd lose.
+
+                   However: when r' is empty, the realizer-property of r' on
+                   the subtype is "Rsub a b ↔ True for all (a, b)", which on
+                   the eq-sub-relation forces the subtype to have ≤ 1 element,
+                   i.e., |Residual| ≤ 1.  Combined with x ≠ y in A, this means
+                   |A| ≤ 3.
+
+                   We don't need to invoke this; instead we pick a lift directly.
+                   But we need r' nonempty.  Case split: *)
+                subst q.
+                destruct Hr'_inh as [L' HL'_in].
+                pose proof (Hr'_real.(realizer_linear) L' HL'_in) as HL'_lin.
+                destruct (Hlift_spec L' HL'_lin) as [_ [_ [_ [_ [_ [_ [Hnotxy _]]]]]]].
+                assert (HinR : In _ r_lifted (lift L'))
+                  by exact (Im_intro _ _ _ lift L' HL'_in (lift L') eq_refl).
+                assert (Hlift_xy : lift L' x y)
+                  by exact (Hall (lift L') (Union_introl _ _ _ _ HinR)).
+                exact (Hnotxy Hlift_xy).
+              + destruct (classic (q = x)) as [Hqx | Hqnx].
+                * (* (p, q) = (x, x), but p = x = q, contradicts Hne. *)
+                  subst q. contradiction Hne; reflexivity.
+                * (* q ∈ residual. *)
+                  assert (Hq_res : In A (Residual x y) q)
+                    by exact (Residual_intro _ _ _ Hqnx Hqny).
+                  (* (p, q) = (x, residual): need NOT L x q for some L.
+                     Lift L' has residual < y < x; specifically NOT lift L' x q.
+                     Need some L' ∈ r'.  Same r'-empty issue. *)
+                  destruct Hr'_inh as [L' HL'_in].
+                  pose proof (Hr'_real.(realizer_linear) L' HL'_in) as HL'_lin.
+                  destruct (Hlift_spec L' HL'_lin)
+                    as [_ [_ [_ [_ [_ [_ [_ [_ Hnxres]]]]]]]].
+                  assert (HinR : In _ r_lifted (lift L'))
+                    by exact (Im_intro _ _ _ lift L' HL'_in (lift L') eq_refl).
+                  assert (Hlift_xq : lift L' x q)
+                    by exact (Hall (lift L') (Union_introl _ _ _ _ HinR)).
+                  exact (Hnxres q Hq_res Hlift_xq).
+            - destruct (classic (p = y)) as [Hpy | Hpny].
+              + subst p.
+                destruct (classic (q = x)) as [Hqx | Hqnx].
+                * (* (p, q) = (y, x): need NOT L y x for some L.
+                     L_extra has NOT L_extra y x. *)
+                  subst q.
+                  assert (HLep : L_extra y x)
+                    by exact (Hall L_extra (Union_intror _ _ _ _ (In_singleton _ _))).
+                  exact (HL_extra_nyx HLep).
+                * destruct (classic (q = y)) as [Hqy | Hqny].
+                  -- subst q. contradiction Hne; reflexivity.
+                  -- assert (Hq_res : In A (Residual x y) q)
+                       by exact (Residual_intro _ _ _ Hqnx Hqny).
+                     (* (p, q) = (y, residual): lift has NOT lift L' y q. *)
+                     destruct Hr'_inh as [L' HL'_in].
+                     pose proof (Hr'_real.(realizer_linear) L' HL'_in) as HL'_lin.
+                     destruct (Hlift_spec L' HL'_lin)
+                       as [_ [_ [_ [_ [_ [_ [_ [Hnyres _]]]]]]]].
+                     assert (HinR : In _ r_lifted (lift L'))
+                       by exact (Im_intro _ _ _ lift L' HL'_in (lift L') eq_refl).
+                     assert (Hlift_yq : lift L' y q)
+                       by exact (Hall (lift L') (Union_introl _ _ _ _ HinR)).
+                     exact (Hnyres q Hq_res Hlift_yq).
+              + exfalso. apply Hp_nres. apply Residual_intro; assumption. }
+    - (* Cardinality: |Add r_lifted L_extra| = d' + 1. *)
+      assert (Hcardadd : cardinal (A -> A -> Prop)
+                           (Add (A -> A -> Prop) r_lifted L_extra) (S d')).
+      { apply card_add; [exact Hlift_card | exact Hextra_notin]. }
+      replace (d' + 1) with (S d') by lia.
+      exact Hcardadd.
+  Qed.
 
   (** ==================================================================
       TROTTER'S REMOVABLE-PAIR LEMMA — STRUCTURAL DECOMPOSITION
