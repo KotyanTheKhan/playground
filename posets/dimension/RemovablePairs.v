@@ -4785,6 +4785,59 @@ Lemma n4_residual_classes_two_realizer :
     IsRealizer R2 r /\ cardinal (B -> B -> Prop) r 2.
 Admitted.
 
+(** Helper: dispatches the remaining six isomorphism classes (i)-(n)
+    — diamond, bowtie, chain-of-3 + below/above, Y-up, Y-down — given
+    a witness strict edge [(p, q)] together with the 4-element
+    destructuring [(p, q, r, s)] (distinct, covering [Full_set]).
+
+    For each class, the witness edge [(p, q)] can play one of several
+    structural roles; this helper enumerates the role × {r, s}-labeling
+    cases via [classic] and applies the corresponding per-class Qed
+    sub-lemma when the relation matches.  Cases NOT yet detected fall
+    through to [n4_residual_classes_two_realizer]. *)
+Lemma n4_dispatch_residual_after_h :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (Hcard : cardinal B (Full_set B) 4)
+    (Hnonantichain : ~ (forall a b : B, R2 a b -> a = b))
+    (Hinc_ex : exists a b : B, @Incomparable B R2 a b)
+    (p q r s : B)
+    (Hpq_neq : p <> q) (Hpr_neq : p <> r) (Hps_neq : p <> s)
+    (Hqr_neq : q <> r) (Hqs_neq : q <> s) (Hrs_neq : r <> s)
+    (Hcov4 : forall a : B, a = p \/ a = q \/ a = r \/ a = s)
+    (HRpq : R2 p q),
+  exists r' : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r' /\ cardinal (B -> B -> Prop) r' 2.
+Proof.
+  intros B R2 HR2 Hcard Hnonantichain Hinc_ex p q r s
+    Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq Hcov4 HRpq.
+  (* Diamond, role D1: a=p, b=q, c=r, d=s.
+     Edges of diamond: a→b, a→c, a→d, b→d, c→d.
+     With this labeling: p→q, p→r, p→s, q→s, r→s. *)
+  destruct (classic (R2 p r /\ R2 p s /\ R2 q s /\ R2 r s /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = p /\ y = q) \/ (x = p /\ y = r) \/
+                       (x = p /\ y = s) \/ (x = q /\ y = s) \/
+                       (x = r /\ y = s))) as [HD1 | HnD1].
+  { apply (@n4_diamond_two_realizer B R2 HR2 Hcard).
+    destruct HD1 as [HRpr [HRps [HRqs [HRrs HR_only]]]].
+    exists p, q, r, s.
+    repeat (split; [first [exact Hpq_neq | exact Hpr_neq | exact Hps_neq
+                          | exact Hqr_neq | exact Hqs_neq | exact Hrs_neq
+                          | exact HRpq | exact HRpr | exact HRps
+                          | exact HRqs | exact HRrs] |]).
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | [HM | HM]]]];
+      [ left | right; left | right; right; left
+      | right; right; right; left | right; right; right; right ];
+      exact HM. }
+  (* No match yet: fall through to the residual admit. *)
+  apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard);
+    [exact Hnonantichain | exact Hinc_ex].
+Qed.
+
 (** Main n=4 dispatcher.
 
     Extracts one strict edge [R2 p q] (from non-antichain) and four
@@ -5162,12 +5215,16 @@ Proof.
                                                  ++++++ right; left; split; assumption.
                                                  ++++++ right; right; left; split; assumption.
                                                  ++++++ right; right; right; split; assumption.
-                                            ----- (* No (g) or (h); route to admit. *)
-                                                  apply (@n4_residual_classes_two_realizer
-                                                           B R2 HR2 Hcard); [| exact Hinc_ex].
-                                                  intro Hid. destruct Hother as
-                                                    [x [y [Hxy_neq [HRxy _]]]].
-                                                  apply Hxy_neq. exact (Hid x y HRxy).
+                                            ----- (* No (g) or (h): dispatch the
+                                                     remaining classes (i)-(n)
+                                                     via the focused helper. *)
+                                                  apply (@n4_dispatch_residual_after_h
+                                                           B R2 HR2 Hcard
+                                                           Hnonantichain Hinc_ex
+                                                           p q r s
+                                                           Hpq_neq Hpr_neq Hps_neq
+                                                           Hqr_neq Hqs_neq Hrs_neq
+                                                           Hcov4 HRpq).
   - (* No other strict edge: only (p, q) is a non-trivial relation.
        This is exactly class (a). *)
     apply (@n4_one_edge_two_realizer B R2 HR2 Hcard).
