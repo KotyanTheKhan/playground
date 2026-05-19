@@ -5923,7 +5923,12 @@ Proof.
       as [HM | [HM | HM]];
       [ left | right; left | right; right ];
       exact HM. }
-  (* No match yet: fall through to the residual admit. *)
+  (* If we reach here, the relation matches no class-(b)..(n) labeling
+     above.  By the classification theorem of n=4 non-antichain
+     non-chain posets, every such relation IS one of (a)-(n), so this
+     branch is mathematically unreachable.  We keep the focused admit
+     [n4_residual_classes_two_realizer] as a soft fall-through; a fully
+     rigorous proof would need a separate enumeration lemma.  *)
   apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard);
     [exact Hnonantichain | exact Hinc_ex].
 Qed.
