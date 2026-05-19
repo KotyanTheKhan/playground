@@ -949,6 +949,40 @@ Section RemovablePairs.
       WHAT'S MISSING comment block above for the full discussion of the
       strengthened Szpilrajn construction this would require.
       ================================================================== *)
+
+  (** Controlled Szpilrajn helper: given a poset [P] and a list of
+      preferences (pair orientations to enforce), if the augmented
+      relation [TC(P ∪ prefs)] is still a poset, produce a linear
+      extension of [P] respecting every preference. *)
+  Lemma szpilrajn_with_prefs :
+    forall (P : A -> A -> Prop) (prefs : list (A * A)),
+    IsPoset A P ->
+    IsPoset A (clos_trans A (fun a b => P a b \/ List.In (a, b) prefs)) ->
+    exists L : A -> A -> Prop,
+      IsLinearExtension P L /\
+      (forall p, List.In p prefs -> L (fst p) (snd p)).
+  Proof.
+    intros P prefs HP_poset HAug_poset.
+    set (Aug := fun a b => P a b \/ List.In (a, b) prefs).
+    set (AugTC := clos_trans A Aug).
+    destruct (szpilrajn_theorem A AugTC) as [L [HL_pos [HL_tot HL_ext]]].
+    exists L. split.
+    - apply (total_order_is_linear_extension P L HL_pos HL_tot).
+      intros a b HPab. apply HL_ext. apply t_step. left. exact HPab.
+    - intros [u v] Hin. simpl.
+      apply HL_ext. apply t_step. right. exact Hin.
+  Qed.
+
+  (** NOTE on possible attack via [szpilrajn_with_prefs]:
+      The helper above lets us build a linear extension of R reversing
+      a given list of pairs, PROVIDED the augmented closure is still a
+      poset.  For the non-antichain case, the obstruction is selecting
+      the prefs: starting from a critical pair (x', y') one needs to
+      add reversals (q', p') for every boundary CP (p', q') (with one
+      endpoint in {x', y'}) whose lift would otherwise create a cycle
+      via L'-induced paths.  The structural choice of WHICH boundary
+      CPs to reverse jointly without creating cycles is Trotter's hard
+      combinatorial step (Ch.6) and is not closed here. *)
   Lemma non_antichain_removable_pair_exists :
     forall n,
     cardinal A (Full_set A) n ->
@@ -1035,7 +1069,24 @@ Lemma hiraguchi_small_case :
 Proof.
   intros B R2 HR2 n d2 Hcard Hn45 Hdim.
   destruct (classic (exists a b, @Incomparable B R2 a b)) as [Hinc_ex | Hchain].
-  - (* Non-chain case: genuine small-finite gap.  See header comment. *)
+  - (* Non-chain case: genuine small-finite gap.
+
+       The fact d2 <= 2 is true (the smallest poset with dim >= 3 is
+       the standard example S_3 on 6 elements; any poset on n <= 5
+       elements has dimension <= 2).  But proving it inside Coq for
+       arbitrary 4-and-5-element non-chain posets requires either:
+
+       (a) Showing for every non-chain n in {4, 5} poset there is a
+           removable pair (x, y) whose residual is a CHAIN (so d_q <= 1
+           and the lift via removable_pair_dimension_bound gives d2 <= 2),
+           which involves nontrivial finite case-analysis; or
+
+       (b) An explicit two-element realizer construction using the
+           [szpilrajn_with_prefs] helper above with carefully chosen
+           preferences ensuring every critical pair is reversed by at
+           least one of L1, L2.  For arbitrary 4-and-5-element posets
+           the choice of preferences depends on poset structure and
+           we did not close this in the time budget. *)
     admit.
   - (* Chain case: R2 is a total order, dim R2 <= 1 <= 2.
        Construction mirrors the chain branch of [hiraguchi_helper]. *)
