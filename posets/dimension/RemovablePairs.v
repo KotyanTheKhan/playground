@@ -1505,7 +1505,172 @@ Section RemovablePairs.
        cardinal _ r' d') ->
     exists r : Ensemble (A -> A -> Prop),
       IsRealizer R r /\ cardinal (A -> A -> Prop) r (d' + 1).
-  Admitted.
+  Proof.
+    intros n x' y' d' Hcard Hn4 Hcp [r' [Hr'_real Hr'_card]].
+    set (S' := Residual x' y').
+    assert (HS'_eq : S' = Setminus A (Setminus A (Full_set A) (Singleton A x'))
+                                       (Singleton A y'))
+      by reflexivity.
+    assert (HfinA : Finite A (Full_set A))
+      by exact (cardinal_finite A (Full_set A) n Hcard).
+    pose proof (critical_incomparable Hcp) as Hcp_inc.
+    assert (Hxy_neq : x' <> y').
+    { intro Heq. apply Hcp_inc. left. rewrite Heq. apply poset_refl. }
+    (* Step A: L_extra reversing (x', y'). *)
+    destruct (trotter_L_extra_exists x' y' Hcp)
+      as [L_extra [HL_extra_lin HL_extra_yx]].
+    (* Step B: per-L' boundary set B_of with validity, acyclicity, coverage. *)
+    destruct (trotter_boundary_existence x' y' S' r' L_extra
+                Hcp HS'_eq Hr'_real HL_extra_lin HL_extra_yx)
+      as [B_of [HB_valid [HB_acyc HB_cov]]].
+    (* Step C: per-L' lift function via cp_lift_function_with_boundary +
+       constructive_indefinite_description. *)
+    pose (Spec :=
+      fun (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+          (Lout : A -> A -> Prop) =>
+        IsLinearExtension R Lout /\
+        Lout x' y' /\
+        (forall p q : A, List.In (p, q) (B_of L') -> Lout q p) /\
+        (forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+           L' (exist _ a ha) (exist _ b hb) -> Lout a b) /\
+        (forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+           Lout a b -> L' (exist _ a ha) (exist _ b hb))).
+    assert (Hex_lift :
+      forall L', In _ r' L' -> exists Lout, Spec L' Lout).
+    { intros L' HL'_in.
+      pose proof (Hr'_real.(realizer_linear) L' HL'_in) as HL'_lin.
+      destruct (cp_lift_function_with_boundary R x' y' S' (B_of L') Hcp HS'_eq)
+        as [lift_b Hlift_spec].
+      pose proof (HB_acyc L' HL'_in HL'_lin) as HAcyc.
+      destruct (Hlift_spec L' HL'_lin HAcyc) as [Hlin [Hxy [HB [Hfwd Hbwd]]]].
+      exists (lift_b L'). unfold Spec.
+      split; [exact Hlin |].
+      split; [exact Hxy |].
+      split; [exact HB |].
+      split; [exact Hfwd | exact Hbwd]. }
+    (* Define lift_per : for L' in r', pick a witness via indefinite
+       description; for L' outside r', return a sentinel (irrelevant). *)
+    pose (lift_per :=
+      fun (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop) =>
+        match excluded_middle_informative (In _ r' L') with
+        | left HinL' =>
+            proj1_sig (constructive_indefinite_description _ (Hex_lift L' HinL'))
+        | right _ => (fun (a b : A) => True)
+        end).
+    assert (Hlift_per_spec :
+      forall L', In _ r' L' -> Spec L' (lift_per L')).
+    { intros L' HL'_in. unfold lift_per.
+      destruct (excluded_middle_informative (In _ r' L')) as [HinL' | Hnot].
+      - exact (proj2_sig (constructive_indefinite_description _ (Hex_lift L' HinL'))).
+      - contradiction. }
+    (* r_lifted = image of r' under lift_per. *)
+    set (r_lifted := Im _ _ r' lift_per).
+    (* Step D: cardinality of r_lifted is d'. *)
+    assert (Hr_lifted_card : cardinal _ r_lifted d').
+    { apply (trotter_lift_cardinality x' y' nil lift_per r' d'
+               Hcp Hr'_card Hr'_real).
+      - intros L' HL'_in a b ha hb HL'ab.
+        destruct (Hlift_per_spec L' HL'_in) as [_ [_ [_ [Hfwd _]]]].
+        exact (Hfwd a b ha hb HL'ab).
+      - intros L' HL'_in a b ha hb Hlout.
+        destruct (Hlift_per_spec L' HL'_in) as [_ [_ [_ [_ Hbwd]]]].
+        exact (Hbwd a b ha hb Hlout). }
+    (* L_extra not in r_lifted: every L in r_lifted has L x' y', but
+       L_extra y' x' + antisymmetry would force x' = y'. *)
+    assert (Hnot_in_lifted : ~ In _ r_lifted L_extra).
+    { intro HinL.
+      destruct HinL as [L' HL'_in y0 Heq].
+      destruct (Hlift_per_spec L' HL'_in) as [Hlin [Hxy _]].
+      rewrite <- Heq in Hxy. (* Hxy : L_extra x' y' *)
+      pose proof HL_extra_lin.(linear_is_total).(total_is_poset) as HLp.
+      assert (Heq_xy : x' = y') by exact (HLp.(poset_antisym) x' y' Hxy HL_extra_yx).
+      exact (Hxy_neq Heq_xy). }
+    (* Step E: realizer of R via critical_pair_realizer_iff. *)
+    set (r := Add (A -> A -> Prop) r_lifted L_extra).
+    exists r. split.
+    - (* IsRealizer R r. *)
+      assert (Hr_lin : forall L, In _ r L -> IsLinearExtension R L).
+      { intros L HL. destruct HL as [L HL | L HL].
+        - destruct HL as [L' HL'_in L0 Heq]. subst L0.
+          destruct (Hlift_per_spec L' HL'_in) as [Hlin _].
+          exact Hlin.
+        - destruct HL. exact HL_extra_lin. }
+      assert (Hr_inh : Ensembles.Inhabited (A -> A -> Prop) r).
+      { exists L_extra. right. constructor. }
+      pose proof (@critical_pair_realizer_iff A R _ HfinA r Hr_inh Hr_lin)
+        as Hiff.
+      apply Hiff.
+      (* CP separation: every CP of R is reversed by some L in r. *)
+      intros p' q' Hcp'.
+      destruct (classic (p' = x' /\ q' = y')) as [[Hpe Hqe] | Hne_xy].
+      + (* (p', q') = (x', y'): L_extra reverses. *)
+        exists L_extra. split.
+        * right. constructor.
+        * subst p' q'. exact HL_extra_yx.
+      + assert (Hp'_neq_q' : p' <> q').
+        { intro Heq. apply (critical_incomparable Hcp').
+          left. rewrite Heq. apply poset_refl. }
+        destruct (classic (In A S' p' /\ In A S' q'))
+          as [[Hp'_S' Hq'_S'] | Hboundary].
+        * (* Interior case: both p', q' ∈ S'.  Apply trotter_interior_cp_coverage. *)
+          pose proof (critical_incomparable Hcp') as Hinc'.
+          destruct (trotter_interior_cp_coverage x' y' r' Hr'_real
+                      p' q' Hp'_S' Hq'_S' Hinc')
+            as [L' [HL'_in HL'_qp]].
+          exists (lift_per L'). split.
+          { left. unfold r_lifted. exists L'.
+            - exact HL'_in.
+            - reflexivity. }
+          destruct (Hlift_per_spec L' HL'_in) as [_ [_ [_ [Hfwd _]]]].
+          exact (Hfwd q' p' Hq'_S' Hp'_S' HL'_qp).
+        * (* Boundary case.  Show some endpoint of (p',q') ∈ {x',y'}. *)
+          assert (Hbnd_endpoint : p' = x' \/ p' = y' \/ q' = x' \/ q' = y').
+          { (* If both p', q' are NOT in S', they live in {x', y'}.  If
+               exactly one is in S', the other is in {x', y'}.  In all
+               sub-cases ∃ endpoint in {x', y'}. *)
+            destruct (classic (In A S' p')) as [Hp_in | Hp_not].
+            - (* p' ∈ S', so q' ∉ S' (since not both in S'). q' ∈ {x', y'}. *)
+              assert (Hq_not : ~ In A S' q').
+              { intro Hq_in. apply Hboundary. split; assumption. }
+              (* q' ∈ Full_set \ S' = {x', y'}.  Use HS'_eq. *)
+              destruct (classic (q' = x')) as [Hqx | Hqnx];
+                [right; right; left; exact Hqx |].
+              destruct (classic (q' = y')) as [Hqy | Hqny];
+                [right; right; right; exact Hqy |].
+              exfalso. apply Hq_not. rewrite HS'_eq.
+              split; [split; [apply Full_intro |] |].
+              + intro Hin. inversion Hin as [Heq_q]. apply Hqnx. symmetry. exact Heq_q.
+              + intro Hin. inversion Hin as [Heq_q]. apply Hqny. symmetry. exact Heq_q.
+            - (* p' ∉ S' so p' ∈ {x', y'}. *)
+              destruct (classic (p' = x')) as [Hpx | Hpnx];
+                [left; exact Hpx |].
+              destruct (classic (p' = y')) as [Hpy | Hpny];
+                [right; left; exact Hpy |].
+              exfalso. apply Hp_not. rewrite HS'_eq.
+              split; [split; [apply Full_intro |] |].
+              + intro Hin. inversion Hin as [Heq_p]. apply Hpnx. symmetry. exact Heq_p.
+              + intro Hin. inversion Hin as [Heq_p]. apply Hpny. symmetry. exact Heq_p. }
+          assert (Hpq_ne : (p', q') <> (x', y')).
+          { intro Heq. inversion Heq. apply Hne_xy. split; assumption. }
+          destruct (HB_cov p' q' Hcp' Hbnd_endpoint Hpq_ne)
+            as [HLex_qp | [L' [HL'_in HpqB]]].
+          { (* L_extra q' p'. *)
+            exists L_extra. split.
+            - right. constructor.
+            - exact HLex_qp. }
+          { (* (lift_per L') q' p' via HB property. *)
+            destruct (Hlift_per_spec L' HL'_in) as [_ [_ [HB _]]].
+            exists (lift_per L'). split.
+            - left. unfold r_lifted. exists L'.
+              + exact HL'_in.
+              + reflexivity.
+            - exact (HB p' q' HpqB). }
+    - (* Cardinality: d' + 1. *)
+      assert (Hcardadd : cardinal (A -> A -> Prop) r (S d')).
+      { apply card_add; [exact Hr_lifted_card | exact Hnot_in_lifted]. }
+      replace (d' + 1) with (S d') by lia.
+      exact Hcardadd.
+  Qed.
 
   (** Trotter's non-antichain removable pair lemma.  Closed by Qed
       composition of [critical_pair_exists_from_incomparable] (lift any
