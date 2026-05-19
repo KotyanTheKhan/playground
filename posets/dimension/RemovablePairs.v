@@ -4786,15 +4786,38 @@ Lemma n4_residual_classes_two_realizer :
 Admitted.
 
 (** Helper: dispatches the remaining six isomorphism classes (i)-(n)
-    — diamond, bowtie, chain-of-3 + below/above, Y-up, Y-down — given
-    a witness strict edge [(p, q)] together with the 4-element
-    destructuring [(p, q, r, s)] (distinct, covering [Full_set]).
+    — diamond, bowtie, chain-of-3 + below/above, Y-up, Y-down — PLUS
+    the alternate labelings of classes (b) chain+isolated and (f) N
+    where the dispatcher's witness edge [(p, q)] is NOT the canonical
+    "first" edge of the class.  Given the witness edge and the
+    4-element destructuring [(p, q, r, s)] (distinct, covering
+    [Full_set]).
 
     For each class, the witness edge [(p, q)] can play one of several
     structural roles; this helper enumerates the role × {r, s}-labeling
     cases via [classic] and applies the corresponding per-class Qed
-    sub-lemma when the relation matches.  Cases NOT yet detected fall
-    through to [n4_residual_classes_two_realizer]. *)
+    sub-lemma when the relation matches.
+
+    Test coverage in this helper:
+      (i) DIAMOND: D1-D5 (5 labelings)
+      (j) BOWTIE: J1, J2 (2 labelings)
+      (k) CHAIN3+BELOW: K1a/b, K2a/b, K3a/b, K4a/b (8 labelings)
+      (l) CHAIN3+ABOVE: L1a/b, L2a/b, L3a/b, L4a/b (8 labelings)
+      (m) Y-UP: M1, M2a/b, M3a/b (5 labelings)
+      (n) Y-DOWN: N1a/b, N2a, N3a/b (5 labelings)
+      (b) CHAIN+ISOLATED alt: B2a/b (witness=chain step 2), B3a/b
+          (witness=transitive edge) — 4 labelings
+      (f) N alt: F2a/b (witness=c→b), F3a/b (witness=c→d) — 4 labelings
+
+    A theoretical enumeration suggests every (a)-(n) labeling is
+    covered; in practice the build still requires the
+    [n4_residual_classes_two_realizer] fall-through, indicating some
+    subtle case is not yet matched by an explicit test.  Replacing the
+    apply with [Qed.] without an admit produces "incomplete proof".
+
+    The admit count is unchanged: this helper does NOT introduce new
+    admits and only re-uses the existing
+    [n4_residual_classes_two_realizer]. *)
 Lemma n4_dispatch_residual_after_h :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
     (Hcard : cardinal B (Full_set B) 4)
