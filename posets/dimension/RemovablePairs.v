@@ -1003,8 +1003,28 @@ End RemovablePairs.
     recurse to subposets of size <= 3, which is below Hiraguchi's
     threshold.  The classical Hiraguchi proof handles these via a
     direct small-finite analysis (or via a different decomposition for
-    the antichain).  Honestly [Admitted] here so the gap is visible in
-    [Print Assumptions] downstream. *)
+    the antichain).
+
+    The proof here case-splits on whether [R2] has any incomparable
+    pair:
+
+    - **Chain case** (no incomparable pair): [R2] is a total order so
+      the singleton [Singleton _ R2] is a 1-element realizer.  This
+      gives [d2 <= 1 <= 2].  Closed cleanly using the same construction
+      as [hiraguchi_helper]'s chain branch.
+
+    - **Non-chain case**: a genuine small-finite gap.  The recursive
+      approach via [removable_pair_exists] reduces to a residual of
+      [n - 2] in {2, 3} elements.  But the 2-element antichain has
+      dimension 2 (both [a<b] and [b<a] linear extensions are needed),
+      so the residual can have dim_q up to 2, giving only
+      [d2 <= d_q + 1 = 3] — not tight.  The tight bound requires a
+      construction outside the [IsRemovablePair] interface; we leave
+      this as a focused [admit].
+
+    The lemma is therefore still [Admitted] overall (the non-chain
+    [admit] is the lone remaining gap), but the structural case split
+    is now visible in the proof body and the chain case is closed. *)
 Lemma hiraguchi_small_case :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
          (n d2 : nat),
@@ -1013,6 +1033,34 @@ Lemma hiraguchi_small_case :
   PosetDimension R2 d2 ->
   d2 <= 2.
 Proof.
+  intros B R2 HR2 n d2 Hcard Hn45 Hdim.
+  destruct (classic (exists a b, @Incomparable B R2 a b)) as [Hinc_ex | Hchain].
+  - (* Non-chain case: genuine small-finite gap.  See header comment. *)
+    admit.
+  - (* Chain case: R2 is a total order, dim R2 <= 1 <= 2.
+       Construction mirrors the chain branch of [hiraguchi_helper]. *)
+    assert (Hd1 : d2 <= 1).
+    { assert (HR2_total : @IsTotalOrder B R2).
+      { constructor; [exact HR2 |].
+        intros a b.
+        destruct (classic (R2 a b)) as [Hab | Hnab]; [left; assumption |].
+        right.
+        destruct (classic (R2 b a)) as [Hba | Hnba]; [assumption |].
+        exfalso. apply Hchain. exists a, b.
+        unfold Incomparable. intros [H1 | H2]; contradiction. }
+      set (rSingle := Singleton (B -> B -> Prop) R2).
+      assert (HrS_card : cardinal (B -> B -> Prop) rSingle 1)
+        by exact (singleton_cardinal _ R2).
+      assert (HrS_real : @IsRealizer B R2 rSingle).
+      { constructor.
+        - intros L HL. destruct HL.
+          constructor; [exact HR2_total | intros a b Hab; exact Hab].
+        - intros a b. split.
+          + intros HRab L HL. destruct HL. exact HRab.
+          + intro Hall. apply Hall. constructor. }
+      exact (dimension_is_minimum (R := R2) (d := d2) Hdim rSingle 1
+               HrS_real HrS_card). }
+    lia.
 Admitted.
 
 (** * Hiraguchi's Theorem via removable pairs.
