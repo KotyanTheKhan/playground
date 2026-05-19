@@ -748,40 +748,41 @@ Section RemovablePairs.
       incomparable pair has a removable pair (in the realizer-existence
       sense of [IsRemovablePair]).
 
-      Status: outer lemma [removable_pair_exists] is ADMITTED. The
-      structural decomposition below introduces one Qed sub-lemma and
-      one HONESTLY Admitted sub-lemma; the outer lemma's body is
+      Status: outer lemma [removable_pair_exists] is Qed via a
+      classical case split on whether R is an antichain.  The
+      structural decomposition below introduces two Qed sub-lemmas
+      and one HONESTLY Admitted sub-lemma; the outer lemma's body is
       mechanically composed from them.
 
       --------------------------------------------------------------
       DECOMPOSITION
       --------------------------------------------------------------
 
-      Sub-lemma (A) [admissible_critical_pair_is_removable] — Qed.
+      Sub-lemma (A1) [antichain_removable_pair] — Qed.
+        If R is the antichain (all R-related elements are equal) and
+        the residual of any (x, y) with x ≠ y has ≥ 2 distinct
+        elements, then (x, y) is a removable pair.
+
+      Sub-lemma (A2) [admissible_critical_pair_is_removable] — Qed.
         If (x', y') is a critical pair of R such that every critical
         pair (p, q) of R EITHER equals (x', y') OR has both endpoints
         in Residual x' y' (we call this "admissible"), then (x', y')
-        is a removable pair. This follows mechanically from the already-
-        Qed [extension_through_critical_pair] in Theorems.v.
+        is a removable pair.  Follows from [extension_through_critical_pair].
 
-      Sub-lemma (B) [removable_pair_exists_witness] — Admitted.
-        For every finite R on n >= 4 with an incomparable pair, SOME
-        pair (x, y) is a removable pair.
+      Sub-lemma (B) [non_antichain_removable_pair_exists] — Admitted.
+        If R has a strict edge a < b and an incomparable pair, with
+        n ≥ 4, then SOME pair (x, y) is a removable pair.
 
-        IMPORTANT NEGATIVE RESULT: the obvious specialization
-            "an admissible critical pair exists"
-        is FALSE in general. Counterexample: the n-element antichain
-        (n >= 4). In an antichain, every distinct pair is a critical
-        pair, so for ANY proposed (x', y') and any third element c,
-        (x', c) is a critical pair with one endpoint outside
-        Residual x' y'. So no critical pair is admissible.
+        IMPORTANT NEGATIVE RESULT: the obvious refinement
+            "some critical pair is admissible"
+        is FALSE even in the non-antichain case.  Counterexample:
+        A = {a, b, c, d}, R = {a < b} (plus reflexivity).  R has
+        6 critical pairs (see comment on [non_antichain_removable_pair_exists])
+        and none are admissible, yet a removable pair exists.
 
-        Yet the antichain DOES have removable pairs in the
-        realizer-existence sense (every pair is removable; see
-        [antichain_removable_pair], partially proved). Conclusion:
-        [removable_pair_exists] must be proved by a different route
-        for antichain-like posets, namely by producing the realizer
-        directly without going through "every critical pair forced".
+        Conclusion: the non-antichain case cannot be reduced to an
+        admissibility statement and instead needs the boundary-aware
+        Szpilrajn construction.
 
       --------------------------------------------------------------
       WHAT'S MISSING TO CLOSE (B)
