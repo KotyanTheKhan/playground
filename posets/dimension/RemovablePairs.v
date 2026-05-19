@@ -3168,20 +3168,25 @@ Admitted.
 
     Extracts one strict edge [R2 p q] (from non-antichain) and four
     pairwise distinct elements [p, q, r, s] (via
-    [carrier_4_destructure]).  Branches on whether R2 has ANY further
-    off-diagonal edge among the 12 ordered pairs of [{p,q,r,s}]:
+    [carrier_4_destructure]).  Walks a structural case tree to detect
+    which of the six named isomorphism classes (a)-(f) the poset
+    matches WITH RESPECT TO the canonical labeling
+    [(witness-edge) = (a, b)]:
 
-      - NO other strict edge → exactly class (a), routed to
-        [n4_one_edge_two_realizer] (Qed).
+      - 1 strict edge        → class (a) via [n4_one_edge_two_realizer]
+      - 2 strict edges       → class (e) [(r,s) or (s,r) disjoint],
+                                class (c) [V with shared bottom p],
+                                or class (d) [∧ with shared top q]
+      - 3 strict edges       → class (b) [chain p<q<r or p<q<s],
+                                or class (f) [N with central edge (r,q,s)
+                                or (s,q,r)]
 
-      - SOME other strict edge → there are at least 2 strict edges, so
-        R2 falls into one of (b)-(f) or one of the residual 8
-        higher-density classes; routed uniformly to
-        [n4_residual_classes_two_realizer] (admit).
-
-    The single-edge branch is the simplest of the six Qed wires; the
-    other five branches require finer-grained classification (chain vs
-    V vs ∧ vs disjoint vs N) and are deferred. *)
+    For each matching case the dispatcher invokes the corresponding
+    Qed sub-lemma; otherwise it falls through to the focused admit
+    [n4_residual_classes_two_realizer], which captures:
+      - alternate labelings of (b)-(f) where the witness edge (p,q) is
+        not the canonical "first" edge of the class
+      - the 8 further isomorphism classes (3-claws, diamond, etc.). *)
 Lemma n4_nonantichain_nonchain_two_realizer :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
   cardinal B (Full_set B) 4 ->
