@@ -3346,11 +3346,68 @@ Proof.
                      destruct (HR_only_d a b Hneq HRab) as [[Hap Hbq] | [Has Hbq]].
                      +++ right; left; split; assumption.
                      +++ right; right; split; assumption.
-                 --- (* Neither V nor ∧ shape; route to admit. *)
-                     apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard);
-                       [| exact Hinc_ex].
-                     intro Hid. destruct Hother as [x [y [Hxy_neq [HRxy _]]]].
-                     apply Hxy_neq. exact (Hid x y HRxy).
+                 --- (* Try class (b) chain-of-3 (p < q < r), isolated s. *)
+                     destruct (classic (R2 q r /\ R2 p r /\
+                                        forall x y : B, x <> y -> R2 x y ->
+                                          (x = p /\ y = q) \/ (x = q /\ y = r) \/
+                                          (x = p /\ y = r)))
+                       as [Hclass_b_qr | Hnot_b_qr].
+                     +++ (* Class (b) with a=p, b=q, c=r, d=s. *)
+                         apply (@n4_chain_plus_isolated_two_realizer B R2 HR2 Hcard).
+                         destruct Hclass_b_qr as [HRqr [HRpr HR_only_b]].
+                         exists p, q, r, s.
+                         split; [exact Hpq_neq |].
+                         split; [exact Hpr_neq |].
+                         split; [exact Hps_neq |].
+                         split; [exact Hqr_neq |].
+                         split; [exact Hqs_neq |].
+                         split; [exact Hrs_neq |].
+                         split; [exact HRpq |].
+                         split; [exact HRqr |].
+                         split; [exact HRpr |].
+                         intros a b HRab.
+                         destruct (classic (a = b)) as [Heq | Hneq];
+                           [left; exact Heq |].
+                         destruct (HR_only_b a b Hneq HRab)
+                           as [[Hap Hbq] | [[Haq Hbr] | [Hap Hbr]]].
+                         *** right. left. split; assumption.
+                         *** right. right. right. split; assumption.
+                         *** right. right. left. split; assumption.
+                     +++ (* Try chain (p < q < s), isolated r. *)
+                         destruct (classic (R2 q s /\ R2 p s /\
+                                            forall x y : B, x <> y -> R2 x y ->
+                                              (x = p /\ y = q) \/ (x = q /\ y = s) \/
+                                              (x = p /\ y = s)))
+                           as [Hclass_b_qs | Hnot_b_qs].
+                         *** (* Class (b) with a=p, b=q, c=s, d=r. *)
+                             apply (@n4_chain_plus_isolated_two_realizer
+                                      B R2 HR2 Hcard).
+                             destruct Hclass_b_qs as [HRqs [HRps HR_only_b]].
+                             exists p, q, s, r.
+                             split; [exact Hpq_neq |].
+                             split; [exact Hps_neq |].
+                             split; [exact Hpr_neq |].
+                             split; [exact Hqs_neq |].
+                             split; [exact Hqr_neq |].
+                             split; [intro Hsr_eq; apply Hrs_neq;
+                                     symmetry; exact Hsr_eq |].
+                             split; [exact HRpq |].
+                             split; [exact HRqs |].
+                             split; [exact HRps |].
+                             intros a b HRab.
+                             destruct (classic (a = b)) as [Heq | Hneq];
+                               [left; exact Heq |].
+                             destruct (HR_only_b a b Hneq HRab)
+                               as [[Hap Hbq] | [[Haq Hbs] | [Hap Hbs]]].
+                             ---- right. left. split; assumption.
+                             ---- right. right. right. split; assumption.
+                             ---- right. right. left. split; assumption.
+                         *** (* No (b) pattern matched; route to admit. *)
+                             apply (@n4_residual_classes_two_realizer
+                                      B R2 HR2 Hcard); [| exact Hinc_ex].
+                             intro Hid. destruct Hother as
+                               [x [y [Hxy_neq [HRxy _]]]].
+                             apply Hxy_neq. exact (Hid x y HRxy).
   - (* No other strict edge: only (p, q) is a non-trivial relation.
        This is exactly class (a). *)
     apply (@n4_one_edge_two_realizer B R2 HR2 Hcard).
