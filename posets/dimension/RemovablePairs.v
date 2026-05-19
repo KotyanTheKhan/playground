@@ -861,14 +861,116 @@ Section RemovablePairs.
              (ex_intro _ r' (conj Hr'_real Hr'_card))).
   Qed.
 
-  (** Trotter's removable-pair lemma — outer statement. ADMITTED.
+  (** Classical case split: either R is an antichain (= the discrete order
+      on A) or R has a genuine strict comparability. *)
+  Lemma R_is_antichain_dec :
+    (forall a b : A, R a b -> a = b) \/ (exists a b : A, R a b /\ a <> b).
+  Proof.
+    destruct (classic (exists a b : A, R a b /\ a <> b)) as [Hne | Hne].
+    - right; exact Hne.
+    - left. intros a b HRab.
+      destruct (classic (a = b)) as [Heq | Hneq]; [exact Heq |].
+      exfalso. apply Hne. exists a, b. split; assumption.
+  Qed.
 
-      Cannot be closed via [admissible_critical_pair_is_removable]
-      because admissible critical pairs do not always exist (see comment
-      block above; the antichain is a counterexample).
+  (** From [cardinal Full_set n] with [n >= 4] and [x <> y], the residual
+      [Residual x y] contains at least two distinct elements. *)
+  Lemma residual_has_two_distinct :
+    forall n (x y : A),
+    cardinal A (Full_set A) n ->
+    n >= 4 ->
+    x <> y ->
+    exists a b, In A (Residual x y) a /\ In A (Residual x y) b /\ a <> b.
+  Proof.
+    intros n x y Hcard Hn4 Hxy_neq.
+    (* Step 1: residual has cardinal (n - 2). *)
+    assert (Hx_in : In A (Full_set A) x) by apply Full_intro.
+    assert (Hy_in : In A (Full_set A) y) by apply Full_intro.
+    destruct n as [| n1]; [exfalso; lia |].
+    assert (Hcard1 : cardinal A (Subtract A (Full_set A) x) n1)
+      by exact (cardinal_subtract_sn A (Full_set A) x n1 Hcard Hx_in).
+    assert (Hy_in1 : In A (Subtract A (Full_set A) x) y).
+    { split; [exact Hy_in |]. intro Hin. inversion Hin as [Heq].
+      apply Hxy_neq. exact Heq. }
+    destruct n1 as [| n2]; [exfalso; lia |].
+    assert (Hcard2 : cardinal A (Subtract A (Subtract A (Full_set A) x) y) n2)
+      by exact (cardinal_subtract_sn A (Subtract A (Full_set A) x) y n2 Hcard1 Hy_in1).
+    (* [Subtract (Subtract Full x) y] is definitionally [Residual x y]. *)
+    assert (HRes_eq : Subtract A (Subtract A (Full_set A) x) y = Residual x y)
+      by reflexivity.
+    rewrite HRes_eq in Hcard2.
+    (* Step 2: extract two distinct elements via cardinal_subtract_sn. *)
+    destruct n2 as [| n3]; [exfalso; lia |].
+    (* Residual is inhabited; pick a. *)
+    assert (Hinh_res : Inhabited A (Residual x y))
+      by exact (cardinal_elim A (Residual x y) (S n3) Hcard2).
+    destruct Hinh_res as [a Ha].
+    assert (Hcard3 : cardinal A (Subtract A (Residual x y) a) n3)
+      by exact (cardinal_subtract_sn A (Residual x y) a n3 Hcard2 Ha).
+    destruct n3 as [| n4]; [exfalso; lia |].
+    (* Residual minus a is inhabited; pick b. *)
+    assert (Hinh_res2 : Inhabited A (Subtract A (Residual x y) a))
+      by exact (cardinal_elim A (Subtract A (Residual x y) a) (S n4) Hcard3).
+    destruct Hinh_res2 as [b [Hb_res Hb_neq_a]].
+    exists a, b. split; [exact Ha |]. split; [exact Hb_res |].
+    intro Heq. apply Hb_neq_a. rewrite Heq. constructor.
+  Qed.
 
-      To prove this lemma a stronger boundary-aware construction is
-      needed (see the "WHAT'S MISSING" section above). *)
+  (** ==================================================================
+      Sub-lemma (B): in the non-antichain case, find some pair (x, y)
+      that is a removable pair.
+
+      We FACTORED OUT a single Admitted obligation here so that the outer
+      lemma [removable_pair_exists] composes cleanly via a case split.
+
+      SOUNDNESS WARNING.  The "obvious" choice for this sub-lemma —
+      namely [non_antichain_admissible_cp_exists], asserting that some
+      critical pair (x', y') of R is admissible in the sense of
+      [AdmissibleCP] (every other CP lies in its residual) — is
+      **provably false** even in the non-antichain case.
+
+      Counterexample.  Let A = {a, b, c, d} (n = 4) with R given by
+      reflexivity together with the single strict edge [a < b].  Then
+      R has six critical pairs: (a,c), (a,d), (c,b), (d,b), (c,d),
+      (d,c).  For each candidate (x', y') the residual Residual x' y'
+      excludes both x' and y', leaving two elements; some other critical
+      pair always has an endpoint among {x', y'}.  In particular:
+        - Res(a, c) = {b, d}; (a, d) is a CP with a ∉ {b, d}.
+        - Res(d, b) = {a, c}; (a, d) is a CP with d ∉ {a, c}.
+      …and so on for the remaining four CPs.  Thus no critical pair is
+      admissible, yet (e.g.) (c, d) IS a removable pair in the Trotter
+      realizer-existence sense.
+
+      Therefore we cannot route the outer lemma through admissibility.
+      The honest statement of the sub-lemma is the conclusion of the
+      outer lemma itself — finding a removable pair directly — and the
+      genuine combinatorial work has been left unfactored here.  See the
+      WHAT'S MISSING comment block above for the full discussion of the
+      strengthened Szpilrajn construction this would require.
+      ================================================================== *)
+  Lemma non_antichain_removable_pair_exists :
+    forall n,
+    cardinal A (Full_set A) n ->
+    n >= 4 ->
+    (exists a b : A, R a b /\ a <> b) ->
+    (exists a b, Incomparable R a b) ->
+    exists x y, IsRemovablePair x y.
+  Proof.
+  Admitted.
+
+  (** Trotter's removable-pair lemma — outer statement.
+
+      Closed by classical case split on whether R is an antichain:
+        - antichain: any pair (x, y) of distinct elements is removable
+          by [antichain_removable_pair] (residual has ≥ 2 elements by
+          [residual_has_two_distinct] since n ≥ 4).
+        - non-antichain: handled by the Admitted sub-lemma
+          [non_antichain_removable_pair_exists].
+
+      The outer lemma is mechanically composed.  The single remaining
+      mathematical gap is the non-antichain case; see the comment block
+      above on why this cannot be routed through "admissible CP exists"
+      (that statement is false even for non-antichain posets). *)
   Lemma removable_pair_exists :
     forall n,
     cardinal A (Full_set A) n ->
@@ -876,6 +978,20 @@ Section RemovablePairs.
     (exists a b, Incomparable R a b) ->
     exists x y, IsRemovablePair x y.
   Proof.
-  Admitted.
+    intros n Hcard Hn4 Hinc_ex.
+    destruct R_is_antichain_dec as [Hdiscrete | Hne].
+    - (* Case A: R is the antichain. Pick the incomparable pair. *)
+      destruct Hinc_ex as [a [b Hinc_ab]].
+      assert (Hab_neq : a <> b).
+      { intro Heq. apply Hinc_ab. left. rewrite Heq. apply poset_refl. }
+      destruct (residual_has_two_distinct n a b Hcard Hn4 Hab_neq)
+        as [c [d [Hc_res [Hd_res Hcd_neq]]]].
+      exists a, b.
+      apply antichain_removable_pair; [exact Hdiscrete | exact Hab_neq |].
+      exists c, d. split; [exact Hc_res |]. split; [exact Hd_res | exact Hcd_neq].
+    - (* Case B: R has a strict edge.  Use the admitted non-antichain
+         sub-lemma. *)
+      exact (non_antichain_removable_pair_exists n Hcard Hn4 Hne Hinc_ex).
+  Qed.
 
 End RemovablePairs.
