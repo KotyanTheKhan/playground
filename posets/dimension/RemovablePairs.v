@@ -996,3 +996,167 @@ Section RemovablePairs.
   Qed.
 
 End RemovablePairs.
+
+(** Hiraguchi's bound for the small base cases n in {4, 5}.
+
+    For these sizes the inductive step in [hiraguchi_helper] would
+    recurse to subposets of size <= 3, which is below Hiraguchi's
+    threshold.  The classical Hiraguchi proof handles these via a
+    direct small-finite analysis (or via a different decomposition for
+    the antichain).  Honestly [Admitted] here so the gap is visible in
+    [Print Assumptions] downstream. *)
+Lemma hiraguchi_small_case :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+         (n d2 : nat),
+  cardinal B (Full_set B) n ->
+  (n = 4 \/ n = 5) ->
+  PosetDimension R2 d2 ->
+  d2 <= 2.
+Proof.
+Admitted.
+
+(** * Hiraguchi's Theorem via removable pairs.
+
+    Strong induction on n.  For n >= 6 the induction step uses
+    [removable_pair_exists] to obtain a removable pair (x, y) (when an
+    incomparable pair exists), then bounds the dimension of the
+    residual subposet by IH (since |Residual| = n - 2 >= 4) and lifts
+    via [removable_pair_dimension_bound].  The chain case (no
+    incomparable pair) gives dim <= 1.
+
+    For n in {4, 5} we appeal to the separate [hiraguchi_small_case]
+    axiom (a genuine small-finite gap, kept Admitted with a precise
+    statement). *)
+Lemma hiraguchi_helper :
+  forall (n : nat) {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2} (d2 : nat),
+  cardinal B (Full_set B) n ->
+  n >= 4 ->
+  PosetDimension R2 d2 ->
+  d2 <= n / 2.
+Proof.
+  intro n.
+  induction n as [n IH] using lt_wf_ind.
+  intros B R2 HR2 d2 Hcard Hn4 Hdim.
+  (* Split on n in {4, 5} vs n >= 6 *)
+  destruct (Nat.lt_ge_cases n 6) as [Hlt6 | Hge6].
+  { (* Base case: n in {4, 5}, dim <= 2 <= n / 2 *)
+    assert (Hn45 : n = 4 \/ n = 5) by lia.
+    assert (Hd2 : d2 <= 2)
+      by exact (@hiraguchi_small_case B R2 HR2 n d2 Hcard Hn45 Hdim).
+    destruct Hn45 as [-> | ->]; simpl; lia. }
+  (* n >= 6: case-split on chain / non-chain *)
+  destruct (classic (exists a b, @Incomparable B R2 a b)) as [Hinc_ex | Hchain].
+  - (* Non-chain: removable pair exists, recurse on (n - 2)-residual *)
+    destruct (@removable_pair_exists B R2 HR2 n Hcard Hn4 Hinc_ex)
+      as [x [y Hrem]].
+    pose proof Hrem as Hrem_full.
+    destruct Hrem as [Hxy_neq Hrem_prop].
+    (* Compute the cardinal of Residual x y, which is n - 2 *)
+    assert (Hn2 : n >= 2) by lia.
+    assert (Hx_in : In B (Full_set B) x) by apply Full_intro.
+    assert (Hcard_minus1 : cardinal B (Subtract B (Full_set B) x) (pred n)).
+    { assert (Hn_pos : 0 < n) by lia.
+      rewrite <- (Nat.succ_pred_pos n Hn_pos) in Hcard.
+      exact (cardinal_subtract_sn B (Full_set B) x (pred n) Hcard Hx_in). }
+    assert (Hy_in1 : In B (Subtract B (Full_set B) x) y).
+    { split; [apply Full_intro |].
+      intro Hin. inversion Hin as [Hxy_eq]. apply Hxy_neq. exact Hxy_eq. }
+    assert (Hcard_minus2 : cardinal B (@Residual B x y) (pred (pred n))).
+    { assert (Hpredn_pos : 0 < pred n) by lia.
+      rewrite <- (Nat.succ_pred_pos (pred n) Hpredn_pos) in Hcard_minus1.
+      unfold Residual.
+      (* Convert Subtract to Setminus form *)
+      replace (Subtract B (Full_set B) x) with
+              (Setminus B (Full_set B) (Singleton B x)) in Hcard_minus1
+        by reflexivity.
+      exact (cardinal_subtract_sn B _ y (pred (pred n)) Hcard_minus1 Hy_in1). }
+    (* Apply subposet_dimension_le on Residual to get a sub-dimension d_q <= d2 *)
+    destruct (subposet_dimension_le R2 (@Residual B x y) d2 Hdim)
+      as [d_q [HdimQ_inh' Hd_q_le]].
+    destruct HdimQ_inh' as [HdimQ].
+    (* IH gives d_q <= (n - 2) / 2 *)
+    assert (Hd_q_bound : d_q <= pred (pred n) / 2).
+    { assert (Hcard_sub :
+        cardinal {a : B | In B (@Residual B x y) a}
+                 (Full_set {a : B | In B (@Residual B x y) a})
+                 (pred (pred n))).
+      { exact (cardinal_subtype_full B (@Residual B x y) (pred (pred n))
+                 Hcard_minus2). }
+      assert (Hpp_ge4 : pred (pred n) >= 4) by lia.
+      exact (IH (pred (pred n)) ltac:(lia)
+                {a : B | In B (@Residual B x y) a}
+                (fun a b => R2 (proj1_sig a) (proj1_sig b))
+                (subtype_is_poset R2 (@Residual B x y))
+                d_q
+                Hcard_sub Hpp_ge4 HdimQ). }
+    (* Use removable_pair_dimension_bound to lift d_q to a (d_q + 1)-realizer of R2 *)
+    assert (Hd_ext : d2 <= d_q + 1).
+    { pose proof (dimension_is_realizer HdimQ) as HrSub_real.
+      pose proof (dimension_cardinality HdimQ) as HrSub_card.
+      destruct (@removable_pair_dimension_bound B R2 x y d_q
+                  (dimension_realizer HdimQ)
+                  Hrem_full HrSub_real HrSub_card)
+        as [r [Hr_real Hr_card]].
+      exact (dimension_is_minimum (R := R2) (d := d2) Hdim r (d_q + 1)
+               Hr_real Hr_card). }
+    (* Arithmetic: d_q + 1 <= (n - 2) / 2 + 1 = n / 2 for n >= 6 *)
+    assert (Hbridge : pred (pred n) / 2 + 1 <= n / 2).
+    { replace (pred (pred n)) with (n - 2) by lia.
+      assert (Heq : n / 2 = (n - 2) / 2 + 1).
+      { replace n with ((n - 2) + 1 * 2) at 1 by lia.
+        rewrite Nat.div_add by lia. lia. }
+      lia. }
+    lia.
+  - (* Chain: R2 is a total order, dim R2 <= 1 *)
+    assert (Hd1 : d2 <= 1).
+    { assert (HR2_total : @IsTotalOrder B R2).
+      { constructor; [exact HR2 |].
+        intros a b.
+        destruct (classic (R2 a b)) as [Hab | Hnab]; [left; assumption |].
+        right.
+        destruct (classic (R2 b a)) as [Hba | Hnba]; [assumption |].
+        exfalso. apply Hchain. exists a, b.
+        unfold Incomparable. intros [H1 | H2]; contradiction. }
+      set (rSingle := Singleton (B -> B -> Prop) R2).
+      assert (HrS_card : cardinal (B -> B -> Prop) rSingle 1)
+        by exact (singleton_cardinal _ R2).
+      assert (HrS_real : @IsRealizer B R2 rSingle).
+      { constructor.
+        - intros L HL. destruct HL.
+          constructor; [exact HR2_total | intros a b Hab; exact Hab].
+        - intros a b. split.
+          + intros HRab L HL. destruct HL. exact HRab.
+          + intro Hall. apply Hall. constructor. }
+      exact (dimension_is_minimum (R := R2) (d := d2) Hdim rSingle 1
+               HrS_real HrS_card). }
+    assert (Hnhalf : 1 <= n / 2) by (apply Nat.div_le_lower_bound; lia).
+    lia.
+Qed.
+
+(** Hiraguchi's Theorem (1951), carrier-polymorphic form.
+    Re-exports [hiraguchi_helper] under its historical name. *)
+Lemma hiraguchi_thm :
+  forall (n : nat) {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2} (d2 : nat),
+  cardinal B (Full_set B) n ->
+  n >= 4 ->
+  PosetDimension R2 d2 ->
+  d2 <= n / 2.
+Proof.
+  intros n B R2 HR2 d2 Hcard Hn4 Hdim.
+  exact (@hiraguchi_helper n B R2 HR2 d2 Hcard Hn4 Hdim).
+Qed.
+
+(** Hiraguchi's Theorem, specialised form: section-arg corollary. *)
+Theorem hiraguchi_bound :
+  forall {A : Type} (R : A -> A -> Prop) `{IsPoset A R} (n d : nat),
+  cardinal A (Full_set A) n ->
+  n >= 4 ->
+  PosetDimension R d ->
+  d <= n / 2.
+Proof.
+  intros A R HR n d Hcard Hn4 Hdim.
+  exact (@hiraguchi_helper n A R HR d Hcard Hn4 Hdim).
+Qed.
+
+
+
