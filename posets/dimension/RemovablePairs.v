@@ -1877,7 +1877,44 @@ Qed.
         [x <> y] by the [IsRemovablePair] definition).
       - totality of R2 restricted to the residual subtype (which,
         combined with [subtype_is_poset], makes R2|_residual a
-        chain — i.e. a total order). *)
+        chain — i.e. a total order).
+
+    HONEST CIRCULARITY NOTE.  This helper does not actually reduce the
+    difficulty of the outer claim [nonantichain_nonchain_small_two_realizer].
+    Unfolding [IsRemovablePair x y] requires producing, from any
+    d'-realizer of R|_residual, a (d'+1)-realizer of R.  In particular, a
+    1-realizer of the residual (here: the residual itself, by totality)
+    must lift to a 2-realizer of R.  So this admit packages exactly the
+    construction of a 2-realizer of R — the very claim of the outer
+    lemma.  The factoring renames the obligation without reducing it.
+
+    PARTIAL PROGRESS PATHS (none Qed in 150 min):
+
+      (i)  Direct Strategy A (Szpilrajn-with-prefs): pick L1 by a careful
+           topological sort, build L2 = szpilrajn(R ∪ {(b,a) : (a,b)
+           incomparable in R, L1 a b}).  Counter-example for n=3 (R = {x<y},
+           z isolated, L1 = x<z<y) shows the augmented relation can be
+           cyclic.  For n ∈ {4, 5} the choice of L1 must keep R-comparable
+           elements contiguous; whether a uniform construction exists is
+           open in this development.
+
+      (ii) Direct case enumeration (n=4 has 6 non-antichain non-chain
+           isomorphism classes; n=5 has more).  For each class the
+           witnessing chain-residual pair is listed in the spec comment
+           above.  Proving "R falls into class X" by case analysis
+           requires a small-poset decision procedure, which would
+           consume the entire 150 min budget and likely yield a brittle
+           proof.
+
+      (iii) Routing through [non_antichain_removable_pair_exists] (Qed,
+            but transitively depends on the [trotter_boundary_existence]
+            Admit upstream).  This gives SOME removable pair but not
+            necessarily one whose residual is a chain.
+
+    None of (i)-(iii) yielded a Qed proof within the time budget.  This
+    Admit is retained as the precise small-case gap; see also the
+    twin Admit [trotter_boundary_existence] (deep Trotter combinatorics
+    for n >= 6). *)
 Lemma small_nonantichain_nonchain_has_chain_residual_removable_pair :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2} (n : nat),
   cardinal B (Full_set B) n ->
