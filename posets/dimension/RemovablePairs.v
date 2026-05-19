@@ -5082,7 +5082,7 @@ Proof.
     right.
     destruct (HR_only x y Hneq HRxy)
       as [HM | [HM | [HM | HM]]];
-      [ right; left | left | right; right; left | right; right; right ];
+      [ left | right; left | right; right; left | right; right; right ];
       exact HM. }
   (* K2b: a=p, b=s, c=q, d=r.  Edges p→q, p→s, s→q, p→r. *)
   destruct (classic (R2 p s /\ R2 s q /\ R2 p r /\
@@ -5108,7 +5108,7 @@ Proof.
     right.
     destruct (HR_only x y Hneq HRxy)
       as [HM | [HM | [HM | HM]]];
-      [ right; left | left | right; right; left | right; right; right ];
+      [ left | right; left | right; right; left | right; right; right ];
       exact HM. }
   (* K3a: a=r, b=p, c=q, d=s.  Edges r→p, r→q, p→q, r→s. *)
   destruct (classic (R2 r p /\ R2 r q /\ R2 r s /\
@@ -5213,6 +5213,507 @@ Proof.
     destruct (HR_only x y Hneq HRxy)
       as [HM | [HM | [HM | HM]]];
       [ left | right; left | right; right; left | right; right; right ];
+      exact HM. }
+  (* === Class (l) CHAIN3 + ABOVE : edges a→b, a→c, b→c, d→c === *)
+  (* L1a: a=p, b=q, c=r, d=s.  Edges p→q, p→r, q→r, s→r. *)
+  destruct (classic (R2 p r /\ R2 q r /\ R2 s r /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = p /\ y = q) \/ (x = p /\ y = r) \/
+                       (x = q /\ y = r) \/ (x = s /\ y = r)))
+    as [HL1a | HnL1a].
+  { apply (@n4_chain3_plus_above_two_realizer B R2 HR2 Hcard).
+    destruct HL1a as [HRpr [HRqr [HRsr HR_only]]].
+    exists p, q, r, s.
+    split; [exact Hpq_neq |].
+    split; [exact Hpr_neq |].
+    split; [exact Hps_neq |].
+    split; [exact Hqr_neq |].
+    split; [exact Hqs_neq |].
+    split; [exact Hrs_neq |].
+    split; [exact HRpq |].
+    split; [exact HRpr |].
+    split; [exact HRqr |].
+    split; [exact HRsr |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | HM]]];
+      [ left | right; left | right; right; left | right; right; right ];
+      exact HM. }
+  (* L1b: a=p, b=q, c=s, d=r.  Edges p→q, p→s, q→s, r→s. *)
+  destruct (classic (R2 p s /\ R2 q s /\ R2 r s /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = p /\ y = q) \/ (x = p /\ y = s) \/
+                       (x = q /\ y = s) \/ (x = r /\ y = s)))
+    as [HL1b | HnL1b].
+  { apply (@n4_chain3_plus_above_two_realizer B R2 HR2 Hcard).
+    destruct HL1b as [HRps [HRqs [HRrs HR_only]]].
+    exists p, q, s, r.
+    split; [exact Hpq_neq |].
+    split; [exact Hps_neq |].
+    split; [exact Hpr_neq |].
+    split; [exact Hqs_neq |].
+    split; [exact Hqr_neq |].
+    split; [exact Hsr_neq |].
+    split; [exact HRpq |].
+    split; [exact HRps |].
+    split; [exact HRqs |].
+    split; [exact HRrs |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | HM]]];
+      [ left | right; left | right; right; left | right; right; right ];
+      exact HM. }
+  (* L2a: a=p, b=r, c=q, d=s.  Edges p→r, p→q, r→q, s→q. *)
+  destruct (classic (R2 p r /\ R2 r q /\ R2 s q /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = p /\ y = r) \/ (x = p /\ y = q) \/
+                       (x = r /\ y = q) \/ (x = s /\ y = q)))
+    as [HL2a | HnL2a].
+  { apply (@n4_chain3_plus_above_two_realizer B R2 HR2 Hcard).
+    destruct HL2a as [HRpr [HRrq [HRsq HR_only]]].
+    exists p, r, q, s.
+    split; [exact Hpr_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hps_neq |].
+    split; [exact Hrq_neq |].
+    split; [exact Hrs_neq |].
+    split; [exact Hqs_neq |].
+    split; [exact HRpr |].
+    split; [exact HRpq |].
+    split; [exact HRrq |].
+    split; [exact HRsq |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | HM]]];
+      [ left | right; left | right; right; left | right; right; right ];
+      exact HM. }
+  (* L2b: a=p, b=s, c=q, d=r.  Edges p→s, p→q, s→q, r→q. *)
+  destruct (classic (R2 p s /\ R2 s q /\ R2 r q /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = p /\ y = s) \/ (x = p /\ y = q) \/
+                       (x = s /\ y = q) \/ (x = r /\ y = q)))
+    as [HL2b | HnL2b].
+  { apply (@n4_chain3_plus_above_two_realizer B R2 HR2 Hcard).
+    destruct HL2b as [HRps [HRsq [HRrq HR_only]]].
+    exists p, s, q, r.
+    split; [exact Hps_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hpr_neq |].
+    split; [exact Hsq_neq |].
+    split; [exact Hsr_neq |].
+    split; [exact Hqr_neq |].
+    split; [exact HRps |].
+    split; [exact HRpq |].
+    split; [exact HRsq |].
+    split; [exact HRrq |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | HM]]];
+      [ left | right; left | right; right; left | right; right; right ];
+      exact HM. }
+  (* L3a: a=r, b=p, c=q, d=s.  Edges r→p, r→q, p→q, s→q. *)
+  destruct (classic (R2 r p /\ R2 r q /\ R2 s q /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = r /\ y = p) \/ (x = r /\ y = q) \/
+                       (x = p /\ y = q) \/ (x = s /\ y = q)))
+    as [HL3a | HnL3a].
+  { apply (@n4_chain3_plus_above_two_realizer B R2 HR2 Hcard).
+    destruct HL3a as [HRrp [HRrq [HRsq HR_only]]].
+    exists r, p, q, s.
+    split; [exact Hrp_neq |].
+    split; [exact Hrq_neq |].
+    split; [exact Hrs_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hps_neq |].
+    split; [exact Hqs_neq |].
+    split; [exact HRrp |].
+    split; [exact HRrq |].
+    split; [exact HRpq |].
+    split; [exact HRsq |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | HM]]];
+      [ left | right; left | right; right; left | right; right; right ];
+      exact HM. }
+  (* L3b: a=s, b=p, c=q, d=r.  Edges s→p, s→q, p→q, r→q. *)
+  destruct (classic (R2 s p /\ R2 s q /\ R2 r q /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = s /\ y = p) \/ (x = s /\ y = q) \/
+                       (x = p /\ y = q) \/ (x = r /\ y = q)))
+    as [HL3b | HnL3b].
+  { apply (@n4_chain3_plus_above_two_realizer B R2 HR2 Hcard).
+    destruct HL3b as [HRsp [HRsq [HRrq HR_only]]].
+    exists s, p, q, r.
+    split; [exact Hsp_neq |].
+    split; [exact Hsq_neq |].
+    split; [exact Hsr_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hpr_neq |].
+    split; [exact Hqr_neq |].
+    split; [exact HRsp |].
+    split; [exact HRsq |].
+    split; [exact HRpq |].
+    split; [exact HRrq |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | HM]]];
+      [ left | right; left | right; right; left | right; right; right ];
+      exact HM. }
+  (* L4a: a=r, b=s, c=q, d=p.  Edges r→s, r→q, s→q, p→q. *)
+  destruct (classic (R2 r s /\ R2 r q /\ R2 s q /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = r /\ y = s) \/ (x = r /\ y = q) \/
+                       (x = s /\ y = q) \/ (x = p /\ y = q)))
+    as [HL4a | HnL4a].
+  { apply (@n4_chain3_plus_above_two_realizer B R2 HR2 Hcard).
+    destruct HL4a as [HRrs [HRrq [HRsq HR_only]]].
+    exists r, s, q, p.
+    split; [exact Hrs_neq |].
+    split; [exact Hrq_neq |].
+    split; [exact Hrp_neq |].
+    split; [exact Hsq_neq |].
+    split; [exact Hsp_neq |].
+    split; [exact Hqp_neq |].
+    split; [exact HRrs |].
+    split; [exact HRrq |].
+    split; [exact HRsq |].
+    split; [exact HRpq |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | HM]]];
+      [ left | right; left | right; right; left | right; right; right ];
+      exact HM. }
+  (* L4b: a=s, b=r, c=q, d=p.  Edges s→r, s→q, r→q, p→q. *)
+  destruct (classic (R2 s r /\ R2 s q /\ R2 r q /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = s /\ y = r) \/ (x = s /\ y = q) \/
+                       (x = r /\ y = q) \/ (x = p /\ y = q)))
+    as [HL4b | HnL4b].
+  { apply (@n4_chain3_plus_above_two_realizer B R2 HR2 Hcard).
+    destruct HL4b as [HRsr [HRsq [HRrq HR_only]]].
+    exists s, r, q, p.
+    split; [exact Hsr_neq |].
+    split; [exact Hsq_neq |].
+    split; [exact Hsp_neq |].
+    split; [exact Hrq_neq |].
+    split; [exact Hrp_neq |].
+    split; [exact Hqp_neq |].
+    split; [exact HRsr |].
+    split; [exact HRsq |].
+    split; [exact HRrq |].
+    split; [exact HRpq |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | HM]]];
+      [ left | right; left | right; right; left | right; right; right ];
+      exact HM. }
+  (* === Class (m) Y-UP : edges a→b, a→c, a→d, b→c, b→d === *)
+  (* M1: a=p, b=q, c=r, d=s.  Edges p→q, p→r, p→s, q→r, q→s. *)
+  destruct (classic (R2 p r /\ R2 p s /\ R2 q r /\ R2 q s /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = p /\ y = q) \/ (x = p /\ y = r) \/
+                       (x = p /\ y = s) \/ (x = q /\ y = r) \/
+                       (x = q /\ y = s)))
+    as [HM1 | HnM1].
+  { apply (@n4_Y_chain_up_two_realizer B R2 HR2 Hcard).
+    destruct HM1 as [HRpr [HRps [HRqr [HRqs HR_only]]]].
+    exists p, q, r, s.
+    split; [exact Hpq_neq |].
+    split; [exact Hpr_neq |].
+    split; [exact Hps_neq |].
+    split; [exact Hqr_neq |].
+    split; [exact Hqs_neq |].
+    split; [exact Hrs_neq |].
+    split; [exact HRpq |].
+    split; [exact HRpr |].
+    split; [exact HRps |].
+    split; [exact HRqr |].
+    split; [exact HRqs |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | [HM | HM]]]];
+      [ left | right; left | right; right; left
+      | right; right; right; left | right; right; right; right ];
+      exact HM. }
+  (* M2a: a=p, b=r, c=q, d=s.  Edges p→r, p→q, p→s, r→q, r→s. *)
+  destruct (classic (R2 p r /\ R2 p s /\ R2 r q /\ R2 r s /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = p /\ y = r) \/ (x = p /\ y = q) \/
+                       (x = p /\ y = s) \/ (x = r /\ y = q) \/
+                       (x = r /\ y = s)))
+    as [HM2a | HnM2a].
+  { apply (@n4_Y_chain_up_two_realizer B R2 HR2 Hcard).
+    destruct HM2a as [HRpr [HRps [HRrq [HRrs HR_only]]]].
+    exists p, r, q, s.
+    split; [exact Hpr_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hps_neq |].
+    split; [exact Hrq_neq |].
+    split; [exact Hrs_neq |].
+    split; [exact Hqs_neq |].
+    split; [exact HRpr |].
+    split; [exact HRpq |].
+    split; [exact HRps |].
+    split; [exact HRrq |].
+    split; [exact HRrs |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | [HM | HM]]]];
+      [ left | right; left | right; right; left
+      | right; right; right; left | right; right; right; right ];
+      exact HM. }
+  (* M2b: a=p, b=s, c=q, d=r.  Edges p→s, p→q, p→r, s→q, s→r. *)
+  destruct (classic (R2 p s /\ R2 p r /\ R2 s q /\ R2 s r /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = p /\ y = s) \/ (x = p /\ y = q) \/
+                       (x = p /\ y = r) \/ (x = s /\ y = q) \/
+                       (x = s /\ y = r)))
+    as [HM2b | HnM2b].
+  { apply (@n4_Y_chain_up_two_realizer B R2 HR2 Hcard).
+    destruct HM2b as [HRps [HRpr [HRsq [HRsr HR_only]]]].
+    exists p, s, q, r.
+    split; [exact Hps_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hpr_neq |].
+    split; [exact Hsq_neq |].
+    split; [exact Hsr_neq |].
+    split; [exact Hqr_neq |].
+    split; [exact HRps |].
+    split; [exact HRpq |].
+    split; [exact HRpr |].
+    split; [exact HRsq |].
+    split; [exact HRsr |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | [HM | HM]]]];
+      [ left | right; left | right; right; left
+      | right; right; right; left | right; right; right; right ];
+      exact HM. }
+  (* M3a: a=r, b=p, c=q, d=s.  Edges r→p, r→q, r→s, p→q, p→s. *)
+  destruct (classic (R2 r p /\ R2 r q /\ R2 r s /\ R2 p s /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = r /\ y = p) \/ (x = r /\ y = q) \/
+                       (x = r /\ y = s) \/ (x = p /\ y = q) \/
+                       (x = p /\ y = s)))
+    as [HM3a | HnM3a].
+  { apply (@n4_Y_chain_up_two_realizer B R2 HR2 Hcard).
+    destruct HM3a as [HRrp [HRrq [HRrs [HRps HR_only]]]].
+    exists r, p, q, s.
+    split; [exact Hrp_neq |].
+    split; [exact Hrq_neq |].
+    split; [exact Hrs_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hps_neq |].
+    split; [exact Hqs_neq |].
+    split; [exact HRrp |].
+    split; [exact HRrq |].
+    split; [exact HRrs |].
+    split; [exact HRpq |].
+    split; [exact HRps |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | [HM | HM]]]];
+      [ left | right; left | right; right; left
+      | right; right; right; left | right; right; right; right ];
+      exact HM. }
+  (* M3b: a=s, b=p, c=q, d=r.  Edges s→p, s→q, s→r, p→q, p→r. *)
+  destruct (classic (R2 s p /\ R2 s q /\ R2 s r /\ R2 p r /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = s /\ y = p) \/ (x = s /\ y = q) \/
+                       (x = s /\ y = r) \/ (x = p /\ y = q) \/
+                       (x = p /\ y = r)))
+    as [HM3b | HnM3b].
+  { apply (@n4_Y_chain_up_two_realizer B R2 HR2 Hcard).
+    destruct HM3b as [HRsp [HRsq [HRsr [HRpr HR_only]]]].
+    exists s, p, q, r.
+    split; [exact Hsp_neq |].
+    split; [exact Hsq_neq |].
+    split; [exact Hsr_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hpr_neq |].
+    split; [exact Hqr_neq |].
+    split; [exact HRsp |].
+    split; [exact HRsq |].
+    split; [exact HRsr |].
+    split; [exact HRpq |].
+    split; [exact HRpr |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | [HM | HM]]]];
+      [ left | right; left | right; right; left
+      | right; right; right; left | right; right; right; right ];
+      exact HM. }
+  (* === Class (n) Y-DOWN : edges a→c, b→c, c→d, a→d, b→d === *)
+  (* N1a: a=p, b=r, c=q, d=s.  Edges p→q, r→q, q→s, p→s, r→s. *)
+  destruct (classic (R2 r q /\ R2 q s /\ R2 p s /\ R2 r s /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = p /\ y = q) \/ (x = r /\ y = q) \/
+                       (x = q /\ y = s) \/ (x = p /\ y = s) \/
+                       (x = r /\ y = s)))
+    as [HN1a | HnN1a].
+  { apply (@n4_Y_chain_down_two_realizer B R2 HR2 Hcard).
+    destruct HN1a as [HRrq [HRqs [HRps [HRrs HR_only]]]].
+    exists p, r, q, s.
+    split; [exact Hpr_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hps_neq |].
+    split; [exact Hrq_neq |].
+    split; [exact Hrs_neq |].
+    split; [exact Hqs_neq |].
+    split; [exact HRpq |].
+    split; [exact HRrq |].
+    split; [exact HRqs |].
+    split; [exact HRps |].
+    split; [exact HRrs |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | [HM | HM]]]];
+      [ left | right; left | right; right; left
+      | right; right; right; left | right; right; right; right ];
+      exact HM. }
+  (* N1b: a=p, b=s, c=q, d=r.  Edges p→q, s→q, q→r, p→r, s→r. *)
+  destruct (classic (R2 s q /\ R2 q r /\ R2 p r /\ R2 s r /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = p /\ y = q) \/ (x = s /\ y = q) \/
+                       (x = q /\ y = r) \/ (x = p /\ y = r) \/
+                       (x = s /\ y = r)))
+    as [HN1b | HnN1b].
+  { apply (@n4_Y_chain_down_two_realizer B R2 HR2 Hcard).
+    destruct HN1b as [HRsq [HRqr [HRpr [HRsr HR_only]]]].
+    exists p, s, q, r.
+    split; [exact Hps_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hpr_neq |].
+    split; [exact Hsq_neq |].
+    split; [exact Hsr_neq |].
+    split; [exact Hqr_neq |].
+    split; [exact HRpq |].
+    split; [exact HRsq |].
+    split; [exact HRqr |].
+    split; [exact HRpr |].
+    split; [exact HRsr |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | [HM | HM]]]];
+      [ left | right; left | right; right; left
+      | right; right; right; left | right; right; right; right ];
+      exact HM. }
+  (* N2a: a=r, b=s, c=p, d=q.  Edges r→p, s→p, p→q, r→q, s→q. *)
+  destruct (classic (R2 r p /\ R2 s p /\ R2 r q /\ R2 s q /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = r /\ y = p) \/ (x = s /\ y = p) \/
+                       (x = p /\ y = q) \/ (x = r /\ y = q) \/
+                       (x = s /\ y = q)))
+    as [HN2a | HnN2a].
+  { apply (@n4_Y_chain_down_two_realizer B R2 HR2 Hcard).
+    destruct HN2a as [HRrp [HRsp [HRrq [HRsq HR_only]]]].
+    exists r, s, p, q.
+    split; [exact Hrs_neq |].
+    split; [exact Hrp_neq |].
+    split; [exact Hrq_neq |].
+    split; [exact Hsp_neq |].
+    split; [exact Hsq_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact HRrp |].
+    split; [exact HRsp |].
+    split; [exact HRpq |].
+    split; [exact HRrq |].
+    split; [exact HRsq |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | [HM | HM]]]];
+      [ left | right; left | right; right; left
+      | right; right; right; left | right; right; right; right ];
+      exact HM. }
+  (* N3a: a=p, b=r, c=s, d=q.  Edges p→s, r→s, s→q, p→q, r→q. *)
+  destruct (classic (R2 p s /\ R2 r s /\ R2 s q /\ R2 r q /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = p /\ y = s) \/ (x = r /\ y = s) \/
+                       (x = s /\ y = q) \/ (x = p /\ y = q) \/
+                       (x = r /\ y = q)))
+    as [HN3a | HnN3a].
+  { apply (@n4_Y_chain_down_two_realizer B R2 HR2 Hcard).
+    destruct HN3a as [HRps [HRrs [HRsq [HRrq HR_only]]]].
+    exists p, r, s, q.
+    split; [exact Hpr_neq |].
+    split; [exact Hps_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hrs_neq |].
+    split; [exact Hrq_neq |].
+    split; [exact Hsq_neq |].
+    split; [exact HRps |].
+    split; [exact HRrs |].
+    split; [exact HRsq |].
+    split; [exact HRpq |].
+    split; [exact HRrq |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | [HM | HM]]]];
+      [ left | right; left | right; right; left
+      | right; right; right; left | right; right; right; right ];
+      exact HM. }
+  (* N3b: a=p, b=s, c=r, d=q.  Edges p→r, s→r, r→q, p→q, s→q. *)
+  destruct (classic (R2 p r /\ R2 s r /\ R2 r q /\ R2 s q /\
+                     forall x y : B, x <> y -> R2 x y ->
+                       (x = p /\ y = r) \/ (x = s /\ y = r) \/
+                       (x = r /\ y = q) \/ (x = p /\ y = q) \/
+                       (x = s /\ y = q)))
+    as [HN3b | HnN3b].
+  { apply (@n4_Y_chain_down_two_realizer B R2 HR2 Hcard).
+    destruct HN3b as [HRpr [HRsr [HRrq [HRsq HR_only]]]].
+    exists p, s, r, q.
+    split; [exact Hps_neq |].
+    split; [exact Hpr_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hsr_neq |].
+    split; [exact Hsq_neq |].
+    split; [exact Hrq_neq |].
+    split; [exact HRpr |].
+    split; [exact HRsr |].
+    split; [exact HRrq |].
+    split; [exact HRpq |].
+    split; [exact HRsq |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (HR_only x y Hneq HRxy)
+      as [HM | [HM | [HM | [HM | HM]]]];
+      [ left | right; left | right; right; left
+      | right; right; right; left | right; right; right; right ];
       exact HM. }
   (* No match yet: fall through to the residual admit. *)
   apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard);
