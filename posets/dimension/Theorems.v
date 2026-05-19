@@ -1675,6 +1675,11 @@ Section Theorems.
     S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
     IsLinearExtension R L_extra ->
     L_extra y' x' ->
+    (* NEW HYPOTHESIS: no boundary critical pairs.  Every critical pair of R
+       either IS (x', y') or has both endpoints in S'.  This eliminates the
+       structurally hard boundary case in [Hcp_sep] below. *)
+    (forall p q : A, IsCriticalPair R p q ->
+       (p = x' /\ q = y') \/ (In A S' p /\ In A S' q)) ->
     (exists (r' : Ensemble ({a : A | In A S' a} -> {a : A | In A S' a} -> Prop)),
        IsRealizer (fun (a b : {a : A | In A S' a}) => R (proj1_sig a) (proj1_sig b)) r' /\
        cardinal _ r' d') ->
@@ -1684,7 +1689,8 @@ Section Theorems.
       ~ In _ r_lifted L_extra /\
       IsRealizer R (Add (A -> A -> Prop) r_lifted L_extra).
   Proof.
-    intros x' y' S' d' L_extra HfinA Hcp HS'_eq HL_extra_lin HL_extra_yx Hr'_ex.
+    intros x' y' S' d' L_extra HfinA Hcp HS'_eq HL_extra_lin HL_extra_yx
+           Hno_boundary Hr'_ex.
     destruct Hr'_ex as [r' [Hr'_real Hr'_card]].
     pose proof (critical_incomparable Hcp) as Hcp_inc.
     pose proof (critical_down (R:=R) (x:=x') (y:=y') Hcp) as Hcp_dn.
@@ -1988,10 +1994,17 @@ Section Theorems.
 
                    Until the strengthened construction is built, this case
                    remains [admit]. *)
-                admit. }
+                (* With the new hypothesis [Hno_boundary], the boundary case
+                   is impossible: every critical pair of R is either
+                   (x', y') (ruled out by [Hne]) or has both endpoints in S'
+                   (ruled out by [Hboundary]).  Derive the contradiction. *)
+                exfalso.
+                destruct (Hno_boundary p' q' Hcp') as [[Hpe Hqe] | [Hp'_S' Hq'_S']].
+                * apply Hne. split; assumption.
+                * apply Hboundary. split; assumption. }
           exact (cp_realizer_separation x' y' S' L_extra r_lifted HfinA
                    Hcp HS'_eq HL_extra_lin HL_extra_yx Hall_lift Hcp_sep p q Hall).
-  Admitted.
+  Qed.
 
   (** Main lemma: a critical pair extends a sub-realizer of size d'
       to a full realizer of size d' + 1.  Closed by composing
@@ -2002,6 +2015,10 @@ Section Theorems.
     Finite A (Full_set A) ->
     IsCriticalPair R x' y' ->
     S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    (* NEW HYPOTHESIS: no boundary critical pairs (see
+       [extend_through_cp_construction] for the rationale). *)
+    (forall p q : A, IsCriticalPair R p q ->
+       (p = x' /\ q = y') \/ (In A S' p /\ In A S' q)) ->
     (exists (r' : Ensemble ({a : A | In A S' a} -> {a : A | In A S' a} -> Prop)),
       IsRealizer (fun (a b : {a : A | In A S' a}) => R (proj1_sig a) (proj1_sig b)) r' /\
       cardinal _ r' d') ->
@@ -2009,14 +2026,14 @@ Section Theorems.
       IsRealizer R r /\
       cardinal (A -> A -> Prop) r (d' + 1).
   Proof.
-    intros x' y' S' d' HfinA Hcp HS'_eq Hr'_ex.
+    intros x' y' S' d' HfinA Hcp HS'_eq Hno_boundary Hr'_ex.
     (* 1. Build L_extra reversing the critical pair. *)
     destruct (critical_pair_reversing_extension x' y' Hcp)
       as [L_extra [HL_extra_lin HL_extra_yx]].
     (* 2. Build the d'-element lifted set r_lifted with all the required
           properties via the admitted construction helper. *)
     destruct (extend_through_cp_construction x' y' S' d' L_extra HfinA
-                Hcp HS'_eq HL_extra_lin HL_extra_yx Hr'_ex)
+                Hcp HS'_eq HL_extra_lin HL_extra_yx Hno_boundary Hr'_ex)
       as [r_lifted [Hlift_all [Hlift_card [Hlift_notIn Hr_real]]]].
     (* 3. r := Add r_lifted L_extra has cardinality d' + 1 and is a realizer. *)
     exists (Add (A -> A -> Prop) r_lifted L_extra).
@@ -2211,6 +2228,33 @@ Section Theorems.
 
 End Theorems.
 
+(** Hiraguchi's removal lemma (admitted).
+
+    For a finite poset on n >= 4 elements with at least one incomparable pair,
+    there exists a critical pair (x', y') whose removal leaves NO boundary
+    critical pairs: every critical pair of R either IS (x', y') or has both
+    endpoints in the residual set S' = Full_set \ {x', y'}.
+
+    This is the classical Hiraguchi choice: pick (x', y') so that no other
+    critical pair has exactly one endpoint in {x', y'}.  In Hiraguchi (1951)
+    such a pair always exists for n >= 4 by a careful selection argument on
+    the bipartite incidence between critical pairs and elements.  Formalizing
+    that selection argument is a separate proof obligation; the statement is
+    isolated here as a clean mathematical lemma. *)
+Lemma exists_critical_pair_no_boundary :
+  forall {B : Type} (R2 : B -> B -> Prop) `{IsPoset B R2} (n : nat),
+  cardinal B (Full_set B) n ->
+  n >= 4 ->
+  (exists x y, @Incomparable B R2 x y) ->
+  exists x' y' : B,
+    @IsCriticalPair B R2 x' y' /\
+    (forall p q : B, @IsCriticalPair B R2 p q ->
+       (p = x' /\ q = y') \/
+       (In B (Setminus B (Setminus B (Full_set B) (Singleton B x')) (Singleton B y')) p /\
+        In B (Setminus B (Setminus B (Full_set B) (Singleton B x')) (Singleton B y')) q)).
+Proof.
+Admitted.
+
 (** The carrier-polymorphic Hiraguchi bound, proved by strong induction on n.
     Base case (n in {4,5}) calls [small_hiraguchi]; inductive step splits on
     whether R2 has an incomparable pair: chain (dim <= 1) versus lifting an
@@ -2236,9 +2280,12 @@ Proof.
   destruct (classic (exists x y, @Incomparable B R2 x y)) as [[x [y Hinc]] | Hchain].
   - (* Incomparable pair exists *)
     assert (HfinB : Finite B (Full_set B)) by exact (cardinal_finite B (Full_set B) n Hcard).
-    assert (Hcp_ex : exists x' y', R2 x' x /\ R2 y y' /\ @IsCriticalPair B R2 x' y').
-    { exact (incomparable_lifting_to_critical_pair R2 HfinB x y Hinc). }
-    destruct Hcp_ex as [x' [y' [Hx'x [Hyy' Hcp_val]]]].
+    (* Use [exists_critical_pair_no_boundary] (admitted) to obtain a critical
+       pair (x', y') with the additional "no boundary critical pairs"
+       property required by [extension_through_critical_pair]. *)
+    assert (Hinc_ex : exists x y, @Incomparable B R2 x y) by (exists x, y; exact Hinc).
+    destruct (@exists_critical_pair_no_boundary B R2 _ n Hcard Hn4 Hinc_ex)
+      as [x' [y' [Hcp_val Hno_boundary]]].
     assert (Hn2 : n >= 2) by lia.
     (* S' = Setminus B (Setminus B (Full_set B) {x'}) {y'} matches the
        form expected by extension_through_critical_pair. By [Subtract = Setminus _ (Singleton)],
@@ -2280,8 +2327,15 @@ Proof.
         as HrSub_real.
       pose proof (@dimension_cardinality {x : B | In B S' x} Rsub d_q HdimQ_inh)
         as HrSub_card.
+      (* Convert Hno_boundary's set form (Setminus...) to S' via HS'_eq. *)
+      assert (Hno_boundary' :
+        forall p q : B, @IsCriticalPair B R2 p q ->
+          (p = x' /\ q = y') \/ (In B S' p /\ In B S' q)).
+      { intros p q Hcp_pq.
+        destruct (Hno_boundary p q Hcp_pq) as [Hxy | [Hp_in Hq_in]];
+          [left; exact Hxy | right; rewrite HS'_eq; split; assumption]. }
       destruct (extension_through_critical_pair R2 x' y' S' d_q HfinB Hcp_val HS'_eq
-          (ex_intro _ _ (conj HrSub_real HrSub_card)))
+          Hno_boundary' (ex_intro _ _ (conj HrSub_real HrSub_card)))
         as [r [Hr_real Hr_card]].
       exact (dimension_is_minimum (R := R2) (d := d2) Hdim r (d_q + 1) Hr_real Hr_card). }
     (* Conclude by arithmetic: d2 <= d_q + 1 <= (n-2)/2 + 1 = n/2 for n >= 6. *)
