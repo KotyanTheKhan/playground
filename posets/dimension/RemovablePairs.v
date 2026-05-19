@@ -4339,6 +4339,408 @@ Proof.
     + intro Hin. destruct Hin. apply HL_neq. reflexivity.
 Qed.
 
+(** Sub-case: n=4 Y-up extended (class m).
+
+    The carrier has 4 distinct elements [a, b, c, d]; the Hasse diagram
+    is [a -> b], [b -> c], [b -> d] (so [c], [d] are incomparable atop
+    a chain [a < b]). [R2] is identity plus [R2 a b], [R2 a c], [R2 a d],
+    [R2 b c], [R2 b d].
+
+    Explicit 2-realizer: [L1] orders [a < b < c < d] and [L2] orders
+    [a < b < d < c].
+    Cardinality is 2 because, for instance, [L1 c d] but [~ L2 c d]. *)
+Lemma n4_Y_chain_up_two_realizer :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
+  cardinal B (Full_set B) 4 ->
+  (exists a b c d : B,
+     a <> b /\ a <> c /\ a <> d /\ b <> c /\ b <> d /\ c <> d /\
+     R2 a b /\ R2 a c /\ R2 a d /\ R2 b c /\ R2 b d /\
+     (forall x y : B,
+        R2 x y -> x = y \/ (x = a /\ y = b) \/ (x = a /\ y = c) \/
+                 (x = a /\ y = d) \/ (x = b /\ y = c) \/ (x = b /\ y = d))) ->
+  exists r : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r /\ cardinal (B -> B -> Prop) r 2.
+Proof.
+  intros B R2 HR2 Hcard
+    [a [b [c [d [Hab_neq [Hac_neq [Had_neq [Hbc_neq [Hbd_neq [Hcd_neq
+       [HRab [HRac [HRad [HRbc [HRbd HR_only]]]]]]]]]]]]]]].
+  destruct (@carrier_4_destructure B a b Hcard Hab_neq)
+    as [r [s [Har_neq [Has_neq [Hbr_neq [Hbs_neq [Hrs_neq Hcov4]]]]]]].
+  assert (Hc_in : c = r \/ c = s).
+  { destruct (Hcov4 c) as [Hc | [Hc | [Hc | Hc]]].
+    - contradiction Hac_neq; symmetry; exact Hc.
+    - contradiction Hbc_neq; symmetry; exact Hc.
+    - left; exact Hc.
+    - right; exact Hc. }
+  assert (Hd_in : d = r \/ d = s).
+  { destruct (Hcov4 d) as [Hd | [Hd | [Hd | Hd]]].
+    - contradiction Had_neq; symmetry; exact Hd.
+    - contradiction Hbd_neq; symmetry; exact Hd.
+    - left; exact Hd.
+    - right; exact Hd. }
+  assert (Hcovers : forall x : B, x = a \/ x = b \/ x = c \/ x = d).
+  { intro x.
+    destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]].
+    - auto.
+    - auto.
+    - subst x. destruct Hc_in as [Hc | Hc];
+      destruct Hd_in as [Hd | Hd].
+      + exfalso. apply Hcd_neq. rewrite Hc, Hd. reflexivity.
+      + right; right; left; symmetry; exact Hc.
+      + right; right; right; symmetry; exact Hd.
+      + exfalso. apply Hcd_neq. rewrite Hc, Hd. reflexivity.
+    - subst x. destruct Hc_in as [Hc | Hc];
+      destruct Hd_in as [Hd | Hd].
+      + exfalso. apply Hcd_neq. rewrite Hc, Hd. reflexivity.
+      + right; right; right; symmetry; exact Hd.
+      + right; right; left; symmetry; exact Hc.
+      + exfalso. apply Hcd_neq. rewrite Hc, Hd. reflexivity. }
+  (* L1 rank: a=0, b=1, c=2, d=3.  L2 rank: a=0, b=1, d=2, c=3. *)
+  set (rk1 := fun x : B =>
+                if excluded_middle_informative (x = a) then 0%nat
+                else if excluded_middle_informative (x = b) then 1%nat
+                else if excluded_middle_informative (x = c) then 2%nat
+                else 3%nat).
+  set (rk2 := fun x : B =>
+                if excluded_middle_informative (x = a) then 0%nat
+                else if excluded_middle_informative (x = b) then 1%nat
+                else if excluded_middle_informative (x = d) then 2%nat
+                else 3%nat).
+  assert (Hrk1_a : rk1 a = 0%nat).
+  { unfold rk1. destruct (excluded_middle_informative (a = a)); [reflexivity | contradiction]. }
+  assert (Hrk1_b : rk1 b = 1%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (b = a)) as [He|_]; [contradiction Hab_neq; auto |].
+    destruct (excluded_middle_informative (b = b)); [reflexivity | contradiction]. }
+  assert (Hrk1_c : rk1 c = 2%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (c = a)) as [He|_]; [contradiction Hac_neq; auto |].
+    destruct (excluded_middle_informative (c = b)) as [He|_]; [contradiction Hbc_neq; auto |].
+    destruct (excluded_middle_informative (c = c)); [reflexivity | contradiction]. }
+  assert (Hrk1_d : rk1 d = 3%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (d = a)) as [He|_]; [contradiction Had_neq; auto |].
+    destruct (excluded_middle_informative (d = b)) as [He|_]; [contradiction Hbd_neq; auto |].
+    destruct (excluded_middle_informative (d = c)) as [He|_]; [contradiction Hcd_neq; auto |].
+    reflexivity. }
+  assert (Hrk2_a : rk2 a = 0%nat).
+  { unfold rk2. destruct (excluded_middle_informative (a = a)); [reflexivity | contradiction]. }
+  assert (Hrk2_b : rk2 b = 1%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (b = a)) as [He|_]; [contradiction Hab_neq; auto |].
+    destruct (excluded_middle_informative (b = b)); [reflexivity | contradiction]. }
+  assert (Hrk2_c : rk2 c = 3%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (c = a)) as [He|_]; [contradiction Hac_neq; auto |].
+    destruct (excluded_middle_informative (c = b)) as [He|_]; [contradiction Hbc_neq; auto |].
+    destruct (excluded_middle_informative (c = d)) as [He|_]; [contradiction Hcd_neq; auto |].
+    reflexivity. }
+  assert (Hrk2_d : rk2 d = 2%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (d = a)) as [He|_]; [contradiction Had_neq; auto |].
+    destruct (excluded_middle_informative (d = b)) as [He|_]; [contradiction Hbd_neq; auto |].
+    destruct (excluded_middle_informative (d = d)); [reflexivity | contradiction]. }
+  assert (Hrk1_inj : forall x y, rk1 x = rk1 y -> x = y).
+  { intros x y Hxy.
+    destruct (Hcovers x) as [Hx|[Hx|[Hx|Hx]]]; subst x;
+    destruct (Hcovers y) as [Hy|[Hy|[Hy|Hy]]]; subst y;
+      first [ reflexivity
+            | exfalso;
+              rewrite ?Hrk1_a, ?Hrk1_b, ?Hrk1_c, ?Hrk1_d in Hxy;
+              discriminate ]. }
+  assert (Hrk2_inj : forall x y, rk2 x = rk2 y -> x = y).
+  { intros x y Hxy.
+    destruct (Hcovers x) as [Hx|[Hx|[Hx|Hx]]]; subst x;
+    destruct (Hcovers y) as [Hy|[Hy|[Hy|Hy]]]; subst y;
+      first [ reflexivity
+            | exfalso;
+              rewrite ?Hrk2_a, ?Hrk2_b, ?Hrk2_c, ?Hrk2_d in Hxy;
+              discriminate ]. }
+  set (L1 := fun x y : B => rk1 x <= rk1 y).
+  set (L2 := fun x y : B => rk2 x <= rk2 y).
+  assert (HL1_pos : IsPoset B L1).
+  { constructor; unfold L1.
+    - intro x. lia.
+    - intros x y Hxy Hyx. apply Hrk1_inj. lia.
+    - intros x y z Hxy Hyz. lia. }
+  assert (HL1_total : forall x y, L1 x y \/ L1 y x).
+  { intros x y. unfold L1. lia. }
+  assert (HL1_tot : IsTotalOrder L1).
+  { constructor; [exact HL1_pos | exact HL1_total]. }
+  assert (HL1_ext : forall x y, R2 x y -> L1 x y).
+  { intros x y HR. destruct (HR_only x y HR)
+      as [Heq | [[Hxa Hyb] | [[Hxa Hyc] | [[Hxa Hyd] | [[Hxb Hyc] | [Hxb Hyd]]]]]].
+    - subst y. unfold L1. lia.
+    - subst x y. unfold L1. rewrite Hrk1_a, Hrk1_b. lia.
+    - subst x y. unfold L1. rewrite Hrk1_a, Hrk1_c. lia.
+    - subst x y. unfold L1. rewrite Hrk1_a, Hrk1_d. lia.
+    - subst x y. unfold L1. rewrite Hrk1_b, Hrk1_c. lia.
+    - subst x y. unfold L1. rewrite Hrk1_b, Hrk1_d. lia. }
+  assert (HL1_lin : IsLinearExtension R2 L1).
+  { constructor; [exact HL1_tot | exact HL1_ext]. }
+  assert (HL2_pos : IsPoset B L2).
+  { constructor; unfold L2.
+    - intro x. lia.
+    - intros x y Hxy Hyx. apply Hrk2_inj. lia.
+    - intros x y z Hxy Hyz. lia. }
+  assert (HL2_total : forall x y, L2 x y \/ L2 y x).
+  { intros x y. unfold L2. lia. }
+  assert (HL2_tot : IsTotalOrder L2).
+  { constructor; [exact HL2_pos | exact HL2_total]. }
+  assert (HL2_ext : forall x y, R2 x y -> L2 x y).
+  { intros x y HR. destruct (HR_only x y HR)
+      as [Heq | [[Hxa Hyb] | [[Hxa Hyc] | [[Hxa Hyd] | [[Hxb Hyc] | [Hxb Hyd]]]]]].
+    - subst y. unfold L2. lia.
+    - subst x y. unfold L2. rewrite Hrk2_a, Hrk2_b. lia.
+    - subst x y. unfold L2. rewrite Hrk2_a, Hrk2_c. lia.
+    - subst x y. unfold L2. rewrite Hrk2_a, Hrk2_d. lia.
+    - subst x y. unfold L2. rewrite Hrk2_b, Hrk2_c. lia.
+    - subst x y. unfold L2. rewrite Hrk2_b, Hrk2_d. lia. }
+  assert (HL2_lin : IsLinearExtension R2 L2).
+  { constructor; [exact HL2_tot | exact HL2_ext]. }
+  assert (Hinter : forall x y, L1 x y -> L2 x y -> R2 x y).
+  { intros x y HLa HLb.
+    unfold L1 in HLa; unfold L2 in HLb.
+    destruct (Hcovers x) as [Hx|[Hx|[Hx|Hx]]]; subst x;
+    destruct (Hcovers y) as [Hy|[Hy|[Hy|Hy]]]; subst y;
+      first [ apply HR2.(poset_refl)
+            | exact HRab
+            | exact HRac
+            | exact HRad
+            | exact HRbc
+            | exact HRbd
+            | exfalso;
+              rewrite ?Hrk1_a, ?Hrk1_b, ?Hrk1_c, ?Hrk1_d in HLa;
+              rewrite ?Hrk2_a, ?Hrk2_b, ?Hrk2_c, ?Hrk2_d in HLb;
+              lia ]. }
+  set (rls := Add (B -> B -> Prop) (Singleton _ L1) L2).
+  exists rls. split.
+  - constructor.
+    + intros L HL. destruct HL as [L HL | L HL].
+      * destruct HL. exact HL1_lin.
+      * destruct HL. exact HL2_lin.
+    + intros x y. split.
+      * intros HRxy L HL. destruct HL as [L HL | L HL].
+        { destruct HL. exact (HL1_lin.(linear_extends) x y HRxy). }
+        { destruct HL. exact (HL2_lin.(linear_extends) x y HRxy). }
+      * intro Hall.
+        assert (HLa : L1 x y)
+          by exact (Hall L1 (Union_introl _ _ _ _ (In_singleton _ _))).
+        assert (HLb : L2 x y)
+          by exact (Hall L2 (Union_intror _ _ _ _ (In_singleton _ _))).
+        exact (Hinter x y HLa HLb).
+  - assert (HL_neq : L1 <> L2).
+    { intro Heq.
+      assert (HL1cd : L1 c d) by (unfold L1; rewrite Hrk1_c, Hrk1_d; lia).
+      assert (HL2cd : L2 c d) by (rewrite <- Heq; exact HL1cd).
+      unfold L2 in HL2cd. rewrite Hrk2_c, Hrk2_d in HL2cd. lia. }
+    unfold rls.
+    apply card_add.
+    + exact (singleton_cardinal _ L1).
+    + intro Hin. destruct Hin. apply HL_neq. reflexivity.
+Qed.
+
+(** Sub-case: n=4 Y-down extended (class n), dual of (m).
+
+    The carrier has 4 distinct elements [a, b, c, d]; the Hasse diagram
+    is [a -> c], [b -> c], [c -> d] (so [a], [b] are incomparable below
+    a chain [c < d]). [R2] is identity plus [R2 a c], [R2 b c], [R2 c d],
+    [R2 a d], [R2 b d].
+
+    Explicit 2-realizer: [L1] orders [a < b < c < d] and [L2] orders
+    [b < a < c < d].
+    Cardinality is 2 because, for instance, [L1 a b] but [~ L2 a b]. *)
+Lemma n4_Y_chain_down_two_realizer :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
+  cardinal B (Full_set B) 4 ->
+  (exists a b c d : B,
+     a <> b /\ a <> c /\ a <> d /\ b <> c /\ b <> d /\ c <> d /\
+     R2 a c /\ R2 b c /\ R2 c d /\ R2 a d /\ R2 b d /\
+     (forall x y : B,
+        R2 x y -> x = y \/ (x = a /\ y = c) \/ (x = b /\ y = c) \/
+                 (x = c /\ y = d) \/ (x = a /\ y = d) \/ (x = b /\ y = d))) ->
+  exists r : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r /\ cardinal (B -> B -> Prop) r 2.
+Proof.
+  intros B R2 HR2 Hcard
+    [a [b [c [d [Hab_neq [Hac_neq [Had_neq [Hbc_neq [Hbd_neq [Hcd_neq
+       [HRac [HRbc [HRcd [HRad [HRbd HR_only]]]]]]]]]]]]]]].
+  destruct (@carrier_4_destructure B a b Hcard Hab_neq)
+    as [r [s [Har_neq [Has_neq [Hbr_neq [Hbs_neq [Hrs_neq Hcov4]]]]]]].
+  assert (Hc_in : c = r \/ c = s).
+  { destruct (Hcov4 c) as [Hc | [Hc | [Hc | Hc]]].
+    - contradiction Hac_neq; symmetry; exact Hc.
+    - contradiction Hbc_neq; symmetry; exact Hc.
+    - left; exact Hc.
+    - right; exact Hc. }
+  assert (Hd_in : d = r \/ d = s).
+  { destruct (Hcov4 d) as [Hd | [Hd | [Hd | Hd]]].
+    - contradiction Had_neq; symmetry; exact Hd.
+    - contradiction Hbd_neq; symmetry; exact Hd.
+    - left; exact Hd.
+    - right; exact Hd. }
+  assert (Hcovers : forall x : B, x = a \/ x = b \/ x = c \/ x = d).
+  { intro x.
+    destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]].
+    - auto.
+    - auto.
+    - subst x. destruct Hc_in as [Hc | Hc];
+      destruct Hd_in as [Hd | Hd].
+      + exfalso. apply Hcd_neq. rewrite Hc, Hd. reflexivity.
+      + right; right; left; symmetry; exact Hc.
+      + right; right; right; symmetry; exact Hd.
+      + exfalso. apply Hcd_neq. rewrite Hc, Hd. reflexivity.
+    - subst x. destruct Hc_in as [Hc | Hc];
+      destruct Hd_in as [Hd | Hd].
+      + exfalso. apply Hcd_neq. rewrite Hc, Hd. reflexivity.
+      + right; right; right; symmetry; exact Hd.
+      + right; right; left; symmetry; exact Hc.
+      + exfalso. apply Hcd_neq. rewrite Hc, Hd. reflexivity. }
+  (* L1 rank: a=0, b=1, c=2, d=3.  L2 rank: b=0, a=1, c=2, d=3. *)
+  set (rk1 := fun x : B =>
+                if excluded_middle_informative (x = a) then 0%nat
+                else if excluded_middle_informative (x = b) then 1%nat
+                else if excluded_middle_informative (x = c) then 2%nat
+                else 3%nat).
+  set (rk2 := fun x : B =>
+                if excluded_middle_informative (x = b) then 0%nat
+                else if excluded_middle_informative (x = a) then 1%nat
+                else if excluded_middle_informative (x = c) then 2%nat
+                else 3%nat).
+  assert (Hrk1_a : rk1 a = 0%nat).
+  { unfold rk1. destruct (excluded_middle_informative (a = a)); [reflexivity | contradiction]. }
+  assert (Hrk1_b : rk1 b = 1%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (b = a)) as [He|_]; [contradiction Hab_neq; auto |].
+    destruct (excluded_middle_informative (b = b)); [reflexivity | contradiction]. }
+  assert (Hrk1_c : rk1 c = 2%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (c = a)) as [He|_]; [contradiction Hac_neq; auto |].
+    destruct (excluded_middle_informative (c = b)) as [He|_]; [contradiction Hbc_neq; auto |].
+    destruct (excluded_middle_informative (c = c)); [reflexivity | contradiction]. }
+  assert (Hrk1_d : rk1 d = 3%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (d = a)) as [He|_]; [contradiction Had_neq; auto |].
+    destruct (excluded_middle_informative (d = b)) as [He|_]; [contradiction Hbd_neq; auto |].
+    destruct (excluded_middle_informative (d = c)) as [He|_]; [contradiction Hcd_neq; auto |].
+    reflexivity. }
+  assert (Hrk2_a : rk2 a = 1%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (a = b)) as [He|_]; [contradiction Hab_neq; auto |].
+    destruct (excluded_middle_informative (a = a)); [reflexivity | contradiction]. }
+  assert (Hrk2_b : rk2 b = 0%nat).
+  { unfold rk2. destruct (excluded_middle_informative (b = b)); [reflexivity | contradiction]. }
+  assert (Hrk2_c : rk2 c = 2%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (c = b)) as [He|_]; [contradiction Hbc_neq; auto |].
+    destruct (excluded_middle_informative (c = a)) as [He|_]; [contradiction Hac_neq; auto |].
+    destruct (excluded_middle_informative (c = c)); [reflexivity | contradiction]. }
+  assert (Hrk2_d : rk2 d = 3%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (d = b)) as [He|_]; [contradiction Hbd_neq; auto |].
+    destruct (excluded_middle_informative (d = a)) as [He|_]; [contradiction Had_neq; auto |].
+    destruct (excluded_middle_informative (d = c)) as [He|_]; [contradiction Hcd_neq; auto |].
+    reflexivity. }
+  assert (Hrk1_inj : forall x y, rk1 x = rk1 y -> x = y).
+  { intros x y Hxy.
+    destruct (Hcovers x) as [Hx|[Hx|[Hx|Hx]]]; subst x;
+    destruct (Hcovers y) as [Hy|[Hy|[Hy|Hy]]]; subst y;
+      first [ reflexivity
+            | exfalso;
+              rewrite ?Hrk1_a, ?Hrk1_b, ?Hrk1_c, ?Hrk1_d in Hxy;
+              discriminate ]. }
+  assert (Hrk2_inj : forall x y, rk2 x = rk2 y -> x = y).
+  { intros x y Hxy.
+    destruct (Hcovers x) as [Hx|[Hx|[Hx|Hx]]]; subst x;
+    destruct (Hcovers y) as [Hy|[Hy|[Hy|Hy]]]; subst y;
+      first [ reflexivity
+            | exfalso;
+              rewrite ?Hrk2_a, ?Hrk2_b, ?Hrk2_c, ?Hrk2_d in Hxy;
+              discriminate ]. }
+  set (L1 := fun x y : B => rk1 x <= rk1 y).
+  set (L2 := fun x y : B => rk2 x <= rk2 y).
+  assert (HL1_pos : IsPoset B L1).
+  { constructor; unfold L1.
+    - intro x. lia.
+    - intros x y Hxy Hyx. apply Hrk1_inj. lia.
+    - intros x y z Hxy Hyz. lia. }
+  assert (HL1_total : forall x y, L1 x y \/ L1 y x).
+  { intros x y. unfold L1. lia. }
+  assert (HL1_tot : IsTotalOrder L1).
+  { constructor; [exact HL1_pos | exact HL1_total]. }
+  assert (HL1_ext : forall x y, R2 x y -> L1 x y).
+  { intros x y HR. destruct (HR_only x y HR)
+      as [Heq | [[Hxa Hyc] | [[Hxb Hyc] | [[Hxc Hyd] | [[Hxa Hyd] | [Hxb Hyd]]]]]].
+    - subst y. unfold L1. lia.
+    - subst x y. unfold L1. rewrite Hrk1_a, Hrk1_c. lia.
+    - subst x y. unfold L1. rewrite Hrk1_b, Hrk1_c. lia.
+    - subst x y. unfold L1. rewrite Hrk1_c, Hrk1_d. lia.
+    - subst x y. unfold L1. rewrite Hrk1_a, Hrk1_d. lia.
+    - subst x y. unfold L1. rewrite Hrk1_b, Hrk1_d. lia. }
+  assert (HL1_lin : IsLinearExtension R2 L1).
+  { constructor; [exact HL1_tot | exact HL1_ext]. }
+  assert (HL2_pos : IsPoset B L2).
+  { constructor; unfold L2.
+    - intro x. lia.
+    - intros x y Hxy Hyx. apply Hrk2_inj. lia.
+    - intros x y z Hxy Hyz. lia. }
+  assert (HL2_total : forall x y, L2 x y \/ L2 y x).
+  { intros x y. unfold L2. lia. }
+  assert (HL2_tot : IsTotalOrder L2).
+  { constructor; [exact HL2_pos | exact HL2_total]. }
+  assert (HL2_ext : forall x y, R2 x y -> L2 x y).
+  { intros x y HR. destruct (HR_only x y HR)
+      as [Heq | [[Hxa Hyc] | [[Hxb Hyc] | [[Hxc Hyd] | [[Hxa Hyd] | [Hxb Hyd]]]]]].
+    - subst y. unfold L2. lia.
+    - subst x y. unfold L2. rewrite Hrk2_a, Hrk2_c. lia.
+    - subst x y. unfold L2. rewrite Hrk2_b, Hrk2_c. lia.
+    - subst x y. unfold L2. rewrite Hrk2_c, Hrk2_d. lia.
+    - subst x y. unfold L2. rewrite Hrk2_a, Hrk2_d. lia.
+    - subst x y. unfold L2. rewrite Hrk2_b, Hrk2_d. lia. }
+  assert (HL2_lin : IsLinearExtension R2 L2).
+  { constructor; [exact HL2_tot | exact HL2_ext]. }
+  assert (Hinter : forall x y, L1 x y -> L2 x y -> R2 x y).
+  { intros x y HLa HLb.
+    unfold L1 in HLa; unfold L2 in HLb.
+    destruct (Hcovers x) as [Hx|[Hx|[Hx|Hx]]]; subst x;
+    destruct (Hcovers y) as [Hy|[Hy|[Hy|Hy]]]; subst y;
+      first [ apply HR2.(poset_refl)
+            | exact HRac
+            | exact HRbc
+            | exact HRcd
+            | exact HRad
+            | exact HRbd
+            | exfalso;
+              rewrite ?Hrk1_a, ?Hrk1_b, ?Hrk1_c, ?Hrk1_d in HLa;
+              rewrite ?Hrk2_a, ?Hrk2_b, ?Hrk2_c, ?Hrk2_d in HLb;
+              lia ]. }
+  set (rls := Add (B -> B -> Prop) (Singleton _ L1) L2).
+  exists rls. split.
+  - constructor.
+    + intros L HL. destruct HL as [L HL | L HL].
+      * destruct HL. exact HL1_lin.
+      * destruct HL. exact HL2_lin.
+    + intros x y. split.
+      * intros HRxy L HL. destruct HL as [L HL | L HL].
+        { destruct HL. exact (HL1_lin.(linear_extends) x y HRxy). }
+        { destruct HL. exact (HL2_lin.(linear_extends) x y HRxy). }
+      * intro Hall.
+        assert (HLa : L1 x y)
+          by exact (Hall L1 (Union_introl _ _ _ _ (In_singleton _ _))).
+        assert (HLb : L2 x y)
+          by exact (Hall L2 (Union_intror _ _ _ _ (In_singleton _ _))).
+        exact (Hinter x y HLa HLb).
+  - assert (HL_neq : L1 <> L2).
+    { intro Heq.
+      assert (HL1ab : L1 a b) by (unfold L1; rewrite Hrk1_a, Hrk1_b; lia).
+      assert (HL2ab : L2 a b) by (rewrite <- Heq; exact HL1ab).
+      unfold L2 in HL2ab. rewrite Hrk2_a, Hrk2_b in HL2ab. lia. }
+    unfold rls.
+    apply card_add.
+    + exact (singleton_cardinal _ L1).
+    + intro Hin. destruct Hin. apply HL_neq. reflexivity.
+Qed.
+
 (** Focused admit covering the n=4 non-antichain non-chain posets NOT
     matched by any of the six Qed sub-lemmas (a)-(f).  These are the
     higher-density classes: Y-shapes (claws), diamond, chain-of-3 with
