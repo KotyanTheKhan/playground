@@ -133,6 +133,84 @@ Proof.
   subst n. exact Hm.
 Qed.
 
+(** SOUNDNESS WARNING — this statement is FALSE as written.
+
+    Counter-example: the n-element antichain (n ≥ 2). With R = identity,
+    every ordered pair of distinct elements is a critical pair (all
+    `critical_down`/`critical_up` premises are vacuous, all such pairs
+    are incomparable). For any chosen (x', y'), the pair (x', z) for any
+    other z is also critical, contradicting the conclusion.
+
+    The classical Hiraguchi proof handles posets like the antichain via a
+    different decomposition (NOT via extremal-CP selection). Re-stating
+    this lemma correctly requires a more careful formulation (or a full
+    rewrite of the proof structure for `hiraguchi_helper` that doesn't
+    rely on a no-boundary-CP critical pair).
+
+    Kept as `Admitted.` with this warning so downstream "Qed"s built on
+    top of it are visible as unsound, not silently accepted. *)
+Lemma extremal_critical_pair_exists :
+  forall {B : Type} (R2 : B -> B -> Prop) `{IsPoset B R2} (n : nat),
+  cardinal B (Full_set B) n ->
+  n >= 4 ->
+  (exists x y, @Incomparable B R2 x y) ->
+  exists x' y' : B,
+    @IsCriticalPair B R2 x' y' /\
+    (forall p q : B, @IsCriticalPair B R2 p q ->
+       (p = x' /\ q = y') \/
+       (p <> x' /\ p <> y' /\ q <> x' /\ q <> y')).
+Proof.
+Admitted.
+
+(** SOUNDNESS WARNING — this lemma's statement is FALSE in general (same
+    counter-example as [extremal_critical_pair_exists]: the n-element
+    antichain). The previous proof derived it from the (also-false)
+    [extremal_critical_pair_exists]; we now [Admitted.] both to make the
+    unsoundness explicit.
+
+    Hiraguchi's actual removal lemma in the literature uses a different
+    formulation that handles the antichain case via the dual structure or
+    via a different choice of removable elements. *)
+Lemma exists_critical_pair_no_boundary :
+  forall {B : Type} (R2 : B -> B -> Prop) `{IsPoset B R2} (n : nat),
+  cardinal B (Full_set B) n ->
+  n >= 4 ->
+  (exists x y, @Incomparable B R2 x y) ->
+  exists x' y' : B,
+    @IsCriticalPair B R2 x' y' /\
+    (forall p q : B, @IsCriticalPair B R2 p q ->
+       (p = x' /\ q = y') \/
+       (In B (Setminus B (Setminus B (Full_set B) (Singleton B x')) (Singleton B y')) p /\
+        In B (Setminus B (Setminus B (Full_set B) (Singleton B x')) (Singleton B y')) q)).
+Proof.
+Admitted.
+
+(* Original derivation from [extremal_critical_pair_exists], retained as
+   reference for the day someone restates this lemma soundly:
+  intros B R2 HR2 n Hcard Hn4 Hinc_ex.
+  destruct (@extremal_critical_pair_exists B R2 HR2 n Hcard Hn4 Hinc_ex)
+    as [x' [y' [Hcp Hex]]].
+  exists x', y'.
+  split; [exact Hcp |].
+  intros p q Hcp_pq.
+  destruct (Hex p q Hcp_pq) as [Heq | [Hpx [Hpy [Hqx Hqy]]]].
+  - left; exact Heq.
+  - right.
+    assert (Hmem : forall z,
+              z <> x' -> z <> y' ->
+              In B (Setminus B (Setminus B (Full_set B) (Singleton B x'))
+                              (Singleton B y')) z).
+    { intros z Hzx Hzy.
+      split.
+      - split.
+        + apply Full_intro.
+        + intro Hsing. inversion Hsing as [Heq]. apply Hzx. symmetry; exact Heq.
+      - intro Hsing. inversion Hsing as [Heq]. apply Hzy. symmetry; exact Heq. }
+    split.
+    + exact (Hmem p Hpx Hpy).
+    + exact (Hmem q Hqx Hqy).
+*)
+
 Section Theorems.
   Context {A : Type}.
   Context (R : A -> A -> Prop) `{IsPoset A R}.
@@ -2068,6 +2146,64 @@ Section Theorems.
       The fully-formal proof requires the iterative BadPairs construction
       (joint-consistency of pairwise reversals); this is the only remaining
       mathematical gap for small_hiraguchi. *)
+  (** A 2-element poset that is a chain has a 1-element realizer (itself).
+      Used as the base case for [small_two_realizer_incomp] when |S'| = 2
+      and the two elements of S' are comparable in R. *)
+  Lemma chain_subposet_one_realizer :
+    forall (S' : Ensemble A),
+    cardinal A S' 2 ->
+    (forall a b, In A S' a -> In A S' b -> R a b \/ R b a) ->
+    exists r' : Ensemble ({a : A | In A S' a} -> {a : A | In A S' a} -> Prop),
+      IsRealizer (fun (a b : {a : A | In A S' a}) => R (proj1_sig a) (proj1_sig b)) r' /\
+      cardinal _ r' 1.
+  Proof.
+    intros S' Hcard Hchain.
+    set (Rsub := fun (a b : {x : A | In A S' x}) => R (proj1_sig a) (proj1_sig b)).
+    pose proof (subtype_is_poset S') as HRsub_pos.
+    (* Rsub is total since R|_{S'} is *)
+    assert (HRsub_total : @IsTotalOrder _ Rsub).
+    { constructor; [exact HRsub_pos |].
+      intros [a Ha] [b Hb].
+      unfold Rsub; simpl.
+      exact (Hchain a b Ha Hb). }
+    set (rSingle := Singleton ({x : A | In A S' x} -> {x : A | In A S' x} -> Prop) Rsub).
+    exists rSingle.
+    split.
+    - constructor.
+      + intros L HL. destruct HL.
+        constructor; [exact HRsub_total | intros a b Hab; exact Hab].
+      + intros a b. split.
+        * intros HRab L HL. destruct HL. exact HRab.
+        * intro Hall. apply Hall. constructor.
+    - exact (singleton_cardinal _ Rsub).
+  Qed.
+
+  (** Focused gap: the subposet of size ≤ 3 obtained after removing a critical
+      pair with no boundary critical pairs has a 1-realizer.  For n=4 this
+      requires the 2-element subposet to be a chain; for n=5 the 3-element
+      subposet must be a chain too.  In the non-chain case, classical
+      Hiraguchi-style arguments (iterating BadPairs) are needed.  We admit
+      this small structural claim and apply [extension_through_critical_pair]
+      to derive the 2-realizer of R. *)
+  Lemma small_subposet_one_realizer :
+    forall (x' y' : A) (S' : Ensemble A) (n : nat),
+    cardinal A (Full_set A) n ->
+    (n = 4 \/ n = 5) ->
+    IsCriticalPair R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    (forall p q : A, IsCriticalPair R p q ->
+       (p = x' /\ q = y') \/ (In A S' p /\ In A S' q)) ->
+    exists r' : Ensemble ({a : A | In A S' a} -> {a : A | In A S' a} -> Prop),
+      IsRealizer (fun (a b : {a : A | In A S' a}) => R (proj1_sig a) (proj1_sig b)) r' /\
+      cardinal _ r' 1.
+  Proof.
+  Admitted.
+
+  (** SOUNDNESS WARNING — previously Qed via the now-Admitted (and
+      mathematically false) [exists_critical_pair_no_boundary] and
+      [small_subposet_one_realizer]. The lemma's statement IS true (a
+      consequence of Hiraguchi's theorem for n ∈ {4,5}), but our current
+      proof structure does not produce a sound term. Honestly admitted. *)
   Lemma small_two_realizer_incomp :
     forall n,
     cardinal A (Full_set A) n ->
@@ -2077,7 +2213,40 @@ Section Theorems.
       IsRealizer R r /\ cardinal (A -> A -> Prop) r 2.
   Proof.
   Admitted.
+  (* Original derivation kept commented for porting reference once a
+     sound version of [exists_critical_pair_no_boundary] /
+     [small_subposet_one_realizer] is in place:
+    intros n Hcard Hn45 Hinc_ex.
+    assert (HfinA : Finite A (Full_set A)) by exact (cardinal_finite A (Full_set A) n Hcard).
+    assert (Hn4 : n >= 4) by (destruct Hn45; lia).
+    destruct (@exists_critical_pair_no_boundary A R _ n Hcard Hn4 Hinc_ex)
+      as [x' [y' [Hcp_val Hno_boundary_set]]].
+    (* S' = Full \ {x'} \ {y'} as Setminus form expected by helpers *)
+    set (S' := Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y')).
+    assert (HS'_eq : S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y'))
+      by reflexivity.
+    (* Convert Hno_boundary_set to the In-form expected by [extension_through_critical_pair]. *)
+    assert (Hno_boundary :
+        forall p q : A, IsCriticalPair R p q ->
+          (p = x' /\ q = y') \/ (In A S' p /\ In A S' q)).
+    { intros p q Hcp_pq.
+      destruct (Hno_boundary_set p q Hcp_pq) as [Hxy | [Hpin Hqin]];
+        [left; exact Hxy | right; split; assumption]. }
+    (* Get a 1-element sub-realizer of R|_{S'} via focused helper *)
+    destruct (small_subposet_one_realizer x' y' S' n Hcard Hn45 Hcp_val HS'_eq Hno_boundary)
+      as [r' [Hr'_real Hr'_card]].
+    (* Apply [extension_through_critical_pair] to lift to a (1+1) = 2-realizer of R *)
+    destruct (extension_through_critical_pair x' y' S' 1 HfinA Hcp_val HS'_eq
+                Hno_boundary
+                (ex_intro _ r' (conj Hr'_real Hr'_card)))
+      as [r [Hr_real Hr_card]].
+    exists r. split; [exact Hr_real |].
+    replace 2 with (1 + 1) by lia. exact Hr_card.
+  *)
 
+  (** SOUNDNESS WARNING — depends on the now-Admitted [small_two_realizer_incomp].
+      Statement is true (Hiraguchi for n ∈ {4,5}); current proof
+      structure is unsound for posets like the antichain. *)
   Lemma small_hiraguchi :
     forall n d,
     cardinal A (Full_set A) n ->
@@ -2085,11 +2254,11 @@ Section Theorems.
     PosetDimension R d ->
     d <= 2.
   Proof.
+  Admitted.
+  (* Original proof retained for porting:
     intros n d Hcard Hn45 Hdim.
     destruct (classic (exists x y, Incomparable R x y)) as [Hinc_ex | Hchain].
-    - (* Incomparable-pair subcase: invoke focused helper for the
-         2-element realizer, then [dimension_is_minimum] yields d ≤ 2. *)
-      destruct (small_two_realizer_incomp n Hcard Hn45 Hinc_ex)
+    - destruct (small_two_realizer_incomp n Hcard Hn45 Hinc_ex)
         as [r [Hr_real Hr_card]].
       exact (dimension_is_minimum (R:=R) (d:=d) Hdim r 2 Hr_real Hr_card).
     - (* Chain case: R is a total order, {R} is a singleton realizer. *)
@@ -2115,7 +2284,7 @@ Section Theorems.
       assert (Hd1 : d <= 1)
         by exact (dimension_is_minimum (R:=R) (d:=d) Hdim rSingle 1 HrS_real HrS_card).
       lia.
-  Qed.
+  *)
 
   (** Theorem: Hiraguchi's Theorem (1951)
       For a finite poset on n elements (n >= 4), dim(P) <= n/2.
@@ -2228,39 +2397,13 @@ Section Theorems.
 
 End Theorems.
 
-(** Hiraguchi's removal lemma (admitted).
-
-    For a finite poset on n >= 4 elements with at least one incomparable pair,
-    there exists a critical pair (x', y') whose removal leaves NO boundary
-    critical pairs: every critical pair of R either IS (x', y') or has both
-    endpoints in the residual set S' = Full_set \ {x', y'}.
-
-    This is the classical Hiraguchi choice: pick (x', y') so that no other
-    critical pair has exactly one endpoint in {x', y'}.  In Hiraguchi (1951)
-    such a pair always exists for n >= 4 by a careful selection argument on
-    the bipartite incidence between critical pairs and elements.  Formalizing
-    that selection argument is a separate proof obligation; the statement is
-    isolated here as a clean mathematical lemma. *)
-Lemma exists_critical_pair_no_boundary :
-  forall {B : Type} (R2 : B -> B -> Prop) `{IsPoset B R2} (n : nat),
-  cardinal B (Full_set B) n ->
-  n >= 4 ->
-  (exists x y, @Incomparable B R2 x y) ->
-  exists x' y' : B,
-    @IsCriticalPair B R2 x' y' /\
-    (forall p q : B, @IsCriticalPair B R2 p q ->
-       (p = x' /\ q = y') \/
-       (In B (Setminus B (Setminus B (Full_set B) (Singleton B x')) (Singleton B y')) p /\
-        In B (Setminus B (Setminus B (Full_set B) (Singleton B x')) (Singleton B y')) q)).
-Proof.
-Admitted.
-
-(** The carrier-polymorphic Hiraguchi bound, proved by strong induction on n.
-    Base case (n in {4,5}) calls [small_hiraguchi]; inductive step splits on
-    whether R2 has an incomparable pair: chain (dim <= 1) versus lifting an
-    incomparable pair to a critical pair and applying
-    [extension_through_critical_pair] combined with the IH on the (n-2)-element
-    subposet S'. *)
+(** SOUNDNESS WARNING — the previous Qed of this lemma used
+    [exists_critical_pair_no_boundary] (now Admitted, statement is false
+    in general) and [small_hiraguchi] (now Admitted, sound statement but
+    unsound proof structure). The conclusion is Hiraguchi's 1955 theorem
+    and IS true, but our proof skeleton doesn't faithfully reproduce the
+    classical proof (which handles cases like the n-element antichain
+    differently). Admitted to make this explicit. *)
 Lemma hiraguchi_helper :
   forall (n : nat) {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2} (d2 : nat),
   cardinal B (Full_set B) n ->
@@ -2268,6 +2411,9 @@ Lemma hiraguchi_helper :
   PosetDimension R2 d2 ->
   d2 <= n / 2.
 Proof.
+Admitted.
+(* Original proof retained for porting reference once
+   [exists_critical_pair_no_boundary] and [small_hiraguchi] are honestly proved:
   intro n.
   induction n as [n IH] using lt_wf_ind.
   intros B R2 HR2 d2 Hcard Hn4 Hdim.
@@ -2366,13 +2512,14 @@ Proof.
           + intros HRab L HL. destruct HL. exact HRab.
           + intro Hall. apply Hall. constructor. }
       exact (dimension_is_minimum (R := R2) (d := d2) Hdim rSingle 1 HrS_real HrS_card). }
-    (* d2 <= 1 and n >= 6, so d2 <= n / 2. *)
     assert (Hnhalf : 1 <= n / 2) by (apply Nat.div_le_lower_bound; lia).
     lia.
-Qed.
+*)
 
 (** Hiraguchi's Theorem (1951), carrier-polymorphic form.
-    Re-exports [hiraguchi_helper] under its historical name. *)
+    Re-exports [hiraguchi_helper] under its historical name.
+
+    SOUNDNESS WARNING — wraps the (now Admitted) [hiraguchi_helper]. *)
 Lemma hiraguchi_thm :
   forall (n : nat) {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2} (d2 : nat),
   cardinal B (Full_set B) n ->
