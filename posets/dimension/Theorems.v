@@ -1704,6 +1704,154 @@ Section Theorems.
     apply Hspec. exact HL'.
   Qed.
 
+  (** Sub-lemma B': boundary-aware variant of [cp_lift_function].
+
+      Given a list [B : list (A * A)] of boundary edges, produce a
+      function [lift_b] mapping each L' linearizing R on S' to a total
+      order on A that (i) extends R, (ii) forces x' < y', (iii) reverses
+      every (p,q) ∈ B (i.e. lift_b L' q p), and (iv) matches L' on S'×S'.
+
+      The acyclicity hypothesis is required from the caller per L' — it
+      is the only structural property of B used in the construction.
+      Caller is responsible for verifying acyclicity (which in practice
+      follows from [IsBoundaryReversalSet] plus the local realizer
+      properties). *)
+  Lemma cp_lift_function_with_boundary :
+    forall (x' y' : A) (S' : Ensemble A) (B : list (A * A)),
+    IsCriticalPair R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    exists lift_b : ({a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+                    -> (A -> A -> Prop),
+      forall L',
+        IsLinearExtension
+          (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+        (forall a b, a <> b ->
+         clos_trans A
+           (fun a b => R a b
+                    \/ (exists (ha : In A S' a) (hb : In A S' b),
+                          L' (exist _ a ha) (exist _ b hb))
+                    \/ (a = x' /\ b = y')
+                    \/ List.In (b, a) B) a b ->
+         clos_trans A
+           (fun a b => R a b
+                    \/ (exists (ha : In A S' a) (hb : In A S' b),
+                          L' (exist _ a ha) (exist _ b hb))
+                    \/ (a = x' /\ b = y')
+                    \/ List.In (b, a) B) b a ->
+         False) ->
+        IsLinearExtension R (lift_b L') /\
+        (lift_b L') x' y' /\
+        (forall p q : A, List.In (p, q) B -> (lift_b L') q p) /\
+        (forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+           L' (exist _ a ha) (exist _ b hb) -> (lift_b L') a b) /\
+        (forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+           (lift_b L') a b -> L' (exist _ a ha) (exist _ b hb)).
+  Proof.
+    intros x' y' S' B Hcp HS'_eq.
+    (* Define the per-L' specification predicate Q. *)
+    set (Q := fun (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+                  (L_out : A -> A -> Prop) =>
+                IsLinearExtension
+                  (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+                (forall a b, a <> b ->
+                 clos_trans A
+                   (fun a b => R a b
+                            \/ (exists (ha : In A S' a) (hb : In A S' b),
+                                  L' (exist _ a ha) (exist _ b hb))
+                            \/ (a = x' /\ b = y')
+                            \/ List.In (b, a) B) a b ->
+                 clos_trans A
+                   (fun a b => R a b
+                            \/ (exists (ha : In A S' a) (hb : In A S' b),
+                                  L' (exist _ a ha) (exist _ b hb))
+                            \/ (a = x' /\ b = y')
+                            \/ List.In (b, a) B) b a ->
+                 False) ->
+                IsLinearExtension R L_out /\
+                L_out x' y' /\
+                (forall p q : A, List.In (p, q) B -> L_out q p) /\
+                (forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+                   L' (exist _ a ha) (exist _ b hb) -> L_out a b) /\
+                (forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+                   L_out a b -> L' (exist _ a ha) (exist _ b hb))).
+    assert (Hex : forall L', exists L_out, Q L' L_out).
+    { intros L'. unfold Q.
+      (* Case split on whether both preconditions hold. *)
+      destruct (classic (IsLinearExtension
+                  (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L'))
+        as [HL' | HnL']; [| (* trivial witness when L' is not a linear extension *)
+        exists (fun _ _ => True); intros Hk; exfalso; apply HnL'; exact Hk ].
+      destruct (classic
+                  (forall a b, a <> b ->
+                   clos_trans A
+                     (fun a b => R a b
+                              \/ (exists (ha : In A S' a) (hb : In A S' b),
+                                    L' (exist _ a ha) (exist _ b hb))
+                              \/ (a = x' /\ b = y')
+                              \/ List.In (b, a) B) a b ->
+                   clos_trans A
+                     (fun a b => R a b
+                              \/ (exists (ha : In A S' a) (hb : In A S' b),
+                                    L' (exist _ a ha) (exist _ b hb))
+                              \/ (a = x' /\ b = y')
+                              \/ List.In (b, a) B) b a ->
+                   False)) as [Hacyc | Hnacyc]; [|
+        exists (fun _ _ => True); intros _ Hk; exfalso; apply Hnacyc; exact Hk ].
+      (* Build the augmented relation. *)
+      set (Aug := fun a b : A =>
+                    R a b
+                    \/ (exists (ha : In A S' a) (hb : In A S' b),
+                          L' (exist _ a ha) (exist _ b hb))
+                    \/ (a = x' /\ b = y')
+                    \/ List.In (b, a) B).
+      set (AugTC := clos_trans A Aug).
+      assert (HAug_poset : IsPoset A AugTC)
+        by exact (lift_and_force_with_boundary_is_poset x' y' S' B L' Hcp HS'_eq HL' Hacyc).
+      destruct (szpilrajn_theorem A AugTC) as [L_full [HL_pos [HL_tot HL_ext]]].
+      exists L_full. intros _ _.
+      (* Spec property (1): IsLinearExtension R L_full. *)
+      assert (Hlin : IsLinearExtension R L_full).
+      { apply (total_order_is_linear_extension R L_full HL_pos HL_tot).
+        intros a b HRab. apply HL_ext. apply t_step. left. exact HRab. }
+      (* Spec property (2): L_full x' y'. *)
+      assert (Hxy : L_full x' y').
+      { apply HL_ext. apply t_step. right. right. left. split; reflexivity. }
+      (* Spec property (3): forall (p,q) ∈ B, L_full q p. *)
+      assert (HB : forall p q : A, List.In (p, q) B -> L_full q p).
+      { intros p q HpqB. apply HL_ext. apply t_step.
+        right. right. right. exact HpqB. }
+      (* Spec property (4): L'-forward. *)
+      assert (HfwL' : forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+                       L' (exist _ a ha) (exist _ b hb) -> L_full a b).
+      { intros a b ha hb HL'ab. apply HL_ext. apply t_step.
+        right. left. exists ha, hb. exact HL'ab. }
+      (* Spec property (5): L'-reverse — totality + antisymmetry. *)
+      assert (HrvL' : forall (a b : A) (ha : In A S' a) (hb : In A S' b),
+                       L_full a b -> L' (exist _ a ha) (exist _ b hb)).
+      { intros a b ha hb HLfab.
+        destruct (HL'.(linear_is_total).(total_comparable)
+                    (exist _ a ha) (exist _ b hb)) as [HLab | HLba].
+        + exact HLab.
+        + assert (HLf_ba : L_full b a) by exact (HfwL' b a hb ha HLba).
+          assert (Hab_eq : a = b)
+            by exact (HL_pos.(poset_antisym) a b HLfab HLf_ba).
+          subst b.
+          assert (Hhh : ha = hb) by apply proof_irrelevance. subst hb.
+          exact (HL'.(linear_is_total).(total_is_poset).(poset_refl)
+                   (exist _ a ha)). }
+      split; [exact Hlin |].
+      split; [exact Hxy |].
+      split; [exact HB |].
+      split; [exact HfwL' | exact HrvL']. }
+    set (lift_b := fun L' =>
+                     proj1_sig (constructive_indefinite_description
+                                  _ (Hex L'))).
+    exists lift_b. intros L' HL' Hacyc.
+    pose proof (proj2_sig (constructive_indefinite_description _ (Hex L')))
+      as Hspec.
+    apply Hspec; [exact HL' | exact Hacyc].
+  Qed.
+
   (** Sub-lemma C: realizer separation for the lifted set.
       The strengthened hypothesis [Hcp_sep] expresses that for every
       critical pair (p', q') of R, some L in the realizer reverses it.
