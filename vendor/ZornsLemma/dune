@@ -1,0 +1,10 @@
+; Vendored from coq-zorns-lemma 10.2.0 (https://github.com/coq-community/topology).
+; Bundled because upstream releases require coq < 8.21 and we run on Coq 9.x.
+(coq.theory
+ (name ZornsLemma)
+ (package playground)
+ (theories Stdlib)
+ (flags (:standard
+     -w -deprecated-hint-rewrite-without-locality
+     -w -deprecated-instance-without-locality
+     -w -deprecated-from-Coq)))

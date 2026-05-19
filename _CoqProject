@@ -6,6 +6,7 @@
 -R standard_example StandardExample
 -R abhishek Abhishek
 -R chipala_book CpdtTactics
+-R vendor/ZornsLemma ZornsLemma
 
 posets/Posets.v
 posets/PosetClasses.v
