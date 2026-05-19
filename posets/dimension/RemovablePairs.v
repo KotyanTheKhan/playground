@@ -1837,20 +1837,31 @@ Qed.
       - [n4_nonantichain_nonchain_two_realizer]  (n = 4)
       - [n5_nonantichain_nonchain_two_realizer]  (n = 5)
 
-    For n = 4 the dispatcher SHOULD route the six closed isomorphism
-    classes (a)-(f) to their Qed sub-lemmas:
+    For n = 4 the dispatcher routes EIGHT closed isomorphism classes
+    (a)-(h) to their Qed sub-lemmas:
       (a) one strict edge          → [n4_one_edge_two_realizer]
       (b) 3-chain + isolated       → [n4_chain_plus_isolated_two_realizer]
       (c) V-shape (a<b, a<c)       → [n4_V_two_realizer]
       (d) ∧-shape (a<c, b<c)       → [n4_inv_V_two_realizer]
       (e) two disjoint 2-chains    → [n4_disjoint_chains_two_realizer]
       (f) N-shape (a<b, c<b, c<d)  → [n4_N_two_realizer]
+      (g) 3-claw up                → [n4_3claw_up_two_realizer]
+      (h) 3-claw down              → [n4_3claw_down_two_realizer]
 
-    In the current implementation the dispatcher routes uniformly
-    through a focused catch-all admit
-    [n4_residual_classes_two_realizer]; the per-class structural
-    classifier is a follow-up.  Every per-class realizer is already
-    Qed; only the classifier is open.
+    The remaining six classes (i)-(n) — diamond, bowtie, chain-of-3
+    with element below/above, Y-up/down extended — also have closed
+    Qed per-class sub-lemmas in this file:
+      (i) diamond                  → [n4_diamond_two_realizer]
+      (j) bowtie                   → [n4_bowtie_two_realizer]
+      (k) chain3 + element below   → [n4_chain3_plus_below_two_realizer]
+      (l) chain3 + element above   → [n4_chain3_plus_above_two_realizer]
+      (m) Y-up extended            → [n4_Y_chain_up_two_realizer]
+      (n) Y-down extended          → [n4_Y_chain_down_two_realizer]
+
+    The dispatcher does NOT yet route (i)-(n); they remain captured by
+    the focused catch-all admit [n4_residual_classes_two_realizer].
+    All 14 per-class realizers are Qed; only the classifier extension
+    to (i)-(n) is open.
 
     Mathematical content (preserved from the original Admitted):
 
@@ -4742,15 +4753,29 @@ Proof.
 Qed.
 
 (** Focused admit covering the n=4 non-antichain non-chain posets NOT
-    matched by any of the six Qed sub-lemmas (a)-(f).  These are the
-    higher-density classes: Y-shapes (claws), diamond, chain-of-3 with
-    an extra edge, and a few further configurations.
+    matched by the EIGHT Qed sub-lemmas wired into the dispatcher
+    [n4_nonantichain_nonchain_two_realizer]: classes (a)-(f), plus the
+    two 3-claws (g) and (h).
 
-    Each such class has a constructive 2-realizer (Hiraguchi's bound is
-    tight at n=4 only for the antichain; the non-antichain non-chain
-    classes all have dim ≤ 2).  Their realizer construction follows
-    the same rank-pair pattern used in (a)-(f).  This admit catalogues
-    the cases left for a future expansion. *)
+    The remaining six isomorphism classes (i)-(n) — diamond (i), bowtie
+    (j), chain-of-3 + element below/above (k)/(l), Y-up extended (m),
+    Y-down extended (n) — ALL HAVE Qed per-class sub-lemmas already
+    proven in this file:
+      - [n4_diamond_two_realizer]
+      - [n4_bowtie_two_realizer]
+      - [n4_chain3_plus_below_two_realizer]
+      - [n4_chain3_plus_above_two_realizer]
+      - [n4_Y_chain_up_two_realizer]
+      - [n4_Y_chain_down_two_realizer]
+
+    Thus this admit can be discharged by extending the dispatcher
+    cascade with structural detection branches for these six remaining
+    classes; the per-class proofs are already done.  The cascade
+    structure is the only thing left.
+
+    Each such class has dim ≤ 2 (Hiraguchi's bound is tight at n=4 only
+    for the antichain).  Their realizer construction follows the same
+    rank-pair pattern used throughout (a)-(n). *)
 Lemma n4_residual_classes_two_realizer :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
   cardinal B (Full_set B) 4 ->
@@ -4765,24 +4790,35 @@ Admitted.
     Extracts one strict edge [R2 p q] (from non-antichain) and four
     pairwise distinct elements [p, q, r, s] (via
     [carrier_4_destructure]).  Walks a structural case tree to detect
-    which of the six named isomorphism classes (a)-(f) the poset
+    which of the EIGHT named isomorphism classes (a)-(h) the poset
     matches WITH RESPECT TO the canonical labeling
-    [(witness-edge) = (a, b)]:
+    [(witness-edge) = (p, q)]:
 
       - 1 strict edge        → class (a) via [n4_one_edge_two_realizer]
       - 2 strict edges       → class (e) [(r,s) or (s,r) disjoint],
                                 class (c) [V with shared bottom p],
                                 or class (d) [∧ with shared top q]
       - 3 strict edges       → class (b) [chain p<q<r or p<q<s],
-                                or class (f) [N with central edge (r,q,s)
-                                or (s,q,r)]
+                                class (f) [N with central edge (r,q,s)
+                                  or (s,q,r)],
+                                class (g) [3-claw-up at p:
+                                  (p,q), (p,r), (p,s)],
+                                or class (h) [3-claw-down at q:
+                                  (p,q), (r,q), (s,q)]
 
     For each matching case the dispatcher invokes the corresponding
     Qed sub-lemma; otherwise it falls through to the focused admit
     [n4_residual_classes_two_realizer], which captures:
-      - alternate labelings of (b)-(f) where the witness edge (p,q) is
+      - alternate labelings of (b)-(h) where the witness edge (p,q) is
         not the canonical "first" edge of the class
-      - the 8 further isomorphism classes (3-claws, diamond, etc.). *)
+      - the 6 further isomorphism classes (i)-(n) — diamond, bowtie,
+        chain-of-3 + below/above, Y-up/down extended — for each of
+        which a Qed per-class sub-lemma already exists in this file
+        ([n4_diamond_two_realizer], [n4_bowtie_two_realizer],
+        [n4_chain3_plus_below_two_realizer],
+        [n4_chain3_plus_above_two_realizer],
+        [n4_Y_chain_up_two_realizer], [n4_Y_chain_down_two_realizer]).
+        Extending the cascade to route them is left as follow-up. *)
 Lemma n4_nonantichain_nonchain_two_realizer :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
   cardinal B (Full_set B) 4 ->
