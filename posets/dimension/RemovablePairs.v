@@ -3302,10 +3302,55 @@ Proof.
               destruct (HR_only_c a b Hneq HRab) as [[Hap Hbq] | [Hap Hbs]].
               ** right; left; split; assumption.
               ** right; right; split; assumption.
-           ++ (* No V-shape with shared bottom [p]; route to admit. *)
-              apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard); [| exact Hinc_ex].
-              intro Hid. destruct Hother as [x [y [Hxy_neq [HRxy _]]]].
-              apply Hxy_neq. exact (Hid x y HRxy).
+           ++ (* Try class (d) ∧-shape with shared top [q]: edges (p, q) and (r, q). *)
+              destruct (classic (R2 r q /\
+                                 forall x y : B, x <> y -> R2 x y ->
+                                   (x = p /\ y = q) \/ (x = r /\ y = q)))
+                as [Hclass_d_r | Hnot_d_r].
+              ** (* Class (d) with a=p, b=r, c=q, d=s. *)
+                 apply (@n4_inv_V_two_realizer B R2 HR2 Hcard).
+                 destruct Hclass_d_r as [HRrq HR_only_d].
+                 exists p, r, q, s.
+                 split; [exact Hpr_neq |].
+                 split; [exact Hpq_neq |].
+                 split; [exact Hps_neq |].
+                 split; [intro Hrq_eq; apply Hqr_neq; symmetry; exact Hrq_eq |].
+                 split; [exact Hrs_neq |].
+                 split; [exact Hqs_neq |].
+                 split; [exact HRpq |].
+                 split; [exact HRrq |].
+                 intros a b HRab.
+                 destruct (classic (a = b)) as [Heq | Hneq]; [left; exact Heq |].
+                 destruct (HR_only_d a b Hneq HRab) as [[Hap Hbq] | [Har Hbq]].
+                 --- right; left; split; assumption.
+                 --- right; right; split; assumption.
+              ** (* Try class (d) with edges (p, q) and (s, q). *)
+                 destruct (classic (R2 s q /\
+                                    forall x y : B, x <> y -> R2 x y ->
+                                      (x = p /\ y = q) \/ (x = s /\ y = q)))
+                   as [Hclass_d_s | Hnot_d_s].
+                 --- (* Class (d) with a=p, b=s, c=q, d=r. *)
+                     apply (@n4_inv_V_two_realizer B R2 HR2 Hcard).
+                     destruct Hclass_d_s as [HRsq HR_only_d].
+                     exists p, s, q, r.
+                     split; [exact Hps_neq |].
+                     split; [exact Hpq_neq |].
+                     split; [exact Hpr_neq |].
+                     split; [intro Hsq_eq; apply Hqs_neq; symmetry; exact Hsq_eq |].
+                     split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
+                     split; [exact Hqr_neq |].
+                     split; [exact HRpq |].
+                     split; [exact HRsq |].
+                     intros a b HRab.
+                     destruct (classic (a = b)) as [Heq | Hneq]; [left; exact Heq |].
+                     destruct (HR_only_d a b Hneq HRab) as [[Hap Hbq] | [Has Hbq]].
+                     +++ right; left; split; assumption.
+                     +++ right; right; split; assumption.
+                 --- (* Neither V nor ∧ shape; route to admit. *)
+                     apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard);
+                       [| exact Hinc_ex].
+                     intro Hid. destruct Hother as [x [y [Hxy_neq [HRxy _]]]].
+                     apply Hxy_neq. exact (Hid x y HRxy).
   - (* No other strict edge: only (p, q) is a non-trivial relation.
        This is exactly class (a). *)
     apply (@n4_one_edge_two_realizer B R2 HR2 Hcard).
