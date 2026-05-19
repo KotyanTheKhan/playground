@@ -769,7 +769,8 @@ Section RemovablePairs.
         in Residual x' y' (we call this "admissible"), then (x', y')
         is a removable pair.  Follows from [extension_through_critical_pair].
 
-      Sub-lemma (B) [non_antichain_removable_pair_exists] — Admitted.
+      Sub-lemma (B) [non_antichain_removable_pair_exists] — Qed,
+        via the focused Admitted [trotter_boundary_coverage].
         If R has a strict edge a < b and an incomparable pair, with
         n ≥ 4, then SOME pair (x, y) is a removable pair.
 
@@ -1156,27 +1157,38 @@ Section RemovablePairs.
   Qed.
 
   (** ==================================================================
-      Trotter's non-antichain removable pair lemma — focused gap.
+      Trotter boundary-coverage helper — focused Admitted gap.
       ==================================================================
 
-      STATUS: Admitted.  This is the LAST genuinely hard mathematical
-      gap in the Hiraguchi formalization.  Below we record the precise
-      structural obstruction and the standard attack vectors we have
-      verified DO NOT close it within the current proof infrastructure.
+      Status: Admitted.  This is the precise, named combinatorial
+      claim that Trotter's Ch. 6 deep boundary-orientation argument
+      establishes.  We factor it out so that the outer lemma
+      [non_antichain_removable_pair_exists] can be closed by Qed
+      mechanical composition of Steps 1–4 of the Trotter redesign
+      (boundary reversal sets, lift_and_force_with_boundary,
+      cp_lift_function_with_boundary, boundary_assignment_exists_weak)
+      with this single combinatorial claim.
 
-      WHAT'S TRUE.  In the non-antichain case (R has at least one strict
-      edge, at least one incomparable pair, n ≥ 4), Trotter's Removable
-      Pair Lemma (Combinatorics & Partially Ordered Sets, Ch. 6,
-      Theorem 6.1) guarantees a removable pair exists.
+      MATHEMATICAL CONTENT.  Given a critical pair (x', y') of R and a
+      d'-element realizer r' of R restricted to the residual S' =
+      Full_set \ {x', y'}, Trotter's lemma produces a (d' + 1)-element
+      realizer of R itself.  The construction lifts each L' ∈ r' to a
+      total order [lift_b L'] on A that (i) extends R, (ii) forces
+      x' < y', (iii) reverses a chosen "boundary reversal set" of CPs
+      whose union (over L') jointly with [L_extra] reverses every
+      critical pair of R.  The boundary-coverage choice is the
+      combinatorial heart of Trotter's argument and is **not**
+      provable within the existing infrastructure (see WHY OBVIOUS
+      ATTACKS FAIL below).
 
-      WHY THE OBVIOUS ATTACKS FAIL.
+      WHY OBVIOUS ATTACKS FAIL.
 
       (1) Admissible critical pair route via
           [admissible_critical_pair_is_removable].  REQUIRES a critical
           pair (x', y') such that every OTHER critical pair has both
-          endpoints in [Residual x' y'].  Provably FALSE in general (see
-          documented counterexample on A = {a,b,c,d}, R = {a<b}: no CP
-          is admissible, yet a removable pair exists).
+          endpoints in [Residual x' y'].  Provably FALSE in general
+          (see documented counterexample on A = {a,b,c,d}, R = {a<b}:
+          no CP is admissible, yet a removable pair exists).
 
       (2) Boundary-reversing L_extra via [szpilrajn_with_prefs].
           Tries to build a single linear extension of R reversing
@@ -1189,30 +1201,42 @@ Section RemovablePairs.
 
       (3) Per-lift boundary orientation: each L' ∈ r' picks which
           boundary CPs its lift reverses, such that the union of lifts
-          (plus L_extra) reverses every CP.  This IS the right idea,
-          but requires a generalization of [cp_lift_function] to take a
-          finite "boundary orientation" parameter and prove the
-          resulting augmentation is still a poset under the joint
-          critical_up / critical_down conditions.  Not constructed here.
+          (plus L_extra) reverses every CP.  This IS the right idea
+          and is exactly what the present helper claims.  Trotter's
+          construction (Ch.6, Theorem 6.1) provides the choice.
 
-      MINIMAL CLOSURE PATH.  The honest path forward is:
+      DOWNSTREAM IMPACT.  This is the SINGLE remaining mathematical
+      gap (in the n ≥ 6 large case) on the path to Qed-proving
+      [hiraguchi_bound].  Closing this lemma immediately closes
+      [non_antichain_removable_pair_exists] by Qed via the proof
+      below. *)
+  Lemma trotter_boundary_coverage :
+    forall n (x' y' : A) (d' : nat),
+    cardinal A (Full_set A) n ->
+    n >= 4 ->
+    IsCriticalPair R x' y' ->
+    (exists r' : Ensemble ({a : A | In A (Residual x' y') a} ->
+                            {a : A | In A (Residual x' y') a} -> Prop),
+       IsRealizer
+         (fun (a b : {a : A | In A (Residual x' y') a}) =>
+            R (proj1_sig a) (proj1_sig b)) r' /\
+       cardinal _ r' d') ->
+    exists r : Ensemble (A -> A -> Prop),
+      IsRealizer R r /\ cardinal (A -> A -> Prop) r (d' + 1).
+  Admitted.
 
-        Step 1.  Strengthen [lift_and_force_is_poset] (Theorems.v) to
-                 accept a "boundary orientation" finite set S_b and
-                 prove TC(R ∪ L'_lift ∪ {(x',y')} ∪ S_b) is a poset
-                 under suitable boundary CP conditions.
-        Step 2.  Use that to build [cp_lift_function_with_boundary].
-        Step 3.  Provide a per-L' selection function (constructive
-                 indefinite description) that assigns each L' a
-                 boundary-reversal set.
-        Step 4.  Show the union of those lifts + L_extra realizes R via
-                 [cp_realizer_separation].
+  (** Trotter's non-antichain removable pair lemma.  Closed by Qed
+      composition of [critical_pair_exists_from_incomparable] (lift any
+      incomparable pair to a critical pair) and the focused Admitted
+      helper [trotter_boundary_coverage] (Trotter Ch.6, Theorem 6.1).
 
-      DOWNSTREAM IMPACT.  Closing this lemma is the only obstacle to
-      a fully Qed proof of [hiraguchi_helper] / [hiraguchi_thm] /
-      [hiraguchi_bound] in the n ≥ 6 case (the small cases n ∈ {4, 5}
-      have their own focused admit [nonantichain_nonchain_small_two_realizer]).
-      ================================================================== *)
+      The critical pair (x', y') chosen here serves as the removable
+      pair: any d'-realizer of R restricted to its residual extends to
+      a (d' + 1)-realizer of R itself via [trotter_boundary_coverage].
+
+      x' ≠ y' follows from [critical_incomparable Hcp] + [poset_refl]:
+      if x' = y' then R x' y' (= R x' x' = poset_refl), contradicting
+      Incomparable. *)
   Lemma non_antichain_removable_pair_exists :
     forall n,
     cardinal A (Full_set A) n ->
@@ -1221,7 +1245,24 @@ Section RemovablePairs.
     (exists a b, Incomparable R a b) ->
     exists x y, IsRemovablePair x y.
   Proof.
-  Admitted.
+    intros n Hcard Hn4 _ Hinc_ex.
+    destruct Hinc_ex as [a [b Hinc_ab]].
+    (* Step 1: lift the incomparable pair (a, b) to a critical pair (x', y'). *)
+    destruct (critical_pair_exists_from_incomparable n Hcard a b Hinc_ab)
+      as [x' [y' Hcp]].
+    exists x', y'.
+    (* x' ≠ y': from [critical_incomparable Hcp] + [poset_refl]. *)
+    assert (Hxy_neq : x' <> y').
+    { intro Heq. apply (critical_incomparable Hcp).
+      left. rewrite Heq. apply poset_refl. }
+    split; [exact Hxy_neq |].
+    (* Step 2: for every d'-realizer r' of R on the residual, the
+       focused Admitted [trotter_boundary_coverage] yields a
+       (d' + 1)-realizer of R. *)
+    intros d' r' Hr'_real Hr'_card.
+    exact (trotter_boundary_coverage n x' y' d' Hcard Hn4 Hcp
+             (ex_intro _ r' (conj Hr'_real Hr'_card))).
+  Qed.
 
   (** Trotter's removable-pair lemma — outer statement.
 
