@@ -1003,6 +1003,71 @@ Section RemovablePairs.
   Qed.
 
   (** ==================================================================
+      Boundary reversal sets — Step 1 of the Trotter redesign.
+      ==================================================================
+
+      A "boundary reversal set" for a critical pair (x', y') is a finite
+      list of CPs of R, each with one endpoint in {x', y'}, that we
+      intend to *reverse* via additional forced edges in a per-L' lift.
+      Each pair in B has incomparable endpoints (since it is a CP), and
+      we exclude (x', y') itself and its reverse — those are handled
+      directly by the cp_lift_function machinery.
+
+      See [docs/superpowers/plans/2026-05-19-trotter-removable-pair-redesign.md].
+      ================================================================== *)
+  Definition IsBoundaryReversalSet (x' y' : A) (B : list (A * A)) : Prop :=
+    List.Forall (fun pq : A * A =>
+      IsCriticalPair R (fst pq) (snd pq) /\
+      (fst pq = x' \/ fst pq = y' \/ snd pq = x' \/ snd pq = y') /\
+      (fst pq, snd pq) <> (x', y') /\
+      (fst pq, snd pq) <> (y', x')) B.
+
+  (** The empty boundary set is trivially valid for any (x', y'). *)
+  Lemma boundary_set_nil_valid :
+    forall x' y', IsBoundaryReversalSet x' y' nil.
+  Proof.
+    intros x' y'. unfold IsBoundaryReversalSet. apply List.Forall_nil.
+  Qed.
+
+  (** Destructuring helper: a [cons] boundary set is the head pair
+      satisfying the boundary conditions, plus a tail boundary set. *)
+  Lemma boundary_set_cons_inv :
+    forall x' y' pq B,
+    IsBoundaryReversalSet x' y' (pq :: B) ->
+    IsCriticalPair R (fst pq) (snd pq) /\
+    (fst pq = x' \/ fst pq = y' \/ snd pq = x' \/ snd pq = y') /\
+    (fst pq, snd pq) <> (x', y') /\
+    (fst pq, snd pq) <> (y', x') /\
+    IsBoundaryReversalSet x' y' B.
+  Proof.
+    intros x' y' pq B HB.
+    unfold IsBoundaryReversalSet in HB.
+    inversion HB as [|hd tl Hhd Htl]; subst.
+    destruct Hhd as [Hcp [Hend [Hne_xy Hne_yx]]].
+    split; [exact Hcp |].
+    split; [exact Hend |].
+    split; [exact Hne_xy |].
+    split; [exact Hne_yx |].
+    exact Htl.
+  Qed.
+
+  (** Every pair in a boundary reversal set has incomparable endpoints
+      in R, since each pair is by definition a critical pair. *)
+  Lemma boundary_endpoint_incomparable :
+    forall x' y' B,
+    IsBoundaryReversalSet x' y' B ->
+    forall p q, List.In (p, q) B -> Incomparable R p q.
+  Proof.
+    intros x' y' B HB p q Hin.
+    unfold IsBoundaryReversalSet in HB.
+    rewrite List.Forall_forall in HB.
+    specialize (HB (p, q) Hin).
+    destruct HB as [Hcp _].
+    simpl in Hcp.
+    exact (@critical_incomparable A R p q Hcp).
+  Qed.
+
+  (** ==================================================================
       Trotter's non-antichain removable pair lemma — focused gap.
       ==================================================================
 
