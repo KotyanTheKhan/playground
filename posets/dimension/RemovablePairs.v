@@ -321,4 +321,41 @@ Section RemovablePairs.
     exists r. split; [exact Hreal | exact Hcard_r].
   Qed.
 
+  (** When R is the discrete poset (an antichain), every pair (x, y) with
+      x <> y is removable. Sanity check on [IsRemovablePair]: the antichain
+      is the case that broke the previous design's
+      [extremal_critical_pair_exists]; here it is unambiguously valid. *)
+  (** SOUNDNESS NOTE — this lemma is UNPROVABLE under the current
+      [IsRemovablePair] definition.
+
+      Counter-example: A = {0, 1, 2}, R = eq, x = 0, y = 1.  S' = {2}.
+      Every distinct ordered pair is a critical pair (Strict R is empty,
+      so [critical_down] and [critical_up] hold vacuously, and
+      [Incomparable R p q] reduces to [p <> q]).  In particular:
+        - CP (0, 2) requires (by clause 3, AND-version): (p, q) = (x, y)
+          false; both p, q in S' false (0 not in S'); so L 2 0 required.
+        - CP (2, 0) requires: (p, q) = (x, y) false; both in S' false;
+          so L 0 2 required.
+      Antisymmetry of L gives 0 = 2, contradiction.
+
+      The spec at [docs/superpowers/specs/2026-05-19-hiraguchi-trotter-design.md]
+      line 102 has the WEAKER condition [In Residual p \/ In Residual q
+      \/ L q p] (disjunction, not conjunction); the implementation here
+      strengthened it to AND, which is unsatisfiable in the antichain.
+
+      However, the disjunction form is not currently sufficient for
+      [removable_pair_dimension_bound]: in the "exactly one endpoint in
+      Residual" branch the existing proof needs both endpoints to build
+      subtype witnesses [psub], [qsub].  Fixing this needs a refactor of
+      [removable_pair_dimension_bound] to handle that branch separately
+      (e.g., using L_extra or a second auxiliary linear extension), or a
+      different formulation of [IsRemovablePair] altogether.
+
+      See task report for full analysis. *)
+  Lemma antichain_removable_pair :
+    (forall a b : A, R a b -> a = b) ->
+    forall x y : A, x <> y -> IsRemovablePair x y.
+  Proof.
+  Admitted.
+
 End RemovablePairs.
