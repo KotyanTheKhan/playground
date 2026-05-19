@@ -983,6 +983,83 @@ Section RemovablePairs.
       via L'-induced paths.  The structural choice of WHICH boundary
       CPs to reverse jointly without creating cycles is Trotter's hard
       combinatorial step (Ch.6) and is not closed here. *)
+
+  (** Sub-lemma: every incomparable pair contains a critical pair.
+      Wrapper around [incomparable_lifting_to_critical_pair] from
+      CriticalPairs.v that packages the finiteness hypothesis from
+      the [cardinal Full_set n] form used in [removable_pair_exists]. *)
+  Lemma critical_pair_exists_from_incomparable :
+    forall n,
+    cardinal A (Full_set A) n ->
+    forall a b, Incomparable R a b ->
+    exists x y, IsCriticalPair R x y.
+  Proof.
+    intros n Hcard a b Hinc.
+    assert (HfinA : Finite A (Full_set A))
+      by exact (cardinal_finite A (Full_set A) n Hcard).
+    destruct (incomparable_lifting_to_critical_pair R HfinA a b Hinc)
+      as [x [y [_ [_ Hcp]]]].
+    exists x, y. exact Hcp.
+  Qed.
+
+  (** ==================================================================
+      Trotter's non-antichain removable pair lemma — focused gap.
+      ==================================================================
+
+      STATUS: Admitted.  This is the LAST genuinely hard mathematical
+      gap in the Hiraguchi formalization.  Below we record the precise
+      structural obstruction and the standard attack vectors we have
+      verified DO NOT close it within the current proof infrastructure.
+
+      WHAT'S TRUE.  In the non-antichain case (R has at least one strict
+      edge, at least one incomparable pair, n ≥ 4), Trotter's Removable
+      Pair Lemma (Combinatorics & Partially Ordered Sets, Ch. 6,
+      Theorem 6.1) guarantees a removable pair exists.
+
+      WHY THE OBVIOUS ATTACKS FAIL.
+
+      (1) Admissible critical pair route via
+          [admissible_critical_pair_is_removable].  REQUIRES a critical
+          pair (x', y') such that every OTHER critical pair has both
+          endpoints in [Residual x' y'].  Provably FALSE in general (see
+          documented counterexample on A = {a,b,c,d}, R = {a<b}: no CP
+          is admissible, yet a removable pair exists).
+
+      (2) Boundary-reversing L_extra via [szpilrajn_with_prefs].
+          Tries to build a single linear extension of R reversing
+          (x',y') AND every boundary critical pair.  FAILS: the
+          required reversal set is generally cyclic with R.
+          Counterexample: A = {a,b,c,d}, R = {a<b}, (x',y') = (c,d).
+          Boundary CPs at (c,d) include (a,c), (c,b).  Reversing both
+          forces b < c (from reversing (c,b)) AND c < a (from reversing
+          (a,c)), but R has a < b.  Cycle: a < b < c < a.
+
+      (3) Per-lift boundary orientation: each L' ∈ r' picks which
+          boundary CPs its lift reverses, such that the union of lifts
+          (plus L_extra) reverses every CP.  This IS the right idea,
+          but requires a generalization of [cp_lift_function] to take a
+          finite "boundary orientation" parameter and prove the
+          resulting augmentation is still a poset under the joint
+          critical_up / critical_down conditions.  Not constructed here.
+
+      MINIMAL CLOSURE PATH.  The honest path forward is:
+
+        Step 1.  Strengthen [lift_and_force_is_poset] (Theorems.v) to
+                 accept a "boundary orientation" finite set S_b and
+                 prove TC(R ∪ L'_lift ∪ {(x',y')} ∪ S_b) is a poset
+                 under suitable boundary CP conditions.
+        Step 2.  Use that to build [cp_lift_function_with_boundary].
+        Step 3.  Provide a per-L' selection function (constructive
+                 indefinite description) that assigns each L' a
+                 boundary-reversal set.
+        Step 4.  Show the union of those lifts + L_extra realizes R via
+                 [cp_realizer_separation].
+
+      DOWNSTREAM IMPACT.  Closing this lemma is the only obstacle to
+      a fully Qed proof of [hiraguchi_helper] / [hiraguchi_thm] /
+      [hiraguchi_bound] in the n ≥ 6 case (the small cases n ∈ {4, 5}
+      have their own focused admit [nonantichain_nonchain_small_two_realizer]).
+      ================================================================== *)
   Lemma non_antichain_removable_pair_exists :
     forall n,
     cardinal A (Full_set A) n ->
