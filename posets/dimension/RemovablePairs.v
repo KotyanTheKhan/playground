@@ -6643,10 +6643,40 @@ Proof.
       { (* s→r + r→p ⇒ s→p, contradicting Hnsp. *)
         apply (@n4_residual_one_extra_sr_rp_contra B R2 HR2 p r s
                  HRsr HRrp Hnsp). }
-      apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-               Hnonantichain Hinc_ex p q r s
-               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-               Hcov4 HRpq). }
+      (* Inside HRrp + HRrq + Hnqs + Hnsr: split on remaining extras
+         R2 r s and R2 s q. *)
+      destruct (classic (R2 r s)) as [HRrs | Hnrs].
+      { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+                 Hnonantichain Hinc_ex p q r s
+                 Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+                 Hcov4 HRpq). }
+      destruct (classic (R2 s q)) as [HRsq | Hnsq].
+      { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+                 Hnonantichain Hinc_ex p q r s
+                 Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+                 Hcov4 HRpq). }
+      (* All s-edges are negated; only edges are {(r,p), (p,q), (r,q)}.
+         This is class (b) chain r<p<q + isolated s, which the residual
+         classifier's B2a test (line 6287, [HnB2a] in scope here)
+         should have matched.  Derive False from HnB2a. *)
+      exfalso. apply HnB2a.
+      split; [exact HRrp |].
+      split; [exact HRrq |].
+      intros x y Hxy_neq HRxy.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hxy_neq; reflexivity);
+        first
+          [ (right; right; split; reflexivity)  (* (r, q) *)
+          | (right; left; split; reflexivity)   (* (p, q) *)
+          | (left; split; reflexivity)          (* (r, p) *)
+          | (exfalso;
+             match goal with
+             | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
     (* Hnrq is in context.  r→p + p→q ⇒ r→q, contradicting Hnrq. *)
     apply (@n4_residual_one_extra_rp_contra B R2 HR2 p q r HRpq HRrp Hnrq). }
   destruct (classic (R2 p s)) as [HRps | Hnps].
