@@ -6683,7 +6683,13 @@ Proof.
       apply (@n4_residual_one_extra_sp_qs_contra B R2 HR2 p q s
                Hqs_neq HRpq HRsp HRqs). }
     destruct (classic (R2 s q)) as [HRsq | Hnsq].
-    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+    { (* Inside HRsp + HRsq: split on r→s extra (forces r→p via trans
+         against Hnrp). *)
+      destruct (classic (R2 r s)) as [HRrs | Hnrs].
+      { (* r→s + s→p ⇒ r→p, contradicting Hnrp. *)
+        apply (@n4_residual_one_extra_rs_qp_contra B R2 HR2 p r s
+                 HRrs HRsp Hnrp). }
+      apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
                Hnonantichain Hinc_ex p q r s
                Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
                Hcov4 HRpq). }
