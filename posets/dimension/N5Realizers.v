@@ -104,6 +104,79 @@ Proof.
   destruct Hin5.
 Qed.
 
+(** Helper: a 5-element carrier on which every pair is R2-comparable
+    cannot host an incomparable pair.  Used to discharge residual
+    sub-cases where transitive closure forces a 5-chain (total order),
+    contradicting the existence of an incomparable pair. *)
+Lemma n5_chain_contra_inc :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (p q r s t : B)
+    (Hcov5 : forall a : B, a = p \/ a = q \/ a = r \/ a = s \/ a = t)
+    (Hinc_ex : exists a b : B, @Incomparable B R2 a b)
+    (Hpq : R2 p q \/ R2 q p)
+    (Hpr : R2 p r \/ R2 r p)
+    (Hps : R2 p s \/ R2 s p)
+    (Hpt : R2 p t \/ R2 t p)
+    (Hqr : R2 q r \/ R2 r q)
+    (Hqs : R2 q s \/ R2 s q)
+    (Hqt : R2 q t \/ R2 t q)
+    (Hrs : R2 r s \/ R2 s r)
+    (Hrt : R2 r t \/ R2 t r)
+    (Hst : R2 s t \/ R2 t s),
+  forall (P : Prop), P.
+Proof.
+  intros B R2 HR2 p q r s t Hcov5 Hinc_ex
+    Hpq Hpr Hps Hpt Hqr Hqs Hqt Hrs Hrt Hst P.
+  exfalso.
+  destruct Hinc_ex as [a [b Hinc]].
+  apply Hinc.
+  destruct (Hcov5 a) as [Ha | [Ha | [Ha | [Ha | Ha]]]];
+  destruct (Hcov5 b) as [Hb | [Hb | [Hb | [Hb | Hb]]]];
+    subst a; subst b;
+    first
+      [ left; apply HR2.(poset_refl)
+      | (destruct Hpq as [HRpq | HRqp];
+         [left; exact HRpq | right; exact HRqp])
+      | (destruct Hpq as [HRpq | HRqp];
+         [right; exact HRpq | left; exact HRqp])
+      | (destruct Hpr as [HRpr | HRrp];
+         [left; exact HRpr | right; exact HRrp])
+      | (destruct Hpr as [HRpr | HRrp];
+         [right; exact HRpr | left; exact HRrp])
+      | (destruct Hps as [HRps | HRsp];
+         [left; exact HRps | right; exact HRsp])
+      | (destruct Hps as [HRps | HRsp];
+         [right; exact HRps | left; exact HRsp])
+      | (destruct Hpt as [HRpt | HRtp];
+         [left; exact HRpt | right; exact HRtp])
+      | (destruct Hpt as [HRpt | HRtp];
+         [right; exact HRpt | left; exact HRtp])
+      | (destruct Hqr as [HRqr | HRrq];
+         [left; exact HRqr | right; exact HRrq])
+      | (destruct Hqr as [HRqr | HRrq];
+         [right; exact HRqr | left; exact HRrq])
+      | (destruct Hqs as [HRqs | HRsq];
+         [left; exact HRqs | right; exact HRsq])
+      | (destruct Hqs as [HRqs | HRsq];
+         [right; exact HRqs | left; exact HRsq])
+      | (destruct Hqt as [HRqt | HRtq];
+         [left; exact HRqt | right; exact HRtq])
+      | (destruct Hqt as [HRqt | HRtq];
+         [right; exact HRqt | left; exact HRtq])
+      | (destruct Hrs as [HRrs | HRsr];
+         [left; exact HRrs | right; exact HRsr])
+      | (destruct Hrs as [HRrs | HRsr];
+         [right; exact HRrs | left; exact HRsr])
+      | (destruct Hrt as [HRrt | HRtr];
+         [left; exact HRrt | right; exact HRtr])
+      | (destruct Hrt as [HRrt | HRtr];
+         [right; exact HRrt | left; exact HRtr])
+      | (destruct Hst as [HRst | HRts];
+         [left; exact HRst | right; exact HRts])
+      | (destruct Hst as [HRst | HRts];
+         [right; exact HRst | left; exact HRts]) ].
+Qed.
+
 (** Sub-case: n=5 poset with EXACTLY ONE strict edge.
 
     The carrier has 5 distinct elements; [R2] is identity plus one
