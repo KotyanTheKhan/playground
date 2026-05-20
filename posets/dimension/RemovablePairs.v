@@ -6608,6 +6608,9 @@ Proof.
       destruct (classic (R2 s r)) as [HRsr | Hnsr].
       { (* p→s + s→r ⇒ p→r, contradicting Hnpr. *)
         apply (@n4_residual_trans_contra B R2 HR2 p s r HRps HRsr Hnpr). }
+      destruct (classic (R2 s p)) as [HRsp | Hnsp].
+      { (* p→s and s→p ⇒ p = s by antisymmetry, contradicting Hps_neq. *)
+        apply (@n4_residual_antisym_contra B R2 HR2 p s Hps_neq HRps HRsp). }
       apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
                Hnonantichain Hinc_ex p q r s
                Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
