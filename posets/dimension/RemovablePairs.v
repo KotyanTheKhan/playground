@@ -6738,10 +6738,37 @@ Proof.
       { (* r→s + s→p ⇒ r→p, contradicting Hnrp. *)
         apply (@n4_residual_one_extra_rs_qp_contra B R2 HR2 p r s
                  HRrs HRsp Hnrp). }
-      apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-               Hnonantichain Hinc_ex p q r s
-               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-               Hcov4 HRpq). }
+      (* Inside HRsp + HRrq + Hnqs + Hnrs: split on HRsr.  Forced via
+         trans: HRsq (sp+pq). *)
+      destruct (classic (R2 s r)) as [HRsr | Hnsr].
+      { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+                 Hnonantichain Hinc_ex p q r s
+                 Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+                 Hcov4 HRpq). }
+      (* Hnsr also holds.  Only edges are {(s,p), (s,q), (p,q), (r,q)}
+         = L3b pattern.  Derive False from HnL3b (in scope from
+         ~6000) via Hcov4 enumeration. *)
+      assert (HRsq : R2 s q) by exact (poset_trans s p q HRsp HRpq).
+      exfalso. apply HnL3b.
+      split; [exact HRsp |].
+      split; [exact HRsq |].
+      split; [exact HRrq |].
+      intros x y Hxy_neq HRxy.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hxy_neq; reflexivity);
+        first
+          [ (left; split; reflexivity)                          (* (s,p) *)
+          | (right; left; split; reflexivity)                   (* (s,q) *)
+          | (right; right; left; split; reflexivity)            (* (p,q) *)
+          | (right; right; right; split; reflexivity)           (* (r,q) *)
+          | (exfalso;
+             match goal with
+             | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
     destruct (classic (R2 q s)) as [HRqs | Hnqs].
     { (* HRsp + HRpq ⇒ HRsq (trans); combined with HRqs, antisymmetry
          forces q = s, contradicting Hqs_neq. *)
