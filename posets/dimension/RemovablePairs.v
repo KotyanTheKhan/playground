@@ -20848,7 +20848,7 @@ Proof.
        [Hbc_neq [Hbd_neq [Hbe_neq
        [Hcd_neq [Hce_neq
        [Hde_neq
-       [HRab [HRbc [HRcd [HRac [HRad [HRbd [HRec HRed_HR_only]]]]]]]]]]]]]]]]]]]]].
+       [HRab [HRbc [HRcd [HRac [HRad [HRbd [HRec HRed_HR_only]]]]]]]]]]]]]]]]]]]]]].
   destruct HRed_HR_only as [HRed HR_only].
   destruct (@carrier_5_destructure B a b Hcard Hab_neq)
     as [r [s [t [Har_neq [Has_neq [Hat_neq
@@ -21125,7 +21125,7 @@ Proof.
        [Hbc_neq [Hbd_neq [Hbe_neq
        [Hcd_neq [Hce_neq
        [Hde_neq
-       [HRab [HRbc [HRcd [HRac [HRad [HRbd [HRbe HRae_HR_only]]]]]]]]]]]]]]]]]]]]].
+       [HRab [HRbc [HRcd [HRac [HRad [HRbd [HRbe HRae_HR_only]]]]]]]]]]]]]]]]]]]]]].
   destruct HRae_HR_only as [HRae HR_only].
   destruct (@carrier_5_destructure B a b Hcard Hab_neq)
     as [r [s [t [Har_neq [Has_neq [Hat_neq
