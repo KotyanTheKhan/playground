@@ -6645,10 +6645,49 @@ Proof.
      All OTHER patterns (multi-edge configs) fall through to
      [n4_residual_classes_two_realizer]. *)
   destruct (classic (R2 p r)) as [HRpr | Hnpr].
-  { (* Inside HRpr: case-split on r→p (antisym contradiction). *)
+  { (* Inside HRpr: case-split on r→p (antisym contradiction) and on
+       extras that match residual classifier patterns. *)
     destruct (classic (R2 r p)) as [HRrp | Hnrp].
     { (* p→r and r→p ⇒ p = r by antisymmetry, contradicting Hpr_neq. *)
       apply (@n4_residual_antisym_contra B R2 HR2 p r Hpr_neq HRpr HRrp). }
+    destruct (classic (R2 s q)) as [HRsq | Hnsq].
+    { (* HRsq combined with HRpq, HRpr matches F2b pattern (3 edges
+         s→q, p→q, p→r).  But we must also verify there are no other
+         edges; the HR_only check via Hcov4 enumeration covers this.
+         Derive False from HnF2b. *)
+      destruct (classic (R2 r p \/ R2 p s \/ R2 s p \/ R2 q r \/ R2 r q
+                         \/ R2 q s \/ R2 r s \/ R2 s r)) as [Hex | Hno_ex].
+      { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+                 Hnonantichain Hinc_ex p q r s
+                 Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+                 Hcov4 HRpq). }
+      exfalso. apply HnF2b.
+      split; [exact HRsq |].
+      split; [exact HRpr |].
+      intros x y Hxy_neq HRxy.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hxy_neq; reflexivity);
+        first
+          [ (left; split; reflexivity)                          (* (s,q) *)
+          | (right; left; split; reflexivity)                   (* (p,q) *)
+          | (right; right; split; reflexivity)                  (* (p,r) *)
+          | (exfalso; apply Hno_ex;
+             match goal with
+             | [ HR : R2 ?a ?b |- _ ] =>
+               first
+                 [ left; exact HR
+                 | right; left; exact HR
+                 | right; right; left; exact HR
+                 | right; right; right; left; exact HR
+                 | right; right; right; right; left; exact HR
+                 | right; right; right; right; right; left; exact HR
+                 | right; right; right; right; right; right; left; exact HR
+                 | right; right; right; right; right; right; right; exact HR ]
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
     apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex
              p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
