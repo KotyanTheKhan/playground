@@ -7014,10 +7014,542 @@ Proof.
              end)
           | (exfalso; apply Hpq_neq; apply poset_antisym;
              [exact HRpq | exact HRxy]) ]. }
-    apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-             Hnonantichain Hinc_ex
-             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-             Hcov4 HRpq). }
+    (* Hnsq branch: HRpq, HRpr in scope, Hnrp, Hnsq.
+       Undecided: R2 p s, R2 s p, R2 q r, R2 r q, R2 q s, R2 r s, R2 s r.
+       Key forced fact: HRsp + HRpq ⇒ HRsq, but Hnsq, so HRsp forbidden. *)
+    destruct (classic (R2 s p)) as [HRsp | Hnsp].
+    { apply (@n4_residual_trans_contra B R2 HR2 s p q HRsp HRpq Hnsq). }
+    destruct (classic (R2 r s)) as [HRrs | Hnrs].
+    { (* HRrs branch: HRpr + HRrs ⇒ HRps (forced). *)
+      assert (HRps : R2 p s) by exact (poset_trans p r s HRpr HRrs).
+      destruct (classic (R2 s r)) as [HRsr | Hnsr].
+      { apply (@n4_residual_antisym_contra B R2 HR2 r s Hrs_neq HRrs HRsr). }
+      destruct (classic (R2 q r)) as [HRqr | Hnqr].
+      { (* HRqr + HRrs ⇒ HRqs forced.  All 6 pairs comparable.  Chain contra. *)
+        assert (HRqs : R2 q s) by exact (poset_trans q r s HRqr HRrs).
+        assert (Hpq_cmp : R2 p q \/ R2 q p) by (left; exact HRpq).
+        assert (Hpr_cmp : R2 p r \/ R2 r p) by (left; exact HRpr).
+        assert (Hps_cmp : R2 p s \/ R2 s p) by (left; exact HRps).
+        assert (Hqr_cmp : R2 q r \/ R2 r q) by (left; exact HRqr).
+        assert (Hqs_cmp : R2 q s \/ R2 s q) by (left; exact HRqs).
+        assert (Hrs_cmp : R2 r s \/ R2 s r) by (left; exact HRrs).
+        exact (@n4_chain_contra_inc B R2 HR2 p q r s Hcov4 Hinc_ex
+                 Hpq_cmp Hpr_cmp Hps_cmp Hqr_cmp Hqs_cmp Hrs_cmp _). }
+      destruct (classic (R2 r q)) as [HRrq | Hnrq].
+      { destruct (classic (R2 q s)) as [HRqs | Hnqs].
+        { (* All 6 pairs comparable.  Chain contra. *)
+          assert (Hpq_cmp : R2 p q \/ R2 q p) by (left; exact HRpq).
+          assert (Hpr_cmp : R2 p r \/ R2 r p) by (left; exact HRpr).
+          assert (Hps_cmp : R2 p s \/ R2 s p) by (left; exact HRps).
+          assert (Hqr_cmp : R2 q r \/ R2 r q) by (right; exact HRrq).
+          assert (Hqs_cmp : R2 q s \/ R2 s q) by (left; exact HRqs).
+          assert (Hrs_cmp : R2 r s \/ R2 s r) by (left; exact HRrs).
+          exact (@n4_chain_contra_inc B R2 HR2 p q r s Hcov4 Hinc_ex
+                   Hpq_cmp Hpr_cmp Hps_cmp Hqr_cmp Hqs_cmp Hrs_cmp _). }
+        (* Edges {pq, pr, ps, rq, rs}.  Y_chain_up a=p, b=r, c=q, d=s. *)
+        apply (@n4_Y_chain_up_two_realizer B R2 HR2 Hcard).
+        exists p, r, q, s.
+        split; [exact Hpr_neq |].
+        split; [exact Hpq_neq |].
+        split; [exact Hps_neq |].
+        split; [intro Hrq_eq; apply Hqr_neq; symmetry; exact Hrq_eq |].
+        split; [exact Hrs_neq |].
+        split; [exact Hqs_neq |].
+        split; [exact HRpr |].
+        split; [exact HRpq |].
+        split; [exact HRps |].
+        split; [exact HRrq |].
+        split; [exact HRrs |].
+        intros x y HRxy.
+        destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+        right.
+        destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+        destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+          subst x; subst y;
+          try (exfalso; apply Hneq; reflexivity);
+          first
+            [ (left; split; reflexivity)                                (* (p,r) *)
+            | (right; left; split; reflexivity)                         (* (p,q) *)
+            | (right; right; left; split; reflexivity)                  (* (p,s) *)
+            | (right; right; right; left; split; reflexivity)           (* (r,q) *)
+            | (right; right; right; right; split; reflexivity)          (* (r,s) *)
+            | (exfalso;
+               match goal with
+               | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+               end)
+            | (exfalso; apply Hpq_neq; apply poset_antisym;
+               [exact HRpq | exact HRxy]) ]. }
+      destruct (classic (R2 q s)) as [HRqs | Hnqs].
+      { (* Edges {pq, pr, ps, rs, qs}.  Diamond a=p, b=q, c=r, d=s. *)
+        apply (@n4_diamond_two_realizer B R2 HR2 Hcard).
+        exists p, q, r, s.
+        split; [exact Hpq_neq |].
+        split; [exact Hpr_neq |].
+        split; [exact Hps_neq |].
+        split; [exact Hqr_neq |].
+        split; [exact Hqs_neq |].
+        split; [exact Hrs_neq |].
+        split; [exact HRpq |].
+        split; [exact HRpr |].
+        split; [exact HRps |].
+        split; [exact HRqs |].
+        split; [exact HRrs |].
+        intros x y HRxy.
+        destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+        right.
+        destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+        destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+          subst x; subst y;
+          try (exfalso; apply Hneq; reflexivity);
+          first
+            [ (left; split; reflexivity)                                (* (p,q) *)
+            | (right; left; split; reflexivity)                         (* (p,r) *)
+            | (right; right; left; split; reflexivity)                  (* (p,s) *)
+            | (right; right; right; left; split; reflexivity)           (* (q,s) *)
+            | (right; right; right; right; split; reflexivity)          (* (r,s) *)
+            | (exfalso;
+               match goal with
+               | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+               end)
+            | (exfalso; apply Hpq_neq; apply poset_antisym;
+               [exact HRpq | exact HRxy]) ]. }
+      (* Edges {pq, pr, ps, rs}.  chain3+below a=p, b=r, c=s, d=q. *)
+      apply (@n4_chain3_plus_below_two_realizer B R2 HR2 Hcard).
+      exists p, r, s, q.
+      split; [exact Hpr_neq |].
+      split; [exact Hps_neq |].
+      split; [exact Hpq_neq |].
+      split; [exact Hrs_neq |].
+      split; [intro Hrq_eq; apply Hqr_neq; symmetry; exact Hrq_eq |].
+      split; [intro Hsq_eq; apply Hqs_neq; symmetry; exact Hsq_eq |].
+      split; [exact HRpr |].
+      split; [exact HRps |].
+      split; [exact HRrs |].
+      split; [exact HRpq |].
+      intros x y HRxy.
+      destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+      right.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hneq; reflexivity);
+        first
+          [ (left; split; reflexivity)                          (* (p,r) *)
+          | (right; left; split; reflexivity)                   (* (p,s) *)
+          | (right; right; left; split; reflexivity)            (* (r,s) *)
+          | (right; right; right; split; reflexivity)           (* (p,q) *)
+          | (exfalso;
+             match goal with
+             | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
+    (* Hnrs branch *)
+    destruct (classic (R2 s r)) as [HRsr | Hnsr].
+    { destruct (classic (R2 r q)) as [HRrq | Hnrq].
+      { apply (@n4_residual_trans_contra B R2 HR2 s r q HRsr HRrq Hnsq). }
+      destruct (classic (R2 q r)) as [HRqr | Hnqr].
+      { destruct (classic (R2 p s)) as [HRps | Hnps].
+        { destruct (classic (R2 q s)) as [HRqs | Hnqs].
+          { (* All 6 pairs comparable.  Chain contra. *)
+            assert (Hpq_cmp : R2 p q \/ R2 q p) by (left; exact HRpq).
+            assert (Hpr_cmp : R2 p r \/ R2 r p) by (left; exact HRpr).
+            assert (Hps_cmp : R2 p s \/ R2 s p) by (left; exact HRps).
+            assert (Hqr_cmp : R2 q r \/ R2 r q) by (left; exact HRqr).
+            assert (Hqs_cmp : R2 q s \/ R2 s q) by (left; exact HRqs).
+            assert (Hrs_cmp : R2 r s \/ R2 s r) by (right; exact HRsr).
+            exact (@n4_chain_contra_inc B R2 HR2 p q r s Hcov4 Hinc_ex
+                     Hpq_cmp Hpr_cmp Hps_cmp Hqr_cmp Hqs_cmp Hrs_cmp _). }
+          (* Edges {pq, pr, sr, qr, ps}.  Diamond a=p, b=q, c=s, d=r. *)
+          apply (@n4_diamond_two_realizer B R2 HR2 Hcard).
+          exists p, q, s, r.
+          split; [exact Hpq_neq |].
+          split; [exact Hps_neq |].
+          split; [exact Hpr_neq |].
+          split; [exact Hqs_neq |].
+          split; [exact Hqr_neq |].
+          split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
+          split; [exact HRpq |].
+          split; [exact HRps |].
+          split; [exact HRpr |].
+          split; [exact HRqr |].
+          split; [exact HRsr |].
+          intros x y HRxy.
+          destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+          right.
+          destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+          destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+            subst x; subst y;
+            try (exfalso; apply Hneq; reflexivity);
+            first
+              [ (left; split; reflexivity)                                (* (p,q) *)
+              | (right; left; split; reflexivity)                         (* (p,s) *)
+              | (right; right; left; split; reflexivity)                  (* (p,r) *)
+              | (right; right; right; left; split; reflexivity)           (* (q,r) *)
+              | (right; right; right; right; split; reflexivity)          (* (s,r) *)
+              | (exfalso;
+                 match goal with
+                 | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+                 end)
+              | (exfalso; apply Hpq_neq; apply poset_antisym;
+                 [exact HRpq | exact HRxy]) ]. }
+        destruct (classic (R2 q s)) as [HRqs | Hnqs].
+        { apply (@n4_residual_trans_contra B R2 HR2 p q s HRpq HRqs Hnps). }
+        (* Edges {pq, pr, sr, qr}.  chain3+above a=p, b=q, c=r, d=s. *)
+        apply (@n4_chain3_plus_above_two_realizer B R2 HR2 Hcard).
+        exists p, q, r, s.
+        split; [exact Hpq_neq |].
+        split; [exact Hpr_neq |].
+        split; [exact Hps_neq |].
+        split; [exact Hqr_neq |].
+        split; [exact Hqs_neq |].
+        split; [exact Hrs_neq |].
+        split; [exact HRpq |].
+        split; [exact HRpr |].
+        split; [exact HRqr |].
+        split; [exact HRsr |].
+        intros x y HRxy.
+        destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+        right.
+        destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+        destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+          subst x; subst y;
+          try (exfalso; apply Hneq; reflexivity);
+          first
+            [ (left; split; reflexivity)                          (* (p,q) *)
+            | (right; left; split; reflexivity)                   (* (p,r) *)
+            | (right; right; left; split; reflexivity)            (* (q,r) *)
+            | (right; right; right; split; reflexivity)           (* (s,r) *)
+            | (exfalso;
+               match goal with
+               | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+               end)
+            | (exfalso; apply Hpq_neq; apply poset_antisym;
+               [exact HRpq | exact HRxy]) ]. }
+      (* Hnqr.  Edges {pq, pr, sr}. *)
+      destruct (classic (R2 p s)) as [HRps | Hnps].
+      { destruct (classic (R2 q s)) as [HRqs | Hnqs].
+        { apply (@n4_residual_trans_contra B R2 HR2 q s r HRqs HRsr Hnqr). }
+        (* Edges {pq, pr, sr, ps}.  chain3+below a=p, b=s, c=r, d=q. *)
+        apply (@n4_chain3_plus_below_two_realizer B R2 HR2 Hcard).
+        exists p, s, r, q.
+        split; [exact Hps_neq |].
+        split; [exact Hpr_neq |].
+        split; [exact Hpq_neq |].
+        split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
+        split; [intro Hsq_eq; apply Hqs_neq; symmetry; exact Hsq_eq |].
+        split; [intro Hrq_eq; apply Hqr_neq; symmetry; exact Hrq_eq |].
+        split; [exact HRps |].
+        split; [exact HRpr |].
+        split; [exact HRsr |].
+        split; [exact HRpq |].
+        intros x y HRxy.
+        destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+        right.
+        destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+        destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+          subst x; subst y;
+          try (exfalso; apply Hneq; reflexivity);
+          first
+            [ (left; split; reflexivity)                          (* (p,s) *)
+            | (right; left; split; reflexivity)                   (* (p,r) *)
+            | (right; right; left; split; reflexivity)            (* (s,r) *)
+            | (right; right; right; split; reflexivity)           (* (p,q) *)
+            | (exfalso;
+               match goal with
+               | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+               end)
+            | (exfalso; apply Hpq_neq; apply poset_antisym;
+               [exact HRpq | exact HRxy]) ]. }
+      destruct (classic (R2 q s)) as [HRqs | Hnqs].
+      { apply (@n4_residual_trans_contra B R2 HR2 p q s HRpq HRqs Hnps). }
+      (* Edges {pq, pr, sr}.  N-pattern a=s, b=r, c=p, d=q. *)
+      apply (@n4_N_two_realizer B R2 HR2 Hcard).
+      exists s, r, p, q.
+      split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
+      split; [intro Hsp_eq; apply Hps_neq; symmetry; exact Hsp_eq |].
+      split; [intro Hsq_eq; apply Hqs_neq; symmetry; exact Hsq_eq |].
+      split; [intro Hrp_eq; apply Hpr_neq; symmetry; exact Hrp_eq |].
+      split; [intro Hrq_eq; apply Hqr_neq; symmetry; exact Hrq_eq |].
+      split; [exact Hpq_neq |].
+      split; [exact HRsr |].
+      split; [exact HRpr |].
+      split; [exact HRpq |].
+      intros x y HRxy.
+      destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+      right.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hneq; reflexivity);
+        first
+          [ (left; split; reflexivity)                          (* (s,r) *)
+          | (right; left; split; reflexivity)                   (* (p,r) *)
+          | (right; right; split; reflexivity)                  (* (p,q) *)
+          | (exfalso;
+             match goal with
+             | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
+    (* Hnsr branch.  Hnrs, Hnsr in scope. *)
+    destruct (classic (R2 q r)) as [HRqr | Hnqr].
+    { destruct (classic (R2 r q)) as [HRrq | Hnrq].
+      { apply (@n4_residual_antisym_contra B R2 HR2 q r Hqr_neq HRqr HRrq). }
+      destruct (classic (R2 p s)) as [HRps | Hnps].
+      { destruct (classic (R2 q s)) as [HRqs | Hnqs].
+        { (* Edges {pq, pr, qr, ps, qs}.  Y_chain_up a=p, b=q, c=r, d=s. *)
+          apply (@n4_Y_chain_up_two_realizer B R2 HR2 Hcard).
+          exists p, q, r, s.
+          split; [exact Hpq_neq |].
+          split; [exact Hpr_neq |].
+          split; [exact Hps_neq |].
+          split; [exact Hqr_neq |].
+          split; [exact Hqs_neq |].
+          split; [exact Hrs_neq |].
+          split; [exact HRpq |].
+          split; [exact HRpr |].
+          split; [exact HRps |].
+          split; [exact HRqr |].
+          split; [exact HRqs |].
+          intros x y HRxy.
+          destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+          right.
+          destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+          destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+            subst x; subst y;
+            try (exfalso; apply Hneq; reflexivity);
+            first
+              [ (left; split; reflexivity)                                (* (p,q) *)
+              | (right; left; split; reflexivity)                         (* (p,r) *)
+              | (right; right; left; split; reflexivity)                  (* (p,s) *)
+              | (right; right; right; left; split; reflexivity)           (* (q,r) *)
+              | (right; right; right; right; split; reflexivity)          (* (q,s) *)
+              | (exfalso;
+                 match goal with
+                 | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+                 end)
+              | (exfalso; apply Hpq_neq; apply poset_antisym;
+                 [exact HRpq | exact HRxy]) ]. }
+        (* Edges {pq, pr, qr, ps}.  chain3+below a=p, b=q, c=r, d=s. *)
+        apply (@n4_chain3_plus_below_two_realizer B R2 HR2 Hcard).
+        exists p, q, r, s.
+        split; [exact Hpq_neq |].
+        split; [exact Hpr_neq |].
+        split; [exact Hps_neq |].
+        split; [exact Hqr_neq |].
+        split; [exact Hqs_neq |].
+        split; [exact Hrs_neq |].
+        split; [exact HRpq |].
+        split; [exact HRpr |].
+        split; [exact HRqr |].
+        split; [exact HRps |].
+        intros x y HRxy.
+        destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+        right.
+        destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+        destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+          subst x; subst y;
+          try (exfalso; apply Hneq; reflexivity);
+          first
+            [ (left; split; reflexivity)                          (* (p,q) *)
+            | (right; left; split; reflexivity)                   (* (p,r) *)
+            | (right; right; left; split; reflexivity)            (* (q,r) *)
+            | (right; right; right; split; reflexivity)           (* (p,s) *)
+            | (exfalso;
+               match goal with
+               | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+               end)
+            | (exfalso; apply Hpq_neq; apply poset_antisym;
+               [exact HRpq | exact HRxy]) ]. }
+      destruct (classic (R2 q s)) as [HRqs | Hnqs].
+      { apply (@n4_residual_trans_contra B R2 HR2 p q s HRpq HRqs Hnps). }
+      (* Edges {pq, pr, qr}.  chain_plus_isolated a=p, b=q, c=r, d=s. *)
+      apply (@n4_chain_plus_isolated_two_realizer B R2 HR2 Hcard).
+      exists p, q, r, s.
+      split; [exact Hpq_neq |].
+      split; [exact Hpr_neq |].
+      split; [exact Hps_neq |].
+      split; [exact Hqr_neq |].
+      split; [exact Hqs_neq |].
+      split; [exact Hrs_neq |].
+      split; [exact HRpq |].
+      split; [exact HRqr |].
+      split; [exact HRpr |].
+      intros x y HRxy.
+      destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+      right.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hneq; reflexivity);
+        first
+          [ (left; split; reflexivity)                          (* (p,q) *)
+          | (right; left; split; reflexivity)                   (* (q,r) *)
+          | (right; right; split; reflexivity)                  (* (p,r) *)
+          | (exfalso;
+             match goal with
+             | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
+    destruct (classic (R2 r q)) as [HRrq | Hnrq].
+    { destruct (classic (R2 p s)) as [HRps | Hnps].
+      { destruct (classic (R2 q s)) as [HRqs | Hnqs].
+        { apply (@n4_residual_trans_contra B R2 HR2 r q s HRrq HRqs Hnrs). }
+        (* Edges {pq, pr, rq, ps}.  chain3+below a=p, b=r, c=q, d=s. *)
+        apply (@n4_chain3_plus_below_two_realizer B R2 HR2 Hcard).
+        exists p, r, q, s.
+        split; [exact Hpr_neq |].
+        split; [exact Hpq_neq |].
+        split; [exact Hps_neq |].
+        split; [intro Hrq_eq; apply Hqr_neq; symmetry; exact Hrq_eq |].
+        split; [exact Hrs_neq |].
+        split; [exact Hqs_neq |].
+        split; [exact HRpr |].
+        split; [exact HRpq |].
+        split; [exact HRrq |].
+        split; [exact HRps |].
+        intros x y HRxy.
+        destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+        right.
+        destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+        destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+          subst x; subst y;
+          try (exfalso; apply Hneq; reflexivity);
+          first
+            [ (left; split; reflexivity)                          (* (p,r) *)
+            | (right; left; split; reflexivity)                   (* (p,q) *)
+            | (right; right; left; split; reflexivity)            (* (r,q) *)
+            | (right; right; right; split; reflexivity)           (* (p,s) *)
+            | (exfalso;
+               match goal with
+               | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+               end)
+            | (exfalso; apply Hpq_neq; apply poset_antisym;
+               [exact HRpq | exact HRxy]) ]. }
+      destruct (classic (R2 q s)) as [HRqs | Hnqs].
+      { apply (@n4_residual_trans_contra B R2 HR2 p q s HRpq HRqs Hnps). }
+      (* Edges {pq, pr, rq}.  chain_plus_isolated a=p, b=r, c=q, d=s. *)
+      apply (@n4_chain_plus_isolated_two_realizer B R2 HR2 Hcard).
+      exists p, r, q, s.
+      split; [exact Hpr_neq |].
+      split; [exact Hpq_neq |].
+      split; [exact Hps_neq |].
+      split; [intro Hrq_eq; apply Hqr_neq; symmetry; exact Hrq_eq |].
+      split; [exact Hrs_neq |].
+      split; [exact Hqs_neq |].
+      split; [exact HRpr |].
+      split; [exact HRrq |].
+      split; [exact HRpq |].
+      intros x y HRxy.
+      destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+      right.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hneq; reflexivity);
+        first
+          [ (left; split; reflexivity)                          (* (p,r) *)
+          | (right; left; split; reflexivity)                   (* (r,q) *)
+          | (right; right; split; reflexivity)                  (* (p,q) *)
+          | (exfalso;
+             match goal with
+             | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
+    destruct (classic (R2 p s)) as [HRps | Hnps].
+    { destruct (classic (R2 q s)) as [HRqs | Hnqs].
+      { (* Edges {pq, pr, ps, qs}.  chain3+below a=p, b=q, c=s, d=r. *)
+        apply (@n4_chain3_plus_below_two_realizer B R2 HR2 Hcard).
+        exists p, q, s, r.
+        split; [exact Hpq_neq |].
+        split; [exact Hps_neq |].
+        split; [exact Hpr_neq |].
+        split; [exact Hqs_neq |].
+        split; [exact Hqr_neq |].
+        split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
+        split; [exact HRpq |].
+        split; [exact HRps |].
+        split; [exact HRqs |].
+        split; [exact HRpr |].
+        intros x y HRxy.
+        destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+        right.
+        destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+        destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+          subst x; subst y;
+          try (exfalso; apply Hneq; reflexivity);
+          first
+            [ (left; split; reflexivity)                          (* (p,q) *)
+            | (right; left; split; reflexivity)                   (* (p,s) *)
+            | (right; right; left; split; reflexivity)            (* (q,s) *)
+            | (right; right; right; split; reflexivity)           (* (p,r) *)
+            | (exfalso;
+               match goal with
+               | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+               end)
+            | (exfalso; apply Hpq_neq; apply poset_antisym;
+               [exact HRpq | exact HRxy]) ]. }
+      (* Edges {pq, pr, ps}.  3-claw-up a=p, b=q, c=r, d=s. *)
+      apply (@n4_3claw_up_two_realizer B R2 HR2 Hcard).
+      exists p, q, r, s.
+      split; [exact Hpq_neq |].
+      split; [exact Hpr_neq |].
+      split; [exact Hps_neq |].
+      split; [exact Hqr_neq |].
+      split; [exact Hqs_neq |].
+      split; [exact Hrs_neq |].
+      split; [exact HRpq |].
+      split; [exact HRpr |].
+      split; [exact HRps |].
+      intros x y HRxy.
+      destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+      right.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hneq; reflexivity);
+        first
+          [ (left; split; reflexivity)                          (* (p,q) *)
+          | (right; left; split; reflexivity)                   (* (p,r) *)
+          | (right; right; split; reflexivity)                  (* (p,s) *)
+          | (exfalso;
+             match goal with
+             | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
+    destruct (classic (R2 q s)) as [HRqs | Hnqs].
+    { apply (@n4_residual_trans_contra B R2 HR2 p q s HRpq HRqs Hnps). }
+    (* Edges {pq, pr}.  V at p with a=p, b=q, c=r, d=s. *)
+    apply (@n4_V_two_realizer B R2 HR2 Hcard).
+    exists p, q, r, s.
+    split; [exact Hpq_neq |].
+    split; [exact Hpr_neq |].
+    split; [exact Hps_neq |].
+    split; [exact Hqr_neq |].
+    split; [exact Hqs_neq |].
+    split; [exact Hrs_neq |].
+    split; [exact HRpq |].
+    split; [exact HRpr |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+    destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+      subst x; subst y;
+      try (exfalso; apply Hneq; reflexivity);
+      first
+        [ (left; split; reflexivity)                          (* (p,q) *)
+        | (right; split; reflexivity)                         (* (p,r) *)
+        | (exfalso;
+           match goal with
+           | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+           end)
+        | (exfalso; apply Hpq_neq; apply poset_antisym;
+           [exact HRpq | exact HRxy]) ]. }
   destruct (classic (R2 r p)) as [HRrp | Hnrp].
   { (* Sub-cascade: if r→p with all others absent, derive contradiction
        via [r → p → q] forcing R2 r q. *)
