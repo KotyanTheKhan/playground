@@ -10227,12 +10227,21 @@ Admitted.
 (** Dispatcher for the n=5 non-antichain non-chain case.
 
     Extracts a strict edge [(p, q)] from the non-antichain hypothesis,
-    then case-splits on whether any OTHER strict edge exists:
-      - If none, the poset has exactly one strict edge: route to
-        [n5_one_edge_two_realizer] (Qed).
-      - Otherwise, route to the focused residual admit
-        [n5_residual_classes_two_realizer] with the additional edge as
-        witness. *)
+    then performs a cascade of classical pattern checks for each Qed-
+    closed isomorphism class.  Each branch checks whether the global
+    [R2] relation matches the shape predicate in the corresponding
+    per-class lemma; if so, routes Qed-style; otherwise falls through.
+
+    Qed-routed branches (Qed per-class lemmas):
+      - [n5_chain3_plus_2isolated_two_realizer]      (3-chain + 2 isolated)
+      - [n5_disjoint_chains_plus_isolated_two_realizer]
+                                                     (2 disjoint edges + 1 iso)
+      - [n5_V_plus_2isolated_two_realizer]           (V-shape + 2 iso)
+      - [n5_inv_V_plus_2isolated_two_realizer]       (∧-shape + 2 iso)
+      - [n5_one_edge_two_realizer]                   (single edge)
+
+    Residual fall-through: routes to [n5_residual_classes_two_realizer]
+    (focused admit) with the witness edge plus a second edge. *)
 Lemma n5_nonantichain_nonchain_two_realizer :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
   cardinal B (Full_set B) 5 ->
@@ -10256,6 +10265,61 @@ Proof.
           | exfalso; apply Hq; intro Hcontra; contradiction ]
       ]. }
   destruct Hedge as [p [q [Hpq_neq HRpq]]].
+  (* Cascade: try each Qed-routed per-class shape, then fall through. *)
+  (* (b) chain3+2isolated. *)
+  destruct (classic
+    (exists a b c d e : B,
+       a <> b /\ a <> c /\ a <> d /\ a <> e /\
+       b <> c /\ b <> d /\ b <> e /\
+       c <> d /\ c <> e /\
+       d <> e /\
+       R2 a b /\ R2 b c /\ R2 a c /\
+       (forall x y : B,
+          R2 x y -> x = y \/
+          ((x = a /\ y = b) \/ (x = a /\ y = c) \/ (x = b /\ y = c)))))
+    as [HChain3 | HnChain3].
+  { apply (@n5_chain3_plus_2isolated_two_realizer B R2 HR2 Hcard).
+    exact HChain3. }
+  (* (e) disjoint-chains+isolated. *)
+  destruct (classic
+    (exists a b c d e : B,
+       a <> b /\ a <> c /\ a <> d /\ a <> e /\
+       b <> c /\ b <> d /\ b <> e /\
+       c <> d /\ c <> e /\
+       d <> e /\
+       R2 a b /\ R2 c d /\
+       (forall x y : B,
+          R2 x y -> x = y \/ (x = a /\ y = b) \/ (x = c /\ y = d))))
+    as [HDisj | HnDisj].
+  { apply (@n5_disjoint_chains_plus_isolated_two_realizer B R2 HR2 Hcard).
+    exact HDisj. }
+  (* (c) V+2isolated. *)
+  destruct (classic
+    (exists a b c d e : B,
+       a <> b /\ a <> c /\ a <> d /\ a <> e /\
+       b <> c /\ b <> d /\ b <> e /\
+       c <> d /\ c <> e /\
+       d <> e /\
+       R2 a b /\ R2 a c /\
+       (forall x y : B,
+          R2 x y -> x = y \/ (x = a /\ y = b) \/ (x = a /\ y = c))))
+    as [HV | HnV].
+  { apply (@n5_V_plus_2isolated_two_realizer B R2 HR2 Hcard).
+    exact HV. }
+  (* (d) inv-V+2isolated. *)
+  destruct (classic
+    (exists a b c d e : B,
+       a <> b /\ a <> c /\ a <> d /\ a <> e /\
+       b <> c /\ b <> d /\ b <> e /\
+       c <> d /\ c <> e /\
+       d <> e /\
+       R2 a c /\ R2 b c /\
+       (forall x y : B,
+          R2 x y -> x = y \/ (x = a /\ y = c) \/ (x = b /\ y = c))))
+    as [HinvV | HninvV].
+  { apply (@n5_inv_V_plus_2isolated_two_realizer B R2 HR2 Hcard).
+    exact HinvV. }
+  (* Fall-through: either one_edge or residual. *)
   destruct (classic (exists x y : B, x <> y /\ R2 x y /\ ~ (x = p /\ y = q)))
     as [Hother | Honly].
   - (* Some other strict edge exists: route to the residual admit. *)
