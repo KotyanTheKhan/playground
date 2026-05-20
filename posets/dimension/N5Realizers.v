@@ -25613,7 +25613,52 @@ Proof.
     as [HBbc' | HnBbc'].
   { apply (@n5_bowtie_bot_cap_two_realizer B R2 HR2 Hcard).
     exact HBbc'. }
-  (* Fall-through: either one_edge or residual. *)
+  (* Fall-through: either one_edge or residual.
+
+     Before reaching the focused residual admit, discharge total-order
+     configurations: if every pair of carrier elements is R2-comparable,
+     the carrier is totally ordered (a 5-chain), contradicting the
+     existence of an incomparable pair [Hinc_ex] via [n5_chain_contra_inc]. *)
+  destruct (classic
+    (forall a b : B, a = b \/ R2 a b \/ R2 b a))
+    as [HtotalCmp | HnotTotal].
+  { (* All pairs R2-comparable: derive False from Hinc_ex. *)
+    destruct (@carrier_5_destructure B p q Hcard Hpq_neq)
+      as [r [s [t [Hpr_neq [Hps_neq [Hpt_neq
+                     [Hqr_neq [Hqs_neq [Hqt_neq
+                     [Hrs_neq [Hrt_neq [Hst_neq Hcov5]]]]]]]]]]]].
+    assert (Hcmp_pq : R2 p q \/ R2 q p) by (left; exact HRpq).
+    assert (Hcmp_pr : R2 p r \/ R2 r p)
+      by (destruct (HtotalCmp p r) as [Heq | [H | H]];
+          [exfalso; apply Hpr_neq; exact Heq | left; exact H | right; exact H]).
+    assert (Hcmp_ps : R2 p s \/ R2 s p)
+      by (destruct (HtotalCmp p s) as [Heq | [H | H]];
+          [exfalso; apply Hps_neq; exact Heq | left; exact H | right; exact H]).
+    assert (Hcmp_pt : R2 p t \/ R2 t p)
+      by (destruct (HtotalCmp p t) as [Heq | [H | H]];
+          [exfalso; apply Hpt_neq; exact Heq | left; exact H | right; exact H]).
+    assert (Hcmp_qr : R2 q r \/ R2 r q)
+      by (destruct (HtotalCmp q r) as [Heq | [H | H]];
+          [exfalso; apply Hqr_neq; exact Heq | left; exact H | right; exact H]).
+    assert (Hcmp_qs : R2 q s \/ R2 s q)
+      by (destruct (HtotalCmp q s) as [Heq | [H | H]];
+          [exfalso; apply Hqs_neq; exact Heq | left; exact H | right; exact H]).
+    assert (Hcmp_qt : R2 q t \/ R2 t q)
+      by (destruct (HtotalCmp q t) as [Heq | [H | H]];
+          [exfalso; apply Hqt_neq; exact Heq | left; exact H | right; exact H]).
+    assert (Hcmp_rs : R2 r s \/ R2 s r)
+      by (destruct (HtotalCmp r s) as [Heq | [H | H]];
+          [exfalso; apply Hrs_neq; exact Heq | left; exact H | right; exact H]).
+    assert (Hcmp_rt : R2 r t \/ R2 t r)
+      by (destruct (HtotalCmp r t) as [Heq | [H | H]];
+          [exfalso; apply Hrt_neq; exact Heq | left; exact H | right; exact H]).
+    assert (Hcmp_st : R2 s t \/ R2 t s)
+      by (destruct (HtotalCmp s t) as [Heq | [H | H]];
+          [exfalso; apply Hst_neq; exact Heq | left; exact H | right; exact H]).
+    exact (@n5_chain_contra_inc B R2 HR2 p q r s t Hcov5 Hinc_ex
+             Hcmp_pq Hcmp_pr Hcmp_ps Hcmp_pt
+             Hcmp_qr Hcmp_qs Hcmp_qt
+             Hcmp_rs Hcmp_rt Hcmp_st _). }
   destruct (classic (exists x y : B, x <> y /\ R2 x y /\ ~ (x = p /\ y = q)))
     as [Hother | Honly].
   - (* Some other strict edge exists: route to the residual admit. *)
