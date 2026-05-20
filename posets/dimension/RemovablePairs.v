@@ -5061,6 +5061,63 @@ Proof.
   exfalso. apply Hnac. exact (poset_trans a b c HRab HRbc).
 Qed.
 
+(** 4-chain incomparability contradiction.  If every pair of elements
+    in the 4-element carrier is related (in one direction), then no
+    pair is incomparable; this contradicts [Hinc_ex].
+
+    Inputs: a 4-cover [Hcov4] and ordered-pair facts [HR_xy] for each
+    of the 6 (unordered) pairs (i.e., one direction holds for each
+    pair).  We need 12 ordered facts to discharge the 12 off-diagonal
+    cases of the Hcov4 enumeration, plus the 4 diagonal cases via
+    reflexivity (which makes [Incomparable a a] False). *)
+Lemma n4_chain_contra_inc :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (p q r s : B)
+    (Hcov4 : forall a : B, a = p \/ a = q \/ a = r \/ a = s)
+    (Hinc_ex : exists a b : B, @Incomparable B R2 a b)
+    (Hpq : R2 p q \/ R2 q p)
+    (Hpr : R2 p r \/ R2 r p)
+    (Hps : R2 p s \/ R2 s p)
+    (Hqr : R2 q r \/ R2 r q)
+    (Hqs : R2 q s \/ R2 s q)
+    (Hrs : R2 r s \/ R2 s r),
+  forall (P : Prop), P.
+Proof.
+  intros B R2 HR2 p q r s Hcov4 Hinc_ex Hpq Hpr Hps Hqr Hqs Hrs P.
+  exfalso.
+  destruct Hinc_ex as [a [b Hinc]].
+  apply Hinc.
+  destruct (Hcov4 a) as [Ha | [Ha | [Ha | Ha]]];
+  destruct (Hcov4 b) as [Hb | [Hb | [Hb | Hb]]];
+    subst a; subst b;
+    first
+      [ left; apply HR2.(poset_refl)
+      | (destruct Hpq as [HRpq | HRqp];
+         [left; exact HRpq | right; exact HRqp])
+      | (destruct Hpq as [HRpq | HRqp];
+         [right; exact HRpq | left; exact HRqp])
+      | (destruct Hpr as [HRpr | HRrp];
+         [left; exact HRpr | right; exact HRrp])
+      | (destruct Hpr as [HRpr | HRrp];
+         [right; exact HRpr | left; exact HRrp])
+      | (destruct Hps as [HRps | HRsp];
+         [left; exact HRps | right; exact HRsp])
+      | (destruct Hps as [HRps | HRsp];
+         [right; exact HRps | left; exact HRsp])
+      | (destruct Hqr as [HRqr | HRrq];
+         [left; exact HRqr | right; exact HRrq])
+      | (destruct Hqr as [HRqr | HRrq];
+         [right; exact HRqr | left; exact HRrq])
+      | (destruct Hqs as [HRqs | HRsq];
+         [left; exact HRqs | right; exact HRsq])
+      | (destruct Hqs as [HRqs | HRsq];
+         [right; exact HRqs | left; exact HRsq])
+      | (destruct Hrs as [HRrs | HRsr];
+         [left; exact HRrs | right; exact HRsr])
+      | (destruct Hrs as [HRrs | HRsr];
+         [right; exact HRrs | left; exact HRsr]) ].
+Qed.
+
 (** Focused admit covering the n=4 non-antichain non-chain residual
     case AFTER the dispatcher cascade
     [n4_dispatch_residual_after_h] has exhausted its 52 structural
@@ -6625,17 +6682,34 @@ Proof.
         apply (@n4_residual_antisym_contra B R2 HR2 p s Hps_neq
                  (poset_trans p q s HRpq HRqs) HRsp). }
       (* All edges with q,p,r,p,s,p covered.  Forced: HRrq (rp+pq) and
-         HRsq (sp+pq).  Now split on remaining HRrs and HRsr. *)
+         HRsq (sp+pq).  Now split on remaining HRrs and HRsr.  Both
+         positive cases extend the relation to a 4-chain, contradicting
+         Hinc_ex. *)
       destruct (classic (R2 r s)) as [HRrs | Hnrs].
-      { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-                 Hnonantichain Hinc_ex p q r s
-                 Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-                 Hcov4 HRpq). }
+      { (* 4-chain r<s<p<q via HRrs + HRsp + HRpq.  Plus HRrp, HRrq,
+           HRsq forced.  All 6 pairs comparable; contradicts Hinc_ex. *)
+        assert (Hpq_cmp : R2 p q \/ R2 q p) by (left; exact HRpq).
+        assert (Hpr_cmp : R2 p r \/ R2 r p) by (right; exact HRrp).
+        assert (Hps_cmp : R2 p s \/ R2 s p) by (right; exact HRsp).
+        assert (Hqr_cmp : R2 q r \/ R2 r q)
+          by (right; exact (poset_trans r p q HRrp HRpq)).
+        assert (Hqs_cmp : R2 q s \/ R2 s q)
+          by (right; exact (poset_trans s p q HRsp HRpq)).
+        assert (Hrs_cmp : R2 r s \/ R2 s r) by (left; exact HRrs).
+        exact (@n4_chain_contra_inc B R2 HR2 p q r s Hcov4 Hinc_ex
+                 Hpq_cmp Hpr_cmp Hps_cmp Hqr_cmp Hqs_cmp Hrs_cmp _). }
       destruct (classic (R2 s r)) as [HRsr | Hnsr].
-      { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-                 Hnonantichain Hinc_ex p q r s
-                 Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-                 Hcov4 HRpq). }
+      { (* 4-chain s<r<p<q via HRsr + HRrp + HRpq. *)
+        assert (Hpq_cmp : R2 p q \/ R2 q p) by (left; exact HRpq).
+        assert (Hpr_cmp : R2 p r \/ R2 r p) by (right; exact HRrp).
+        assert (Hps_cmp : R2 p s \/ R2 s p) by (right; exact HRsp).
+        assert (Hqr_cmp : R2 q r \/ R2 r q)
+          by (right; exact (poset_trans r p q HRrp HRpq)).
+        assert (Hqs_cmp : R2 q s \/ R2 s q)
+          by (right; exact (poset_trans s p q HRsp HRpq)).
+        assert (Hrs_cmp : R2 r s \/ R2 s r) by (right; exact HRsr).
+        exact (@n4_chain_contra_inc B R2 HR2 p q r s Hcov4 Hinc_ex
+                 Hpq_cmp Hpr_cmp Hps_cmp Hqr_cmp Hqs_cmp Hrs_cmp _). }
       (* Hnrs and Hnsr both hold.  Edges are exactly the 5 N2a
          edges: {r→p, s→p, p→q, r→q, s→q}.  Derive False from HnN2a
          (in scope from line ~6284) via Hcov4 enumeration. *)
