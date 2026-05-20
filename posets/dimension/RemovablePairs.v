@@ -32634,22 +32634,6 @@ Proof.
     as [HNTPR | HnNTPR].
   { apply (@n5_N_plus_top_pendant_on_right_two_realizer B R2 HR2 Hcard).
     exact HNTPR. }
-  (* (uuu) N + bot-pendant on left chain: a<b, c<b, c<d, e<a, e<b
-     (5 edges, e below a). *)
-  destruct (classic
-    (exists a b c d e : B,
-       a <> b /\ a <> c /\ a <> d /\ a <> e /\
-       b <> c /\ b <> d /\ b <> e /\
-       c <> d /\ c <> e /\
-       d <> e /\
-       R2 a b /\ R2 c b /\ R2 c d /\ R2 e a /\ R2 e b /\
-       (forall x y : B,
-          R2 x y -> x = y \/
-          ((x = a /\ y = b) \/ (x = c /\ y = b) \/ (x = c /\ y = d) \/
-           (x = e /\ y = a) \/ (x = e /\ y = b)))))
-    as [HNBPL | HnNBPL].
-  { apply (@n5_N_plus_bot_pendant_on_left_two_realizer B R2 HR2 Hcard).
-    exact HNBPL. }
   (* (vvv) N + bot-pendant on right (c-fork) chain: a<b, c<b, c<d, e<c,
      e<b, e<d (6 edges, e below c). *)
   destruct (classic
