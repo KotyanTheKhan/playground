@@ -6934,10 +6934,17 @@ Proof.
     (* Hnrq is in context.  r→p + p→q ⇒ r→q, contradicting Hnrq. *)
     apply (@n4_residual_one_extra_rp_contra B R2 HR2 p q r HRpq HRrp Hnrq). }
   destruct (classic (R2 p s)) as [HRps | Hnps].
-  { (* Inside HRps: case-split on s→p (antisym contradiction). *)
+  { (* Inside HRps: case-split on s→p (antisym contradiction) and on
+       extras whose trans-closure contradicts Hnpr. *)
     destruct (classic (R2 s p)) as [HRsp | Hnsp].
     { (* p→s and s→p ⇒ p = s by antisymmetry, contradicting Hps_neq. *)
       apply (@n4_residual_antisym_contra B R2 HR2 p s Hps_neq HRps HRsp). }
+    destruct (classic (R2 q r)) as [HRqr | Hnqr].
+    { (* p→q + q→r ⇒ p→r, contradicting Hnpr. *)
+      apply (@n4_residual_one_extra_qr_contra B R2 HR2 p q r HRpq HRqr Hnpr). }
+    destruct (classic (R2 s r)) as [HRsr | Hnsr].
+    { (* p→s + s→r ⇒ p→r, contradicting Hnpr. *)
+      apply (@n4_residual_trans_contra B R2 HR2 p s r HRps HRsr Hnpr). }
     apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex
              p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
