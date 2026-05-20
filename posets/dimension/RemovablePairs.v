@@ -15686,6 +15686,12 @@ Admitted.
       - [n5_3claw_down_pendant_two_realizer]         (3-claw-down + pendant e<d)
       - [n5_Y_up_plus_isolated_two_realizer]         (Y-up shape + 1 iso)
       - [n5_fence_two_realizer]                      (5-fence / W zigzag)
+      - [n5_Y_down_plus_isolated_two_realizer]       (Y-down shape + 1 iso)
+      - [n5_M_shape_two_realizer]                    (M-shape / dual fence)
+      - [n5_4claw_up_two_realizer]                   (K_{1,4} up / 4-claw-up)
+      - [n5_4claw_down_two_realizer]                 (K_{1,4} down / 4-claw-down)
+      - [n5_inv_N_plus_isolated_two_realizer]        (dual-N / Z-shape + 1 iso)
+      - [n5_chain3_plus_V_top_two_realizer]          (3-chain + V at top, 9 edges)
       - [n5_one_edge_two_realizer]                   (single edge)
 
     Residual fall-through: routes to [n5_residual_classes_two_realizer]
