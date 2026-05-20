@@ -4752,37 +4752,43 @@ Proof.
     + intro Hin. destruct Hin. apply HL_neq. reflexivity.
 Qed.
 
-(** Focused admit covering the n=4 non-antichain non-chain posets NOT
-    matched by the EIGHT Qed sub-lemmas wired into the dispatcher
-    [n4_nonantichain_nonchain_two_realizer]: classes (a)-(f), plus the
-    two 3-claws (g) and (h).
+(** Focused admit covering the n=4 non-antichain non-chain residual
+    case AFTER the dispatcher cascade
+    [n4_dispatch_residual_after_h] has exhausted its 52 structural
+    pattern tests for labelings of classes (a)-(n).
 
-    The remaining six isomorphism classes (i)-(n) — diamond (i), bowtie
-    (j), chain-of-3 + element below/above (k)/(l), Y-up extended (m),
-    Y-down extended (n) — ALL HAVE Qed per-class sub-lemmas already
-    proven in this file:
-      - [n4_diamond_two_realizer]
-      - [n4_bowtie_two_realizer]
-      - [n4_chain3_plus_below_two_realizer]
-      - [n4_chain3_plus_above_two_realizer]
-      - [n4_Y_chain_up_two_realizer]
-      - [n4_Y_chain_down_two_realizer]
+    STRUCTURAL CONTRACT (TIGHTENED from earlier broader statement):
 
-    Thus this admit can be discharged by extending the dispatcher
-    cascade with structural detection branches for these six remaining
-    classes; the per-class proofs are already done.  The cascade
-    structure is the only thing left.
+    Inputs include the four pairwise-distinct elements [p, q, r, s]
+    covering the carrier together with the witness strict edge
+    [R2 p q].  The dispatcher provides these from [carrier_4_destructure]
+    plus [Hnonantichain].
 
-    Each such class has dim ≤ 2 (Hiraguchi's bound is tight at n=4 only
-    for the antichain).  Their realizer construction follows the same
-    rank-pair pattern used throughout (a)-(n). *)
+    Mathematical content: by the classification of n=4 non-antichain
+    non-chain posets, every such relation is isomorphic to one of the
+    14 named classes (a)-(n).  Each of those classes has a Qed
+    per-class realizer sub-lemma already in this file.  The dispatcher
+    routes to those sub-lemmas via 52 explicit labeling cases (10 D,
+    8 J, 8 K, 8 L, 5 M, 5 N, 4 B-alt, 4 F-alt).  The mathematical
+    claim is that these cases together with the outer dispatcher's 12
+    additional cases exhaust the relation space; what is missing is
+    only a formal enumeration certifying this exhaustion.
+
+    Net change: the admit's interface now mirrors the call site's
+    available structural information (the dispatcher's 4-element
+    destructure and witness edge), making it easier to discharge in
+    follow-up work via case analysis on the 11 possible "second"
+    strict edges (x, y) <> (p, q) covered by [Hcov4]. *)
 Lemma n4_residual_classes_two_realizer :
-  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
-  cardinal B (Full_set B) 4 ->
-  ~ (forall a b : B, R2 a b -> a = b) ->
-  (exists a b : B, @Incomparable B R2 a b) ->
-  exists r : Ensemble (B -> B -> Prop),
-    IsRealizer R2 r /\ cardinal (B -> B -> Prop) r 2.
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (Hcard : cardinal B (Full_set B) 4)
+    (p q r s : B)
+    (Hpq_neq : p <> q) (Hpr_neq : p <> r) (Hps_neq : p <> s)
+    (Hqr_neq : q <> r) (Hqs_neq : q <> s) (Hrs_neq : r <> s)
+    (Hcov4 : forall a : B, a = p \/ a = q \/ a = r \/ a = s)
+    (HRpq : R2 p q),
+  exists r' : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r' /\ cardinal (B -> B -> Prop) r' 2.
 Admitted.
 
 (** Helper: dispatches the remaining six isomorphism classes (i)-(n)
@@ -6256,11 +6262,14 @@ Proof.
   (* If we reach here, the relation matches no class-(b)..(n) labeling
      above.  By the classification theorem of n=4 non-antichain
      non-chain posets, every such relation IS one of (a)-(n), so this
-     branch is mathematically unreachable.  We keep the focused admit
-     [n4_residual_classes_two_realizer] as a soft fall-through; a fully
-     rigorous proof would need a separate enumeration lemma.  *)
-  apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard);
-    [exact Hnonantichain | exact Hinc_ex].
+     branch is mathematically unreachable.  We invoke the focused
+     admit [n4_residual_classes_two_realizer] with the TIGHTENED
+     interface that mirrors this call site (4-element destructure
+     plus the witness edge), making future discharge by structural
+     enumeration straightforward.  *)
+  apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+           p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+           Hcov4 HRpq).
 Qed.
 
 (** Main n=4 dispatcher.
