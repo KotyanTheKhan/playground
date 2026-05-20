@@ -4782,6 +4782,8 @@ Qed.
 Lemma n4_residual_classes_two_realizer :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
     (Hcard : cardinal B (Full_set B) 4)
+    (Hnonantichain : ~ (forall a b : B, R2 a b -> a = b))
+    (Hinc_ex : exists a b : B, @Incomparable B R2 a b)
     (p q r s : B)
     (Hpq_neq : p <> q) (Hpr_neq : p <> r) (Hps_neq : p <> s)
     (Hqr_neq : q <> r) (Hqs_neq : q <> s) (Hrs_neq : r <> s)
@@ -6268,6 +6270,7 @@ Proof.
      plus the witness edge), making future discharge by structural
      enumeration straightforward.  *)
   apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+           Hnonantichain Hinc_ex
            p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
            Hcov4 HRpq).
 Qed.
