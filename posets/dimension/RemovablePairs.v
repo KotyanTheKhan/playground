@@ -6753,17 +6753,78 @@ Proof.
         apply (@n4_residual_one_extra_sr_rp_contra B R2 HR2 p r s
                  HRsr HRrp Hnsp). }
       (* Inside HRrp + HRrq + Hnqs + Hnsr: split on remaining extras
-         R2 r s and R2 s q. *)
+         R2 r s and R2 s q.  Both sub-cases (with the other negated)
+         match K3a or L3a; the combined HRrs + HRsq matches D4. *)
       destruct (classic (R2 r s)) as [HRrs | Hnrs].
-      { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-                 Hnonantichain Hinc_ex p q r s
-                 Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-                 Hcov4 HRpq). }
+      { destruct (classic (R2 s q)) as [HRsq | Hnsq].
+        { (* HRrs + HRsq: edges {r→p, p→q, r→q, r→s, s→q} = D4 diamond
+             pattern.  Derive False from HnD4. *)
+          exfalso. apply HnD4.
+          split; [exact HRrp |].
+          split; [exact HRrs |].
+          split; [exact HRrq |].
+          split; [exact HRsq |].
+          intros x y Hxy_neq HRxy.
+          destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+          destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+            subst x; subst y;
+            try (exfalso; apply Hxy_neq; reflexivity);
+            first
+              [ (left; split; reflexivity)                          (* (r,p) *)
+              | (right; left; split; reflexivity)                   (* (r,s) *)
+              | (right; right; left; split; reflexivity)            (* (r,q) *)
+              | (right; right; right; left; split; reflexivity)     (* (p,q) *)
+              | (right; right; right; right; split; reflexivity)    (* (s,q) *)
+              | (exfalso;
+                 match goal with
+                 | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+                 end)
+              | (exfalso; apply Hpq_neq; apply poset_antisym;
+                 [exact HRpq | exact HRxy]) ]. }
+        (* Hnsq: edges exactly {r→p, p→q, r→q, r→s} = K3a pattern. *)
+        exfalso. apply HnK3a.
+        split; [exact HRrp |].
+        split; [exact HRrq |].
+        split; [exact HRrs |].
+        intros x y Hxy_neq HRxy.
+        destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+        destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+          subst x; subst y;
+          try (exfalso; apply Hxy_neq; reflexivity);
+          first
+            [ (left; split; reflexivity)                          (* (r,p) *)
+            | (right; left; split; reflexivity)                   (* (r,q) *)
+            | (right; right; left; split; reflexivity)            (* (p,q) *)
+            | (right; right; right; split; reflexivity)           (* (r,s) *)
+            | (exfalso;
+               match goal with
+               | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+               end)
+            | (exfalso; apply Hpq_neq; apply poset_antisym;
+               [exact HRpq | exact HRxy]) ]. }
       destruct (classic (R2 s q)) as [HRsq | Hnsq].
-      { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-                 Hnonantichain Hinc_ex p q r s
-                 Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-                 Hcov4 HRpq). }
+      { (* Hnrs + HRsq: edges exactly {r→p, p→q, r→q, s→q} = L3a
+           pattern.  Derive False from HnL3a. *)
+        exfalso. apply HnL3a.
+        split; [exact HRrp |].
+        split; [exact HRrq |].
+        split; [exact HRsq |].
+        intros x y Hxy_neq HRxy.
+        destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+        destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+          subst x; subst y;
+          try (exfalso; apply Hxy_neq; reflexivity);
+          first
+            [ (left; split; reflexivity)                          (* (r,p) *)
+            | (right; left; split; reflexivity)                   (* (r,q) *)
+            | (right; right; left; split; reflexivity)            (* (p,q) *)
+            | (right; right; right; split; reflexivity)           (* (s,q) *)
+            | (exfalso;
+               match goal with
+               | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+               end)
+            | (exfalso; apply Hpq_neq; apply poset_antisym;
+               [exact HRpq | exact HRxy]) ]. }
       (* All s-edges are negated; only edges are {(r,p), (p,q), (r,q)}.
          This is class (b) chain r<p<q + isolated s, which the residual
          classifier's B2a test (line 6287, [HnB2a] in scope here)
