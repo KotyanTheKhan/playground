@@ -7076,10 +7076,34 @@ Proof.
              end)
           | (exfalso; apply Hpq_neq; apply poset_antisym;
              [exact HRpq | exact HRxy]) ]. }
-    apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-             Hnonantichain Hinc_ex
-             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-             Hcov4 HRpq). }
+    (* Hnqs + Hnsq + Hnrs + Hnsr: only edges are {p→q, r→q}.  This is
+       class (d) inv-V with shared top q (a=p, b=r, c=q, d=s). *)
+    apply (@n4_inv_V_two_realizer B R2 HR2 Hcard).
+    exists p, r, q, s.
+    split; [exact Hpr_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hps_neq |].
+    split; [exact Hrq_neq |].
+    split; [exact Hrs_neq |].
+    split; [exact Hqs_neq |].
+    split; [exact HRpq |].
+    split; [exact HRrq |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+    destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+      subst x; subst y;
+      try (exfalso; apply Hneq; reflexivity);
+      first
+        [ (left; split; reflexivity)             (* (p, q) *)
+        | (right; split; reflexivity)            (* (r, q) *)
+        | (exfalso;
+           match goal with
+           | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+           end)
+        | (exfalso; apply Hpq_neq; apply poset_antisym;
+           [exact HRpq | exact HRxy]) ]. }
   destruct (classic (R2 q s)) as [HRqs | Hnqs].
   { (* p→q + q→s ⇒ p→s, contradicting Hnps. *)
     apply (@n4_residual_one_extra_qs_contra B R2 HR2 p q s HRpq HRqs Hnps). }
