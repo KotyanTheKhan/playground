@@ -6707,10 +6707,55 @@ Proof.
       destruct (classic (R2 s p)) as [HRsp | Hnsp].
       { (* p→s and s→p ⇒ p = s by antisymmetry, contradicting Hps_neq. *)
         apply (@n4_residual_antisym_contra B R2 HR2 p s Hps_neq HRps HRsp). }
-      apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-               Hnonantichain Hinc_ex p q r s
-               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-               Hcov4 HRpq). }
+      (* Forced via trans: HRrq (rp+pq), HRrs (rp+ps).  Total 5 edges
+         {r→p, p→q, p→s, r→q, r→s} = M3a pattern.  Split on HRqs/HRsq
+         extras; the "neither" case derives False from HnM3a. *)
+      assert (HRrq : R2 r q) by exact (poset_trans r p q HRrp HRpq).
+      assert (HRrs : R2 r s) by exact (poset_trans r p s HRrp HRps).
+      destruct (classic (R2 q s)) as [HRqs | Hnqs].
+      { (* HRqs: 4-chain r<p<q<s. Hinc_ex contradiction. *)
+        assert (Hpq_cmp : R2 p q \/ R2 q p) by (left; exact HRpq).
+        assert (Hpr_cmp : R2 p r \/ R2 r p) by (right; exact HRrp).
+        assert (Hps_cmp : R2 p s \/ R2 s p) by (left; exact HRps).
+        assert (Hqr_cmp : R2 q r \/ R2 r q) by (right; exact HRrq).
+        assert (Hqs_cmp : R2 q s \/ R2 s q) by (left; exact HRqs).
+        assert (Hrs_cmp : R2 r s \/ R2 s r) by (left; exact HRrs).
+        exact (@n4_chain_contra_inc B R2 HR2 p q r s Hcov4 Hinc_ex
+                 Hpq_cmp Hpr_cmp Hps_cmp Hqr_cmp Hqs_cmp Hrs_cmp _). }
+      destruct (classic (R2 s q)) as [HRsq | Hnsq].
+      { (* HRsq: 4-chain r<p<s<q. Hinc_ex contradiction. *)
+        assert (Hpq_cmp : R2 p q \/ R2 q p) by (left; exact HRpq).
+        assert (Hpr_cmp : R2 p r \/ R2 r p) by (right; exact HRrp).
+        assert (Hps_cmp : R2 p s \/ R2 s p) by (left; exact HRps).
+        assert (Hqr_cmp : R2 q r \/ R2 r q) by (right; exact HRrq).
+        assert (Hqs_cmp : R2 q s \/ R2 s q) by (right; exact HRsq).
+        assert (Hrs_cmp : R2 r s \/ R2 s r) by (left; exact HRrs).
+        exact (@n4_chain_contra_inc B R2 HR2 p q r s Hcov4 Hinc_ex
+                 Hpq_cmp Hpr_cmp Hps_cmp Hqr_cmp Hqs_cmp Hrs_cmp _). }
+      (* Both Hnqs and Hnsq.  Edges exactly the 5 M3a edges.  Derive
+         False from HnM3a via Hcov4 enumeration. *)
+      exfalso. apply HnM3a.
+      split; [exact HRrp |].
+      split; [exact HRrq |].
+      split; [exact HRrs |].
+      split; [exact HRps |].
+      intros x y Hxy_neq HRxy.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hxy_neq; reflexivity);
+        first
+          [ (left; split; reflexivity)                          (* (r,p) *)
+          | (right; left; split; reflexivity)                   (* (r,q) *)
+          | (right; right; left; split; reflexivity)            (* (r,s) *)
+          | (right; right; right; left; split; reflexivity)     (* (p,q) *)
+          | (right; right; right; right; split; reflexivity)    (* (p,s) *)
+          | (exfalso;
+             match goal with
+             | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
     destruct (classic (R2 s p)) as [HRsp | Hnsp].
     { (* Inside HRrp + HRsp: case-split on q→r or q→s extras. *)
       destruct (classic (R2 q r)) as [HRqr | Hnqr].
