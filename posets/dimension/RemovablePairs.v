@@ -6794,6 +6794,41 @@ Proof.
     destruct (classic (R2 q s)) as [HRqs | Hnqs].
     { (* p→q + q→s ⇒ p→s, contradicting Hnps. *)
       apply (@n4_residual_one_extra_qs_contra B R2 HR2 p q s HRpq HRqs Hnps). }
+    destruct (classic (R2 s q)) as [HRsq | Hnsq].
+    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+               Hnonantichain Hinc_ex
+               p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+               Hcov4 HRpq). }
+    destruct (classic (R2 r s)) as [HRrs | Hnrs].
+    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+               Hnonantichain Hinc_ex
+               p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+               Hcov4 HRpq). }
+    destruct (classic (R2 s r)) as [HRsr | Hnsr].
+    { (* Hnsq + Hnrs + HRsr: edges {p→q, r→q, s→r, s→q forced via
+         s→r→q (HRrq)}.  This is L4b pattern.  Derive False from HnL4b
+         (in scope from ~6052) via Hcov4 enumeration. *)
+      assert (HRsq_forced : R2 s q) by exact (poset_trans s r q HRsr HRrq).
+      exfalso. apply HnL4b.
+      split; [exact HRsr |].
+      split; [exact HRsq_forced |].
+      split; [exact HRrq |].
+      intros x y Hxy_neq HRxy.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hxy_neq; reflexivity);
+        first
+          [ (left; split; reflexivity)                          (* (s,r) *)
+          | (right; left; split; reflexivity)                   (* (s,q) *)
+          | (right; right; left; split; reflexivity)            (* (r,q) *)
+          | (right; right; right; split; reflexivity)           (* (p,q) *)
+          | (exfalso;
+             match goal with
+             | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
     apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex
              p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
