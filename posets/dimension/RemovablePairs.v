@@ -4979,6 +4979,38 @@ Proof.
   exfalso. apply Hnps. exact (poset_trans p q s HRpq HRqs).
 Qed.
 
+(** Two-extra-edge contradictions: a witness edge [(p, q)] combined
+    with a "below" edge [(r, p)] (resp. [(s, p)]) and an "above" edge
+    [(q, r)] (resp. [(q, s)]) creates an antisymmetry contradiction.
+
+    Specifically: [r → p → q] gives [r → q] by transitivity; combined
+    with [q → r], antisymmetry forces [r = q], contradicting
+    [Hqr_neq].  The [sp+qs] variant is symmetric in [r] vs [s].  These
+    discharge the residual-cascade leaves where the dispatcher has
+    selected [HRrp ∩ HRqr] (resp. [HRsp ∩ HRqs]) as additional edges
+    beyond the witness. *)
+Lemma n4_residual_one_extra_rp_qr_contra :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (p q r : B) (Hqr_neq : q <> r)
+    (HRpq : R2 p q) (HRrp : R2 r p) (HRqr : R2 q r),
+  forall (P : Prop), P.
+Proof.
+  intros B R2 HR2 p q r Hqr_neq HRpq HRrp HRqr P.
+  exfalso. apply Hqr_neq.
+  apply poset_antisym; [exact HRqr | exact (poset_trans r p q HRrp HRpq)].
+Qed.
+
+Lemma n4_residual_one_extra_sp_qs_contra :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (p q s : B) (Hqs_neq : q <> s)
+    (HRpq : R2 p q) (HRsp : R2 s p) (HRqs : R2 q s),
+  forall (P : Prop), P.
+Proof.
+  intros B R2 HR2 p q s Hqs_neq HRpq HRsp HRqs P.
+  exfalso. apply Hqs_neq.
+  apply poset_antisym; [exact HRqs | exact (poset_trans s p q HRsp HRpq)].
+Qed.
+
 (** Focused admit covering the n=4 non-antichain non-chain residual
     case AFTER the dispatcher cascade
     [n4_dispatch_residual_after_h] has exhausted its 52 structural
@@ -6524,10 +6556,10 @@ Proof.
                Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
                Hcov4 HRpq). }
     destruct (classic (R2 q r)) as [HRqr | Hnqr].
-    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-               Hnonantichain Hinc_ex p q r s
-               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-               Hcov4 HRpq). }
+    { (* HRrp + HRpq ⇒ HRrq (trans); combined with HRqr, antisymmetry
+         forces q = r, contradicting Hqr_neq. *)
+      apply (@n4_residual_one_extra_rp_qr_contra B R2 HR2 p q r
+               Hqr_neq HRpq HRrp HRqr). }
     destruct (classic (R2 r q)) as [HRrq | Hnrq].
     { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
                Hnonantichain Hinc_ex p q r s
@@ -6543,20 +6575,18 @@ Proof.
   destruct (classic (R2 s p)) as [HRsp | Hnsp].
   { (* s→p + p→q ⇒ s→q.  Sub-cascade until Hnsq. *)
     destruct (classic (R2 q r)) as [HRqr | Hnqr].
-    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-               Hnonantichain Hinc_ex p q r s
-               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-               Hcov4 HRpq). }
+    { (* p→q + q→r ⇒ p→r, contradicting Hnpr already in context. *)
+      apply (@n4_residual_one_extra_qr_contra B R2 HR2 p q r HRpq HRqr Hnpr). }
     destruct (classic (R2 r q)) as [HRrq | Hnrq].
     { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
                Hnonantichain Hinc_ex p q r s
                Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
                Hcov4 HRpq). }
     destruct (classic (R2 q s)) as [HRqs | Hnqs].
-    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-               Hnonantichain Hinc_ex p q r s
-               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-               Hcov4 HRpq). }
+    { (* HRsp + HRpq ⇒ HRsq (trans); combined with HRqs, antisymmetry
+         forces q = s, contradicting Hqs_neq. *)
+      apply (@n4_residual_one_extra_sp_qs_contra B R2 HR2 p q s
+               Hqs_neq HRpq HRsp HRqs). }
     destruct (classic (R2 s q)) as [HRsq | Hnsq].
     { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
                Hnonantichain Hinc_ex p q r s
