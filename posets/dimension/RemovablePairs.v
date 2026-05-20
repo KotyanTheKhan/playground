@@ -8911,11 +8911,305 @@ Proof.
       exists a, b. split; [exact Hneq |]. split; [exact HRab |]. exact Hnot_pq.
 Qed.
 
-(** Focused admit for the n=5 non-antichain non-chain case.  Splits
-    out the n=5 branch of the original
-    [nonantichain_nonchain_small_two_realizer] so that the n=4 branch
-    can be (eventually) Qed-routed through the per-class sub-lemmas
-    independently. *)
+(** Helper for [n5_one_edge_two_realizer]: when [Full_set B] has
+    cardinal 5, extract 5 pairwise distinct elements and confirm that
+    every element of [B] equals one of them.  Follows the same pattern
+    as [carrier_4_destructure] with one extra [cardinal_subtract_sn]
+    step. *)
+Lemma carrier_5_destructure :
+  forall {B : Type} (p q : B),
+  cardinal B (Full_set B) 5 ->
+  p <> q ->
+  exists r s t : B,
+    p <> r /\ p <> s /\ p <> t /\
+    q <> r /\ q <> s /\ q <> t /\
+    r <> s /\ r <> t /\ s <> t /\
+    (forall a : B, a = p \/ a = q \/ a = r \/ a = s \/ a = t).
+Proof.
+  intros B p q Hcard Hpq.
+  (* Strip p. *)
+  assert (Hp_in : In B (Full_set B) p) by apply Full_intro.
+  assert (Hcard1 : cardinal B (Subtract B (Full_set B) p) 4)
+    by exact (cardinal_subtract_sn B (Full_set B) p 4 Hcard Hp_in).
+  (* Strip q. *)
+  assert (Hq_in1 : In B (Subtract B (Full_set B) p) q).
+  { apply Subtract_intro; [apply Full_intro |]. exact Hpq. }
+  assert (Hcard2 : cardinal B (Subtract B (Subtract B (Full_set B) p) q) 3)
+    by exact (cardinal_subtract_sn B (Subtract B (Full_set B) p) q 3 Hcard1 Hq_in1).
+  (* Pick r. *)
+  assert (Hinh2 : Inhabited B (Subtract B (Subtract B (Full_set B) p) q))
+    by exact (cardinal_elim B _ 3 Hcard2).
+  destruct Hinh2 as [r Hr_in2].
+  destruct (Subtract_inv _ _ _ _ Hr_in2) as [Hr_in1 Hqr_neq].
+  destruct (Subtract_inv _ _ _ _ Hr_in1) as [_ Hpr_neq].
+  (* Strip r. *)
+  assert (Hcard3 : cardinal B (Subtract B (Subtract B (Subtract B (Full_set B) p) q) r) 2)
+    by exact (cardinal_subtract_sn B _ r 2 Hcard2 Hr_in2).
+  (* Pick s. *)
+  assert (Hinh3 : Inhabited B (Subtract B (Subtract B (Subtract B (Full_set B) p) q) r))
+    by exact (cardinal_elim B _ 2 Hcard3).
+  destruct Hinh3 as [s Hs_in3].
+  destruct (Subtract_inv _ _ _ _ Hs_in3) as [Hs_in2 Hrs_neq].
+  destruct (Subtract_inv _ _ _ _ Hs_in2) as [Hs_in1 Hqs_neq].
+  destruct (Subtract_inv _ _ _ _ Hs_in1) as [_ Hps_neq].
+  (* Strip s. *)
+  assert (Hcard4 : cardinal B (Subtract B (Subtract B (Subtract B (Subtract B (Full_set B) p) q) r) s) 1)
+    by exact (cardinal_subtract_sn B _ s 1 Hcard3 Hs_in3).
+  (* Pick t. *)
+  assert (Hinh4 : Inhabited B (Subtract B (Subtract B (Subtract B (Subtract B (Full_set B) p) q) r) s))
+    by exact (cardinal_elim B _ 1 Hcard4).
+  destruct Hinh4 as [t Ht_in4].
+  destruct (Subtract_inv _ _ _ _ Ht_in4) as [Ht_in3 Hst_neq].
+  destruct (Subtract_inv _ _ _ _ Ht_in3) as [Ht_in2 Hrt_neq].
+  destruct (Subtract_inv _ _ _ _ Ht_in2) as [Ht_in1 Hqt_neq].
+  destruct (Subtract_inv _ _ _ _ Ht_in1) as [_ Hpt_neq].
+  (* Strip t: residual is empty. *)
+  assert (Hcard5 : cardinal B (Subtract B (Subtract B (Subtract B (Subtract B (Subtract B (Full_set B) p) q) r) s) t) 0)
+    by exact (cardinal_subtract_sn B _ t 0 Hcard4 Ht_in4).
+  assert (Hempty : Subtract B (Subtract B (Subtract B (Subtract B (Subtract B (Full_set B) p) q) r) s) t = Empty_set B)
+    by exact (cardinal_elim B _ 0 Hcard5).
+  exists r, s, t.
+  split; [exact Hpr_neq |].
+  split; [exact Hps_neq |].
+  split; [exact Hpt_neq |].
+  split; [exact Hqr_neq |].
+  split; [exact Hqs_neq |].
+  split; [exact Hqt_neq |].
+  split; [exact Hrs_neq |].
+  split; [exact Hrt_neq |].
+  split; [exact Hst_neq |].
+  intro a.
+  destruct (excluded_middle_informative (a = p)) as [Hap | Hnap]; [auto |].
+  destruct (excluded_middle_informative (a = q)) as [Haq | Hnaq]; [auto |].
+  destruct (excluded_middle_informative (a = r)) as [Har | Hnar]; [auto |].
+  destruct (excluded_middle_informative (a = s)) as [Has | Hnas]; [auto |].
+  destruct (excluded_middle_informative (a = t)) as [Hat | Hnat]; [auto |].
+  exfalso.
+  assert (Hin_full : In B (Full_set B) a) by apply Full_intro.
+  assert (Hin1 : In B (Subtract B (Full_set B) p) a)
+    by exact (Subtract_intro _ _ _ _ Hin_full (fun He => Hnap (eq_sym He))).
+  assert (Hin2 : In B (Subtract B (Subtract B (Full_set B) p) q) a)
+    by exact (Subtract_intro _ _ _ _ Hin1 (fun He => Hnaq (eq_sym He))).
+  assert (Hin3 : In B (Subtract B (Subtract B (Subtract B (Full_set B) p) q) r) a)
+    by exact (Subtract_intro _ _ _ _ Hin2 (fun He => Hnar (eq_sym He))).
+  assert (Hin4 : In B (Subtract B (Subtract B (Subtract B (Subtract B (Full_set B) p) q) r) s) a)
+    by exact (Subtract_intro _ _ _ _ Hin3 (fun He => Hnas (eq_sym He))).
+  assert (Hin5 : In B (Subtract B (Subtract B (Subtract B (Subtract B (Subtract B (Full_set B) p) q) r) s) t) a)
+    by exact (Subtract_intro _ _ _ _ Hin4 (fun He => Hnat (eq_sym He))).
+  rewrite Hempty in Hin5.
+  destruct Hin5.
+Qed.
+
+(** Sub-case: n=5 poset with EXACTLY ONE strict edge.
+
+    The carrier has 5 distinct elements; [R2] is identity plus one
+    strict relation [R2 p q] with [p <> q]; no other strict relations.
+
+    Explicit 2-realizer: [L1] orders [p < q < r < s < t] and [L2]
+    orders [t < s < r < p < q].  Both extend [R2] (the only required
+    pair is [R2 p q], which both [L1] and [L2] satisfy), and their
+    intersection on the carrier is exactly [R2] because the only
+    off-diagonal pair on which they agree is [(p, q)].  Cardinality
+    is 2 because, for instance, [L1 r s] but [~ L2 r s]. *)
+Lemma n5_one_edge_two_realizer :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
+  cardinal B (Full_set B) 5 ->
+  (exists p q : B,
+     p <> q /\ R2 p q /\
+     (forall a b : B, R2 a b -> a = b \/ (a = p /\ b = q))) ->
+  exists r : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r /\ cardinal (B -> B -> Prop) r 2.
+Proof.
+  intros B R2 HR2 Hcard [p [q [Hpq_neq [HRpq HR_only]]]].
+  destruct (@carrier_5_destructure B p q Hcard Hpq_neq)
+    as [r [s [t [Hpr [Hps [Hpt [Hqr [Hqs [Hqt [Hrs [Hrt [Hst Hcovers]]]]]]]]]]]].
+  (* L1 rank: p=0, q=1, r=2, s=3, t=4.
+     L2 rank: t=0, s=1, r=2, p=3, q=4. *)
+  set (rk1 := fun a : B =>
+                if excluded_middle_informative (a = p) then 0%nat
+                else if excluded_middle_informative (a = q) then 1%nat
+                else if excluded_middle_informative (a = r) then 2%nat
+                else if excluded_middle_informative (a = s) then 3%nat
+                else 4%nat).
+  set (rk2 := fun a : B =>
+                if excluded_middle_informative (a = t) then 0%nat
+                else if excluded_middle_informative (a = s) then 1%nat
+                else if excluded_middle_informative (a = r) then 2%nat
+                else if excluded_middle_informative (a = p) then 3%nat
+                else 4%nat).
+  (* Rank computations on the five elements. *)
+  assert (Hrk1_p : rk1 p = 0%nat).
+  { unfold rk1. destruct (excluded_middle_informative (p = p)); [reflexivity | contradiction]. }
+  assert (Hrk1_q : rk1 q = 1%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (q = p)) as [He|_]; [contradiction Hpq_neq; auto |].
+    destruct (excluded_middle_informative (q = q)); [reflexivity | contradiction]. }
+  assert (Hrk1_r : rk1 r = 2%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (r = p)) as [He|_]; [contradiction Hpr; auto |].
+    destruct (excluded_middle_informative (r = q)) as [He|_]; [contradiction Hqr; auto |].
+    destruct (excluded_middle_informative (r = r)); [reflexivity | contradiction]. }
+  assert (Hrk1_s : rk1 s = 3%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (s = p)) as [He|_]; [contradiction Hps; auto |].
+    destruct (excluded_middle_informative (s = q)) as [He|_]; [contradiction Hqs; auto |].
+    destruct (excluded_middle_informative (s = r)) as [He|_]; [contradiction Hrs; auto |].
+    destruct (excluded_middle_informative (s = s)); [reflexivity | contradiction]. }
+  assert (Hrk1_t : rk1 t = 4%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (t = p)) as [He|_]; [contradiction Hpt; auto |].
+    destruct (excluded_middle_informative (t = q)) as [He|_]; [contradiction Hqt; auto |].
+    destruct (excluded_middle_informative (t = r)) as [He|_]; [contradiction Hrt; auto |].
+    destruct (excluded_middle_informative (t = s)) as [He|_]; [contradiction Hst; auto |].
+    reflexivity. }
+  assert (Hrk2_p : rk2 p = 3%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (p = t)) as [He|_]; [contradiction Hpt; auto |].
+    destruct (excluded_middle_informative (p = s)) as [He|_]; [contradiction Hps; auto |].
+    destruct (excluded_middle_informative (p = r)) as [He|_]; [contradiction Hpr; auto |].
+    destruct (excluded_middle_informative (p = p)); [reflexivity | contradiction]. }
+  assert (Hrk2_q : rk2 q = 4%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (q = t)) as [He|_]; [contradiction Hqt; auto |].
+    destruct (excluded_middle_informative (q = s)) as [He|_]; [contradiction Hqs; auto |].
+    destruct (excluded_middle_informative (q = r)) as [He|_]; [contradiction Hqr; auto |].
+    destruct (excluded_middle_informative (q = p)) as [He|_];
+      [contradiction Hpq_neq; symmetry; exact He |].
+    reflexivity. }
+  assert (Hrk2_r : rk2 r = 2%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (r = t)) as [He|_]; [contradiction Hrt; auto |].
+    destruct (excluded_middle_informative (r = s)) as [He|_]; [contradiction Hrs; auto |].
+    destruct (excluded_middle_informative (r = r)); [reflexivity | contradiction]. }
+  assert (Hrk2_s : rk2 s = 1%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (s = t)) as [He|_]; [contradiction Hst; auto |].
+    destruct (excluded_middle_informative (s = s)); [reflexivity | contradiction]. }
+  assert (Hrk2_t : rk2 t = 0%nat).
+  { unfold rk2. destruct (excluded_middle_informative (t = t)); [reflexivity | contradiction]. }
+  (* Injectivity of rk1, rk2 on B. *)
+  assert (Hrk1_inj : forall a b, rk1 a = rk1 b -> a = b).
+  { intros a b Hab.
+    destruct (Hcovers a) as [Ha|[Ha|[Ha|[Ha|Ha]]]]; subst a;
+    destruct (Hcovers b) as [Hb|[Hb|[Hb|[Hb|Hb]]]]; subst b;
+      first [ reflexivity
+            | exfalso;
+              rewrite ?Hrk1_p, ?Hrk1_q, ?Hrk1_r, ?Hrk1_s, ?Hrk1_t in Hab;
+              discriminate ]. }
+  assert (Hrk2_inj : forall a b, rk2 a = rk2 b -> a = b).
+  { intros a b Hab.
+    destruct (Hcovers a) as [Ha|[Ha|[Ha|[Ha|Ha]]]]; subst a;
+    destruct (Hcovers b) as [Hb|[Hb|[Hb|[Hb|Hb]]]]; subst b;
+      first [ reflexivity
+            | exfalso;
+              rewrite ?Hrk2_p, ?Hrk2_q, ?Hrk2_r, ?Hrk2_s, ?Hrk2_t in Hab;
+              discriminate ]. }
+  (* Define L1, L2 as rank-le. *)
+  set (L1 := fun a b : B => rk1 a <= rk1 b).
+  set (L2 := fun a b : B => rk2 a <= rk2 b).
+  (* L1 is a total order. *)
+  assert (HL1_pos : IsPoset B L1).
+  { constructor; unfold L1.
+    - intro a. lia.
+    - intros a b Hab Hba. apply Hrk1_inj. lia.
+    - intros a b c Hab Hbc. lia. }
+  assert (HL1_total : forall a b, L1 a b \/ L1 b a).
+  { intros a b. unfold L1. lia. }
+  assert (HL1_tot : IsTotalOrder L1).
+  { constructor; [exact HL1_pos | exact HL1_total]. }
+  assert (HL1_ext : forall a b, R2 a b -> L1 a b).
+  { intros a b HR. destruct (HR_only a b HR) as [Heq | [Hae Hbe]].
+    - subst b. unfold L1. lia.
+    - subst a b. unfold L1. rewrite Hrk1_p, Hrk1_q. lia. }
+  assert (HL1_lin : IsLinearExtension R2 L1).
+  { constructor; [exact HL1_tot | exact HL1_ext]. }
+  (* L2 is a total order. *)
+  assert (HL2_pos : IsPoset B L2).
+  { constructor; unfold L2.
+    - intro a. lia.
+    - intros a b Hab Hba. apply Hrk2_inj. lia.
+    - intros a b c Hab Hbc. lia. }
+  assert (HL2_total : forall a b, L2 a b \/ L2 b a).
+  { intros a b. unfold L2. lia. }
+  assert (HL2_tot : IsTotalOrder L2).
+  { constructor; [exact HL2_pos | exact HL2_total]. }
+  assert (HL2_ext : forall a b, R2 a b -> L2 a b).
+  { intros a b HR. destruct (HR_only a b HR) as [Heq | [Hae Hbe]].
+    - subst b. unfold L2. lia.
+    - subst a b. unfold L2. rewrite Hrk2_p, Hrk2_q. lia. }
+  assert (HL2_lin : IsLinearExtension R2 L2).
+  { constructor; [exact HL2_tot | exact HL2_ext]. }
+  (* Intersection: L1 a b ∧ L2 a b → R2 a b.
+     Case-split on (a, b) ∈ {p,q,r,s,t}^2 (25 cases). *)
+  assert (Hinter : forall a b, L1 a b -> L2 a b -> R2 a b).
+  { intros a b HLa HLb.
+    unfold L1 in HLa; unfold L2 in HLb.
+    destruct (Hcovers a) as [Ha|[Ha|[Ha|[Ha|Ha]]]]; subst a;
+    destruct (Hcovers b) as [Hb|[Hb|[Hb|[Hb|Hb]]]]; subst b;
+      first [ apply HR2.(poset_refl)
+            | exact HRpq
+            | exfalso;
+              rewrite ?Hrk1_p, ?Hrk1_q, ?Hrk1_r, ?Hrk1_s, ?Hrk1_t in HLa;
+              rewrite ?Hrk2_p, ?Hrk2_q, ?Hrk2_r, ?Hrk2_s, ?Hrk2_t in HLb;
+              lia ]. }
+  (* Build realizer set {L1, L2}. *)
+  set (rls := Add (B -> B -> Prop) (Singleton _ L1) L2).
+  exists rls. split.
+  - constructor.
+    + intros L HL. destruct HL as [L HL | L HL].
+      * destruct HL. exact HL1_lin.
+      * destruct HL. exact HL2_lin.
+    + intros a b. split.
+      * intros HRab L HL. destruct HL as [L HL | L HL].
+        { destruct HL. exact (HL1_lin.(linear_extends) a b HRab). }
+        { destruct HL. exact (HL2_lin.(linear_extends) a b HRab). }
+      * intro Hall.
+        assert (HLa : L1 a b)
+          by exact (Hall L1 (Union_introl _ _ _ _ (In_singleton _ _))).
+        assert (HLb : L2 a b)
+          by exact (Hall L2 (Union_intror _ _ _ _ (In_singleton _ _))).
+        exact (Hinter a b HLa HLb).
+  - assert (HL_neq : L1 <> L2).
+    { intro Heq.
+      (* L1 r s holds (2 ≤ 3) but L2 r s would require 2 ≤ 1. *)
+      assert (HL1rs : L1 r s) by (unfold L1; rewrite Hrk1_r, Hrk1_s; lia).
+      assert (HL2rs : L2 r s) by (rewrite <- Heq; exact HL1rs).
+      unfold L2 in HL2rs. rewrite Hrk2_r, Hrk2_s in HL2rs. lia. }
+    unfold rls.
+    apply card_add.
+    + exact (singleton_cardinal _ L1).
+    + intro Hin. destruct Hin. apply HL_neq. reflexivity.
+Qed.
+
+(** Focused (refined) admit for the n=5 non-antichain non-chain case
+    EXCLUDING the single-strict-edge class.
+
+    Captures all isomorphism classes on 5 elements that are neither
+    antichain, chain, nor the one-edge class (the latter is closed by
+    [n5_one_edge_two_realizer]).  The hypothesis [Hmulti] asserts that
+    in addition to a chosen strict edge [(p, q)], at least one other
+    off-diagonal pair is in [R2]. *)
+Lemma n5_residual_classes_two_realizer :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
+  cardinal B (Full_set B) 5 ->
+  ~ (forall a b : B, R2 a b -> a = b) ->
+  (exists a b : B, @Incomparable B R2 a b) ->
+  (exists p q x y : B,
+     p <> q /\ R2 p q /\
+     x <> y /\ R2 x y /\ ~ (x = p /\ y = q)) ->
+  exists r : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r /\ cardinal (B -> B -> Prop) r 2.
+Admitted.
+
+(** Dispatcher for the n=5 non-antichain non-chain case.
+
+    Extracts a strict edge [(p, q)] from the non-antichain hypothesis,
+    then case-splits on whether any OTHER strict edge exists:
+      - If none, the poset has exactly one strict edge: route to
+        [n5_one_edge_two_realizer] (Qed).
+      - Otherwise, route to the focused residual admit
+        [n5_residual_classes_two_realizer] with the additional edge as
+        witness. *)
 Lemma n5_nonantichain_nonchain_two_realizer :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
   cardinal B (Full_set B) 5 ->
@@ -8923,7 +9217,47 @@ Lemma n5_nonantichain_nonchain_two_realizer :
   (exists a b : B, @Incomparable B R2 a b) ->
   exists r : Ensemble (B -> B -> Prop),
     IsRealizer R2 r /\ cardinal (B -> B -> Prop) r 2.
-Admitted.
+Proof.
+  intros B R2 HR2 Hcard Hnonantichain Hinc_ex.
+  (* Extract a strict edge (p, q). *)
+  assert (Hedge : exists p q : B, p <> q /\ R2 p q).
+  { apply Classical_Pred_Type.not_all_ex_not in Hnonantichain.
+    destruct Hnonantichain as [p Hp].
+    apply Classical_Pred_Type.not_all_ex_not in Hp.
+    destruct Hp as [q Hq].
+    exists p, q.
+    split;
+      [ intro Heq; apply Hq; intros HRpq_unused; exact Heq
+      | destruct (classic (R2 p q)) as [HR | HnR];
+          [ exact HR
+          | exfalso; apply Hq; intro Hcontra; contradiction ]
+      ]. }
+  destruct Hedge as [p [q [Hpq_neq HRpq]]].
+  destruct (classic (exists x y : B, x <> y /\ R2 x y /\ ~ (x = p /\ y = q)))
+    as [Hother | Honly].
+  - (* Some other strict edge exists: route to the residual admit. *)
+    destruct Hother as [x [y [Hxy_neq [HRxy Hnot_pq]]]].
+    apply (@n5_residual_classes_two_realizer B R2 HR2 Hcard
+             Hnonantichain Hinc_ex).
+    exists p, q, x, y.
+    split; [exact Hpq_neq |].
+    split; [exact HRpq |].
+    split; [exact Hxy_neq |].
+    split; [exact HRxy |].
+    exact Hnot_pq.
+  - (* Only (p, q) is a non-trivial relation: class (a). *)
+    apply (@n5_one_edge_two_realizer B R2 HR2 Hcard).
+    exists p, q.
+    split; [exact Hpq_neq |].
+    split; [exact HRpq |].
+    intros a b HRab.
+    destruct (classic (a = b)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (classic (a = p /\ b = q)) as [Hpq_match | Hnot_pq].
+    + exact Hpq_match.
+    + exfalso. apply Honly.
+      exists a, b. split; [exact Hneq |]. split; [exact HRab |]. exact Hnot_pq.
+Qed.
 
 (** Outer lemma: 2-realizer for n ∈ {4, 5} non-antichain non-chain.
 
