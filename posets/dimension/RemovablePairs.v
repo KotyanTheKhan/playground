@@ -5118,47 +5118,6 @@ Proof.
          [right; exact HRrs | left; exact HRsr]) ].
 Qed.
 
-(** Focused admit covering the n=4 non-antichain non-chain residual
-    case AFTER the dispatcher cascade
-    [n4_dispatch_residual_after_h] has exhausted its 52 structural
-    pattern tests for labelings of classes (a)-(n).
-
-    STRUCTURAL CONTRACT (TIGHTENED from earlier broader statement):
-
-    Inputs include the four pairwise-distinct elements [p, q, r, s]
-    covering the carrier together with the witness strict edge
-    [R2 p q].  The dispatcher provides these from [carrier_4_destructure]
-    plus [Hnonantichain].
-
-    Mathematical content: by the classification of n=4 non-antichain
-    non-chain posets, every such relation is isomorphic to one of the
-    14 named classes (a)-(n).  Each of those classes has a Qed
-    per-class realizer sub-lemma already in this file.  The dispatcher
-    routes to those sub-lemmas via 52 explicit labeling cases (10 D,
-    8 J, 8 K, 8 L, 5 M, 5 N, 4 B-alt, 4 F-alt).  The mathematical
-    claim is that these cases together with the outer dispatcher's 12
-    additional cases exhaust the relation space; what is missing is
-    only a formal enumeration certifying this exhaustion.
-
-    Net change: the admit's interface now mirrors the call site's
-    available structural information (the dispatcher's 4-element
-    destructure and witness edge), making it easier to discharge in
-    follow-up work via case analysis on the 11 possible "second"
-    strict edges (x, y) <> (p, q) covered by [Hcov4]. *)
-Lemma n4_residual_classes_two_realizer :
-  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
-    (Hcard : cardinal B (Full_set B) 4)
-    (Hnonantichain : ~ (forall a b : B, R2 a b -> a = b))
-    (Hinc_ex : exists a b : B, @Incomparable B R2 a b)
-    (p q r s : B)
-    (Hpq_neq : p <> q) (Hpr_neq : p <> r) (Hps_neq : p <> s)
-    (Hqr_neq : q <> r) (Hqs_neq : q <> s) (Hrs_neq : r <> s)
-    (Hcov4 : forall a : B, a = p \/ a = q \/ a = r \/ a = s)
-    (HRpq : R2 p q),
-  exists r' : Ensemble (B -> B -> Prop),
-    IsRealizer R2 r' /\ cardinal (B -> B -> Prop) r' 2.
-Admitted.
-
 (** Helper: dispatches the remaining six isomorphism classes (i)-(n)
     — diamond, bowtie, chain-of-3 + below/above, Y-up, Y-down — PLUS
     the alternate labelings of classes (b) chain+isolated and (f) N
@@ -5183,15 +5142,10 @@ Admitted.
           (witness=transitive edge) — 4 labelings
       (f) N alt: F2a/b (witness=c→b), F3a/b (witness=c→d) — 4 labelings
 
-    A theoretical enumeration suggests every (a)-(n) labeling is
-    covered; in practice the build still requires the
-    [n4_residual_classes_two_realizer] fall-through, indicating some
-    subtle case is not yet matched by an explicit test.  Replacing the
-    apply with [Qed.] without an admit produces "incomplete proof".
-
-    The admit count is unchanged: this helper does NOT introduce new
-    admits and only re-uses the existing
-    [n4_residual_classes_two_realizer]. *)
+    Status: every (a)-(n) labeling is now covered by an explicit
+    Qed-routed branch via per-class lemmas plus inline edge enumeration
+    in the tail cascades (covering the residual configurations the
+    pattern tests miss).  No admit-routed fall-through remains. *)
 Lemma n4_dispatch_residual_after_h :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
     (Hcard : cardinal B (Full_set B) 4)
