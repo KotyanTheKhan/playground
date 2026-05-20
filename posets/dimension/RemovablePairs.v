@@ -4752,6 +4752,68 @@ Proof.
     + intro Hin. destruct Hin. apply HL_neq. reflexivity.
 Qed.
 
+(** Edge-count = 1 residual: every off-diagonal pair other than
+    [(p, q)] is incomparable.
+
+    This is the simplest edge-count bucket of the residual classifier
+    (the dispatcher's fall-through after the (a)-(n) labeling tests
+    fail).  Given the 10 directed-edge negation hypotheses (all 5
+    unordered non-[{p,q}] pairs incomparable in both directions), the
+    relation must be [{(x, x) | x in B} ∪ {(p, q)}], which is exactly
+    the class (a) shape covered by [n4_one_edge_two_realizer].
+
+    Discharge strategy: existentially introduce [p, q] into
+    [n4_one_edge_two_realizer] and case-split on [Hcov4 a] / [Hcov4 b]
+    (16 sub-cases) to certify
+    [forall a b, R2 a b -> a = b \/ (a = p /\ b = q)].  Each
+    off-diagonal case other than [(p, q)] contradicts one of the 10
+    edge negations (with the [(q, p)] sub-case using [HRpq] +
+    antisymmetry to derive [p = q], contradicting [Hpq_neq]). *)
+Lemma n4_residual_edge_count_1 :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (Hcard : cardinal B (Full_set B) 4)
+    (p q r s : B)
+    (Hpq_neq : p <> q) (Hpr_neq : p <> r) (Hps_neq : p <> s)
+    (Hqr_neq : q <> r) (Hqs_neq : q <> s) (Hrs_neq : r <> s)
+    (Hcov4 : forall a : B, a = p \/ a = q \/ a = r \/ a = s)
+    (HRpq : R2 p q),
+  ~ R2 p r -> ~ R2 r p ->
+  ~ R2 p s -> ~ R2 s p ->
+  ~ R2 q r -> ~ R2 r q ->
+  ~ R2 q s -> ~ R2 s q ->
+  ~ R2 r s -> ~ R2 s r ->
+  exists r' : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r' /\ cardinal (B -> B -> Prop) r' 2.
+Proof.
+  intros B R2 HR2 Hcard p q r s
+    Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq Hcov4 HRpq
+    Hnpr Hnrp Hnps Hnsp Hnqr Hnrq Hnqs Hnsq Hnrs Hnsr.
+  apply (@n4_one_edge_two_realizer B R2 HR2 Hcard).
+  exists p, q.
+  split; [exact Hpq_neq |].
+  split; [exact HRpq |].
+  intros a b HRab.
+  destruct (Hcov4 a) as [Ha | [Ha | [Ha | Ha]]];
+  destruct (Hcov4 b) as [Hb | [Hb | [Hb | Hb]]];
+    subst a; subst b.
+  (* (p, p) *) - left; reflexivity.
+  (* (p, q) *) - right; split; reflexivity.
+  (* (p, r) *) - contradiction.
+  (* (p, s) *) - contradiction.
+  (* (q, p) *) - left. apply poset_antisym; [exact HRpq | exact HRab].
+  (* (q, q) *) - left; reflexivity.
+  (* (q, r) *) - contradiction.
+  (* (q, s) *) - contradiction.
+  (* (r, p) *) - contradiction.
+  (* (r, q) *) - contradiction.
+  (* (r, r) *) - left; reflexivity.
+  (* (r, s) *) - contradiction.
+  (* (s, p) *) - contradiction.
+  (* (s, q) *) - contradiction.
+  (* (s, r) *) - contradiction.
+  (* (s, s) *) - left; reflexivity.
+Qed.
+
 (** Focused admit covering the n=4 non-antichain non-chain residual
     case AFTER the dispatcher cascade
     [n4_dispatch_residual_after_h] has exhausted its 52 structural
