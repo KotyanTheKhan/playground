@@ -7124,10 +7124,41 @@ Proof.
           | (exfalso; apply Hpq_neq; apply poset_antisym;
              [exact HRpq | exact HRxy]) ]. }
     destruct (classic (R2 r s)) as [HRrs | Hnrs].
-    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-               Hnonantichain Hinc_ex
-               p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-               Hcov4 HRpq). }
+    { (* Context: HRpq, HRrq, HRrs, Hnpr, Hnrp, Hnps, Hnsp, Hnqr, Hnqs, Hnsq.
+         Case-split on HRsr:
+         - HRsr: r↔s antisym contra (Hrs_neq).
+         - Hnsr: edges {p→q, r→q, r→s} = class (f) N pattern with
+           a=p, b=q, c=r, d=s. *)
+      destruct (classic (R2 s r)) as [HRsr | Hnsr].
+      { apply (@n4_residual_antisym_contra B R2 HR2 r s Hrs_neq HRrs HRsr). }
+      apply (@n4_N_two_realizer B R2 HR2 Hcard).
+      exists p, q, r, s.
+      split; [exact Hpq_neq |].
+      split; [exact Hpr_neq |].
+      split; [exact Hps_neq |].
+      split; [exact Hqr_neq |].
+      split; [exact Hqs_neq |].
+      split; [exact Hrs_neq |].
+      split; [exact HRpq |].
+      split; [exact HRrq |].
+      split; [exact HRrs |].
+      intros x y HRxy.
+      destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+      right.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hneq; reflexivity);
+        first
+          [ (left; split; reflexivity)                          (* (p,q) *)
+          | (right; left; split; reflexivity)                   (* (r,q) *)
+          | (right; right; split; reflexivity)                  (* (r,s) *)
+          | (exfalso;
+             match goal with
+             | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
     destruct (classic (R2 s r)) as [HRsr | Hnsr].
     { (* Hnsq + Hnrs + HRsr: edges {p→q, r→q, s→r, s→q forced via
          s→r→q (HRrq)}.  This is L4b pattern.  Derive False from HnL4b
