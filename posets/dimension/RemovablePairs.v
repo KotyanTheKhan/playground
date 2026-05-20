@@ -5011,6 +5011,31 @@ Proof.
   apply poset_antisym; [exact HRqs | exact (poset_trans s p q HRsp HRpq)].
 Qed.
 
+(** Edge composition contradictions that fold a "below" edge into a
+    standalone negation hypothesis:
+
+    [s→r + r→p ⇒ s→p] via transitivity; if [~ R2 s p] is in context,
+    discharge by exfalso.  The [rs_qp]-variant is symmetric. *)
+Lemma n4_residual_one_extra_sr_rp_contra :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (p r s : B) (HRsr : R2 s r) (HRrp : R2 r p),
+  ~ R2 s p ->
+  forall (P : Prop), P.
+Proof.
+  intros B R2 HR2 p r s HRsr HRrp Hnsp P.
+  exfalso. apply Hnsp. exact (poset_trans s r p HRsr HRrp).
+Qed.
+
+Lemma n4_residual_one_extra_rs_qp_contra :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (p r s : B) (HRrs : R2 r s) (HRsp : R2 s p),
+  ~ R2 r p ->
+  forall (P : Prop), P.
+Proof.
+  intros B R2 HR2 p r s HRrs HRsp Hnrp P.
+  exfalso. apply Hnrp. exact (poset_trans r s p HRrs HRsp).
+Qed.
+
 (** Focused admit covering the n=4 non-antichain non-chain residual
     case AFTER the dispatcher cascade
     [n4_dispatch_residual_after_h] has exhausted its 52 structural
@@ -6561,7 +6586,16 @@ Proof.
       apply (@n4_residual_one_extra_rp_qr_contra B R2 HR2 p q r
                Hqr_neq HRpq HRrp HRqr). }
     destruct (classic (R2 r q)) as [HRrq | Hnrq].
-    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+    { (* Inside HRrp + HRrq: case-split on s-related extras to
+         discharge contradictions. *)
+      destruct (classic (R2 q s)) as [HRqs | Hnqs].
+      { (* p→q + q→s ⇒ p→s, contradicting Hnps. *)
+        apply (@n4_residual_one_extra_qs_contra B R2 HR2 p q s HRpq HRqs Hnps). }
+      destruct (classic (R2 s r)) as [HRsr | Hnsr].
+      { (* s→r + r→p ⇒ s→p, contradicting Hnsp. *)
+        apply (@n4_residual_one_extra_sr_rp_contra B R2 HR2 p r s
+                 HRsr HRrp Hnsp). }
+      apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
                Hnonantichain Hinc_ex p q r s
                Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
                Hcov4 HRpq). }
@@ -6578,7 +6612,16 @@ Proof.
     { (* p→q + q→r ⇒ p→r, contradicting Hnpr already in context. *)
       apply (@n4_residual_one_extra_qr_contra B R2 HR2 p q r HRpq HRqr Hnpr). }
     destruct (classic (R2 r q)) as [HRrq | Hnrq].
-    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+    { (* Inside HRsp + HRrq: case-split on r-s extras to discharge
+         contradictions. *)
+      destruct (classic (R2 q s)) as [HRqs | Hnqs].
+      { (* p→q + q→s ⇒ p→s, contradicting Hnps. *)
+        apply (@n4_residual_one_extra_qs_contra B R2 HR2 p q s HRpq HRqs Hnps). }
+      destruct (classic (R2 r s)) as [HRrs | Hnrs].
+      { (* r→s + s→p ⇒ r→p, contradicting Hnrp. *)
+        apply (@n4_residual_one_extra_rs_qp_contra B R2 HR2 p r s
+                 HRrs HRsp Hnrp). }
+      apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
                Hnonantichain Hinc_ex p q r s
                Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
                Hcov4 HRpq). }
@@ -6597,7 +6640,11 @@ Proof.
   { (* p→q + q→r ⇒ p→r, contradicting Hnpr already in context. *)
     apply (@n4_residual_one_extra_qr_contra B R2 HR2 p q r HRpq HRqr Hnpr). }
   destruct (classic (R2 r q)) as [HRrq | Hnrq].
-  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+  { (* Inside the top-level HRrq leaf: case-split on q-s extras. *)
+    destruct (classic (R2 q s)) as [HRqs | Hnqs].
+    { (* p→q + q→s ⇒ p→s, contradicting Hnps. *)
+      apply (@n4_residual_one_extra_qs_contra B R2 HR2 p q s HRpq HRqs Hnps). }
+    apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex
              p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
              Hcov4 HRpq). }
@@ -6605,7 +6652,11 @@ Proof.
   { (* p→q + q→s ⇒ p→s, contradicting Hnps. *)
     apply (@n4_residual_one_extra_qs_contra B R2 HR2 p q s HRpq HRqs Hnps). }
   destruct (classic (R2 s q)) as [HRsq | Hnsq].
-  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+  { (* Inside the top-level HRsq leaf: case-split on r-s extras. *)
+    destruct (classic (R2 r s)) as [HRrs | Hnrs].
+    { (* r→s + s→q ⇒ r→q, contradicting Hnrq. *)
+      apply (@n4_residual_one_extra_qs_contra B R2 HR2 r s q HRrs HRsq Hnrq). }
+    apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex
              p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
              Hcov4 HRpq). }
