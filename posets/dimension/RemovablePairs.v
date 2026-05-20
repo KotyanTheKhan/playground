@@ -4800,7 +4800,7 @@ Proof.
   (* (p, q) *) - right; split; reflexivity.
   (* (p, r) *) - contradiction.
   (* (p, s) *) - contradiction.
-  (* (q, p) *) - left. apply poset_antisym; [exact HRpq | exact HRab].
+  (* (q, p) *) - left. apply poset_antisym; [exact HRab | exact HRpq].
   (* (q, q) *) - left; reflexivity.
   (* (q, r) *) - contradiction.
   (* (q, s) *) - contradiction.
@@ -6324,17 +6324,66 @@ Proof.
       [ left | right; left | right; right ];
       exact HM. }
   (* If we reach here, the relation matches no class-(b)..(n) labeling
-     above.  By the classification theorem of n=4 non-antichain
-     non-chain posets, every such relation IS one of (a)-(n), so this
-     branch is mathematically unreachable.  We invoke the focused
-     admit [n4_residual_classes_two_realizer] with the TIGHTENED
-     interface that mirrors this call site (4-element destructure
-     plus the witness edge), making future discharge by structural
-     enumeration straightforward.  *)
-  apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-           Hnonantichain Hinc_ex
-           p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-           Hcov4 HRpq).
+     above.  Before falling through to the focused admit
+     [n4_residual_classes_two_realizer], we discharge the simplest
+     residual edge-count bucket directly: when ALL ten directed edges
+     among the non-[{p,q}] unordered pairs are absent, the relation
+     reduces to class (a) and the Qed lemma
+     [n4_residual_edge_count_1] applies. *)
+  destruct (classic (R2 p r)) as [HRpr | Hnpr].
+  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+             Hnonantichain Hinc_ex
+             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+             Hcov4 HRpq). }
+  destruct (classic (R2 r p)) as [HRrp | Hnrp].
+  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+             Hnonantichain Hinc_ex
+             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+             Hcov4 HRpq). }
+  destruct (classic (R2 p s)) as [HRps | Hnps].
+  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+             Hnonantichain Hinc_ex
+             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+             Hcov4 HRpq). }
+  destruct (classic (R2 s p)) as [HRsp | Hnsp].
+  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+             Hnonantichain Hinc_ex
+             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+             Hcov4 HRpq). }
+  destruct (classic (R2 q r)) as [HRqr | Hnqr].
+  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+             Hnonantichain Hinc_ex
+             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+             Hcov4 HRpq). }
+  destruct (classic (R2 r q)) as [HRrq | Hnrq].
+  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+             Hnonantichain Hinc_ex
+             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+             Hcov4 HRpq). }
+  destruct (classic (R2 q s)) as [HRqs | Hnqs].
+  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+             Hnonantichain Hinc_ex
+             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+             Hcov4 HRpq). }
+  destruct (classic (R2 s q)) as [HRsq | Hnsq].
+  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+             Hnonantichain Hinc_ex
+             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+             Hcov4 HRpq). }
+  destruct (classic (R2 r s)) as [HRrs | Hnrs].
+  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+             Hnonantichain Hinc_ex
+             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+             Hcov4 HRpq). }
+  destruct (classic (R2 s r)) as [HRsr | Hnsr].
+  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+             Hnonantichain Hinc_ex
+             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+             Hcov4 HRpq). }
+  (* All ten directed non-[{p,q}] edges are absent.  Class (a). *)
+  exact (@n4_residual_edge_count_1 B R2 HR2 Hcard p q r s
+           Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq Hcov4 HRpq
+           Hnpr Hnrp Hnps Hnsp Hnqr Hnrq Hnqs Hnsq Hnrs Hnsr).
 Qed.
 
 (** Main n=4 dispatcher.
