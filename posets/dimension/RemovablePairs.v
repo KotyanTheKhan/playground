@@ -11253,6 +11253,10 @@ Admitted.
                                                      (2 disjoint edges + 1 iso)
       - [n5_V_plus_2isolated_two_realizer]           (V-shape + 2 iso)
       - [n5_inv_V_plus_2isolated_two_realizer]       (∧-shape + 2 iso)
+      - [n5_N_plus_isolated_two_realizer]            (N-shape + 1 iso)
+      - [n5_3claw_up_plus_isolated_two_realizer]     (3-claw-up + 1 iso)
+      - [n5_3claw_down_plus_isolated_two_realizer]   (3-claw-down + 1 iso)
+      - [n5_disjoint_chain3_chain2_two_realizer]     (3-chain + 2-chain)
       - [n5_one_edge_two_realizer]                   (single edge)
 
     Residual fall-through: routes to [n5_residual_classes_two_realizer]
@@ -11334,6 +11338,63 @@ Proof.
     as [HinvV | HninvV].
   { apply (@n5_inv_V_plus_2isolated_two_realizer B R2 HR2 Hcard).
     exact HinvV. }
+  (* (f) N+isolated. *)
+  destruct (classic
+    (exists a b c d e : B,
+       a <> b /\ a <> c /\ a <> d /\ a <> e /\
+       b <> c /\ b <> d /\ b <> e /\
+       c <> d /\ c <> e /\
+       d <> e /\
+       R2 a b /\ R2 c b /\ R2 c d /\
+       (forall x y : B,
+          R2 x y -> x = y \/
+          ((x = a /\ y = b) \/ (x = c /\ y = b) \/ (x = c /\ y = d)))))
+    as [HN | HnN].
+  { apply (@n5_N_plus_isolated_two_realizer B R2 HR2 Hcard).
+    exact HN. }
+  (* (g) 3claw-up+isolated. *)
+  destruct (classic
+    (exists a b c d e : B,
+       a <> b /\ a <> c /\ a <> d /\ a <> e /\
+       b <> c /\ b <> d /\ b <> e /\
+       c <> d /\ c <> e /\
+       d <> e /\
+       R2 a b /\ R2 a c /\ R2 a d /\
+       (forall x y : B,
+          R2 x y -> x = y \/
+          ((x = a /\ y = b) \/ (x = a /\ y = c) \/ (x = a /\ y = d)))))
+    as [HClawUp | HnClawUp].
+  { apply (@n5_3claw_up_plus_isolated_two_realizer B R2 HR2 Hcard).
+    exact HClawUp. }
+  (* (h) 3claw-down+isolated. *)
+  destruct (classic
+    (exists a b c d e : B,
+       a <> b /\ a <> c /\ a <> d /\ a <> e /\
+       b <> c /\ b <> d /\ b <> e /\
+       c <> d /\ c <> e /\
+       d <> e /\
+       R2 a d /\ R2 b d /\ R2 c d /\
+       (forall x y : B,
+          R2 x y -> x = y \/
+          ((x = a /\ y = d) \/ (x = b /\ y = d) \/ (x = c /\ y = d)))))
+    as [HClawDn | HnClawDn].
+  { apply (@n5_3claw_down_plus_isolated_two_realizer B R2 HR2 Hcard).
+    exact HClawDn. }
+  (* (i) disjoint chain3+chain2. *)
+  destruct (classic
+    (exists a b c d e : B,
+       a <> b /\ a <> c /\ a <> d /\ a <> e /\
+       b <> c /\ b <> d /\ b <> e /\
+       c <> d /\ c <> e /\
+       d <> e /\
+       R2 a b /\ R2 b c /\ R2 a c /\ R2 d e /\
+       (forall x y : B,
+          R2 x y -> x = y \/
+          ((x = a /\ y = b) \/ (x = b /\ y = c) \/
+           (x = a /\ y = c) \/ (x = d /\ y = e)))))
+    as [HCC | HnCC].
+  { apply (@n5_disjoint_chain3_chain2_two_realizer B R2 HR2 Hcard).
+    exact HCC. }
   (* Fall-through: either one_edge or residual. *)
   destruct (classic (exists x y : B, x <> y /\ R2 x y /\ ~ (x = p /\ y = q)))
     as [Hother | Honly].
