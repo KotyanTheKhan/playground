@@ -7220,10 +7220,66 @@ Proof.
     destruct (classic (R2 r s)) as [HRrs | Hnrs].
     { (* r→s + s→q ⇒ r→q, contradicting Hnrq. *)
       apply (@n4_residual_one_extra_qs_contra B R2 HR2 r s q HRrs HRsq Hnrq). }
-    apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-             Hnonantichain Hinc_ex
-             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-             Hcov4 HRpq). }
+    (* Context: HRpq, HRsq, Hnpr, Hnrp, Hnps, Hnsp, Hnqr, Hnrq, Hnqs, Hnrs.
+       Case-split on HRsr:
+       - HRsr: edges {p→q, s→q, s→r} = class (f) N with a=p, b=q, c=s, d=r.
+       - Hnsr: edges {p→q, s→q} = class (d) inv-V with a=p, b=s, c=q, d=r. *)
+    destruct (classic (R2 s r)) as [HRsr | Hnsr].
+    { apply (@n4_N_two_realizer B R2 HR2 Hcard).
+      exists p, q, s, r.
+      split; [exact Hpq_neq |].
+      split; [exact Hps_neq |].
+      split; [exact Hpr_neq |].
+      split; [exact Hqs_neq |].
+      split; [exact Hqr_neq |].
+      split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
+      split; [exact HRpq |].
+      split; [exact HRsq |].
+      split; [exact HRsr |].
+      intros x y HRxy.
+      destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+      right.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hneq; reflexivity);
+        first
+          [ (left; split; reflexivity)                          (* (p,q) *)
+          | (right; left; split; reflexivity)                   (* (s,q) *)
+          | (right; right; split; reflexivity)                  (* (s,r) *)
+          | (exfalso;
+             match goal with
+             | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
+    (* Hnsr: edges {p→q, s→q} = inv-V. *)
+    apply (@n4_inv_V_two_realizer B R2 HR2 Hcard).
+    exists p, s, q, r.
+    split; [exact Hps_neq |].
+    split; [exact Hpq_neq |].
+    split; [exact Hpr_neq |].
+    split; [exact Hsq_neq |].
+    split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
+    split; [exact Hqr_neq |].
+    split; [exact HRpq |].
+    split; [exact HRsq |].
+    intros x y HRxy.
+    destruct (classic (x = y)) as [Heq | Hneq]; [left; exact Heq |].
+    right.
+    destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+    destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+      subst x; subst y;
+      try (exfalso; apply Hneq; reflexivity);
+      first
+        [ (left; split; reflexivity)             (* (p, q) *)
+        | (right; split; reflexivity)            (* (s, q) *)
+        | (exfalso;
+           match goal with
+           | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+           end)
+        | (exfalso; apply Hpq_neq; apply poset_antisym;
+           [exact HRpq | exact HRxy]) ]. }
   destruct (classic (R2 r s)) as [HRrs | Hnrs].
   { (* Only [(p, q), (r, s)] are strict edges; class (e). *)
     destruct (classic (R2 s r)) as [HRsr | Hnsr].
