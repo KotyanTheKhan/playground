@@ -4814,6 +4814,171 @@ Proof.
   (* (s, s) *) - left; reflexivity.
 Qed.
 
+(** Edge-count = 2 residual, sub-case "extra edge is [R2 r s]":
+    relation is exactly [{(p, q), (r, s)} ∪ diagonal], i.e. class (e)
+    DISJOINT CHAINS with witness edges [(p, q)] and [(r, s)].
+
+    Routes to [n4_disjoint_chains_two_realizer]. *)
+Lemma n4_residual_edge_count_2_rs :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (Hcard : cardinal B (Full_set B) 4)
+    (p q r s : B)
+    (Hpq_neq : p <> q) (Hpr_neq : p <> r) (Hps_neq : p <> s)
+    (Hqr_neq : q <> r) (Hqs_neq : q <> s) (Hrs_neq : r <> s)
+    (Hcov4 : forall a : B, a = p \/ a = q \/ a = r \/ a = s)
+    (HRpq : R2 p q) (HRrs : R2 r s),
+  ~ R2 p r -> ~ R2 r p ->
+  ~ R2 p s -> ~ R2 s p ->
+  ~ R2 q r -> ~ R2 r q ->
+  ~ R2 q s -> ~ R2 s q ->
+  ~ R2 s r ->
+  exists r' : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r' /\ cardinal (B -> B -> Prop) r' 2.
+Proof.
+  intros B R2 HR2 Hcard p q r s
+    Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq Hcov4 HRpq HRrs
+    Hnpr Hnrp Hnps Hnsp Hnqr Hnrq Hnqs Hnsq Hnsr.
+  apply (@n4_disjoint_chains_two_realizer B R2 HR2 Hcard).
+  exists p, q, r, s.
+  split; [exact Hpq_neq |].
+  split; [exact Hpr_neq |].
+  split; [exact Hps_neq |].
+  split; [exact Hqr_neq |].
+  split; [exact Hqs_neq |].
+  split; [exact Hrs_neq |].
+  split; [exact HRpq |].
+  split; [exact HRrs |].
+  intros a b HRab.
+  destruct (Hcov4 a) as [Ha | [Ha | [Ha | Ha]]];
+  destruct (Hcov4 b) as [Hb | [Hb | [Hb | Hb]]];
+    subst a; subst b.
+  (* (p, p) *) - left; reflexivity.
+  (* (p, q) *) - right; left; split; reflexivity.
+  (* (p, r) *) - contradiction.
+  (* (p, s) *) - contradiction.
+  (* (q, p) *) - left. apply poset_antisym; [exact HRab | exact HRpq].
+  (* (q, q) *) - left; reflexivity.
+  (* (q, r) *) - contradiction.
+  (* (q, s) *) - contradiction.
+  (* (r, p) *) - contradiction.
+  (* (r, q) *) - contradiction.
+  (* (r, r) *) - left; reflexivity.
+  (* (r, s) *) - right; right; split; reflexivity.
+  (* (s, p) *) - contradiction.
+  (* (s, q) *) - contradiction.
+  (* (s, r) *) - left. apply poset_antisym; [exact HRab | exact HRrs].
+  (* (s, s) *) - left; reflexivity.
+Qed.
+
+(** Edge-count = 2 residual, sub-case "extra edge is [R2 s r]":
+    relation is exactly [{(p, q), (s, r)} ∪ diagonal], i.e. class (e)
+    DISJOINT CHAINS with witness edges [(p, q)] and [(s, r)].
+
+    Routes to [n4_disjoint_chains_two_realizer] with the alternate
+    [{r, s}] labeling. *)
+Lemma n4_residual_edge_count_2_sr :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (Hcard : cardinal B (Full_set B) 4)
+    (p q r s : B)
+    (Hpq_neq : p <> q) (Hpr_neq : p <> r) (Hps_neq : p <> s)
+    (Hqr_neq : q <> r) (Hqs_neq : q <> s) (Hrs_neq : r <> s)
+    (Hcov4 : forall a : B, a = p \/ a = q \/ a = r \/ a = s)
+    (HRpq : R2 p q) (HRsr : R2 s r),
+  ~ R2 p r -> ~ R2 r p ->
+  ~ R2 p s -> ~ R2 s p ->
+  ~ R2 q r -> ~ R2 r q ->
+  ~ R2 q s -> ~ R2 s q ->
+  ~ R2 r s ->
+  exists r' : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r' /\ cardinal (B -> B -> Prop) r' 2.
+Proof.
+  intros B R2 HR2 Hcard p q r s
+    Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq Hcov4 HRpq HRsr
+    Hnpr Hnrp Hnps Hnsp Hnqr Hnrq Hnqs Hnsq Hnrs.
+  apply (@n4_disjoint_chains_two_realizer B R2 HR2 Hcard).
+  exists p, q, s, r.
+  split; [exact Hpq_neq |].
+  split; [exact Hps_neq |].
+  split; [exact Hpr_neq |].
+  split; [exact Hqs_neq |].
+  split; [exact Hqr_neq |].
+  split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
+  split; [exact HRpq |].
+  split; [exact HRsr |].
+  intros a b HRab.
+  destruct (Hcov4 a) as [Ha | [Ha | [Ha | Ha]]];
+  destruct (Hcov4 b) as [Hb | [Hb | [Hb | Hb]]];
+    subst a; subst b.
+  (* (p, p) *) - left; reflexivity.
+  (* (p, q) *) - right; left; split; reflexivity.
+  (* (p, r) *) - contradiction.
+  (* (p, s) *) - contradiction.
+  (* (q, p) *) - left. apply poset_antisym; [exact HRab | exact HRpq].
+  (* (q, q) *) - left; reflexivity.
+  (* (q, r) *) - contradiction.
+  (* (q, s) *) - contradiction.
+  (* (r, p) *) - contradiction.
+  (* (r, q) *) - contradiction.
+  (* (r, r) *) - left; reflexivity.
+  (* (r, s) *) - contradiction.
+  (* (s, p) *) - contradiction.
+  (* (s, q) *) - contradiction.
+  (* (s, r) *) - right; right; split; reflexivity.
+  (* (s, s) *) - left; reflexivity.
+Qed.
+
+(** Contradictory single-extra-edge residuals (4 lemmas).
+
+    These cover the 4 directed extra-edge choices that, combined with
+    the witness [HRpq : R2 p q] and one missing edge negation,
+    transitively force an additional edge whose absence is in the
+    hypotheses.  Hence the hypothesis set is inconsistent and we close
+    the goal by [exfalso].
+
+    Naming: [n4_residual_one_extra_X] where [X] is the directed-edge
+    name.  Each takes ONE positive edge and TWO negation hypotheses
+    (the transitive consequence + the symmetric direction is not
+    needed). *)
+Lemma n4_residual_one_extra_rp_contra :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (p q r : B) (HRpq : R2 p q) (HRrp : R2 r p),
+  ~ R2 r q ->
+  forall (P : Prop), P.
+Proof.
+  intros B R2 HR2 p q r HRpq HRrp Hnrq P.
+  exfalso. apply Hnrq. exact (poset_trans r p q HRrp HRpq).
+Qed.
+
+Lemma n4_residual_one_extra_sp_contra :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (p q s : B) (HRpq : R2 p q) (HRsp : R2 s p),
+  ~ R2 s q ->
+  forall (P : Prop), P.
+Proof.
+  intros B R2 HR2 p q s HRpq HRsp Hnsq P.
+  exfalso. apply Hnsq. exact (poset_trans s p q HRsp HRpq).
+Qed.
+
+Lemma n4_residual_one_extra_qr_contra :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (p q r : B) (HRpq : R2 p q) (HRqr : R2 q r),
+  ~ R2 p r ->
+  forall (P : Prop), P.
+Proof.
+  intros B R2 HR2 p q r HRpq HRqr Hnpr P.
+  exfalso. apply Hnpr. exact (poset_trans p q r HRpq HRqr).
+Qed.
+
+Lemma n4_residual_one_extra_qs_contra :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (p q s : B) (HRpq : R2 p q) (HRqs : R2 q s),
+  ~ R2 p s ->
+  forall (P : Prop), P.
+Proof.
+  intros B R2 HR2 p q s HRpq HRqs Hnps P.
+  exfalso. apply Hnps. exact (poset_trans p q s HRpq HRqs).
+Qed.
+
 (** Focused admit covering the n=4 non-antichain non-chain residual
     case AFTER the dispatcher cascade
     [n4_dispatch_residual_after_h] has exhausted its 52 structural
@@ -6325,61 +6490,108 @@ Proof.
       exact HM. }
   (* If we reach here, the relation matches no class-(b)..(n) labeling
      above.  Before falling through to the focused admit
-     [n4_residual_classes_two_realizer], we discharge the simplest
-     residual edge-count bucket directly: when ALL ten directed edges
-     among the non-[{p,q}] unordered pairs are absent, the relation
-     reduces to class (a) and the Qed lemma
-     [n4_residual_edge_count_1] applies. *)
+     [n4_residual_classes_two_realizer], we discharge several
+     edge-count buckets directly via classical decisions on the 10
+     directed edges of the 5 non-[{p,q}] pairs:
+
+     - all 10 absent → class (a) via [n4_residual_edge_count_1].
+     - exactly [R2 r s] present, others absent → class (e) via
+       [n4_residual_edge_count_2_rs].
+     - exactly [R2 s r] present, others absent → class (e) via
+       [n4_residual_edge_count_2_sr].
+     - 4 contradictory single-extra-edge configs (r→p, s→p, q→r, q→s
+       with all others absent) discharge by transitivity + edge
+       negation via the [n4_residual_one_extra_*_contra] lemmas.
+
+     All OTHER patterns (multi-edge configs) fall through to
+     [n4_residual_classes_two_realizer]. *)
   destruct (classic (R2 p r)) as [HRpr | Hnpr].
   { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex
              p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
              Hcov4 HRpq). }
   destruct (classic (R2 r p)) as [HRrp | Hnrp].
-  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-             Hnonantichain Hinc_ex
-             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-             Hcov4 HRpq). }
+  { (* Sub-cascade: if r→p with all others absent, derive contradiction
+       via [r → p → q] forcing R2 r q. *)
+    destruct (classic (R2 p s)) as [HRps | Hnps].
+    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+               Hnonantichain Hinc_ex p q r s
+               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+               Hcov4 HRpq). }
+    destruct (classic (R2 s p)) as [HRsp | Hnsp].
+    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+               Hnonantichain Hinc_ex p q r s
+               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+               Hcov4 HRpq). }
+    destruct (classic (R2 q r)) as [HRqr | Hnqr].
+    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+               Hnonantichain Hinc_ex p q r s
+               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+               Hcov4 HRpq). }
+    destruct (classic (R2 r q)) as [HRrq | Hnrq].
+    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+               Hnonantichain Hinc_ex p q r s
+               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+               Hcov4 HRpq). }
+    (* Hnrq is in context.  r→p + p→q ⇒ r→q, contradicting Hnrq. *)
+    apply (@n4_residual_one_extra_rp_contra B R2 HR2 p q r HRpq HRrp Hnrq). }
   destruct (classic (R2 p s)) as [HRps | Hnps].
   { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex
              p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
              Hcov4 HRpq). }
   destruct (classic (R2 s p)) as [HRsp | Hnsp].
-  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-             Hnonantichain Hinc_ex
-             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-             Hcov4 HRpq). }
+  { (* s→p + p→q ⇒ s→q.  Sub-cascade until Hnsq. *)
+    destruct (classic (R2 q r)) as [HRqr | Hnqr].
+    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+               Hnonantichain Hinc_ex p q r s
+               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+               Hcov4 HRpq). }
+    destruct (classic (R2 r q)) as [HRrq | Hnrq].
+    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+               Hnonantichain Hinc_ex p q r s
+               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+               Hcov4 HRpq). }
+    destruct (classic (R2 q s)) as [HRqs | Hnqs].
+    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+               Hnonantichain Hinc_ex p q r s
+               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+               Hcov4 HRpq). }
+    destruct (classic (R2 s q)) as [HRsq | Hnsq].
+    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+               Hnonantichain Hinc_ex p q r s
+               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+               Hcov4 HRpq). }
+    apply (@n4_residual_one_extra_sp_contra B R2 HR2 p q s HRpq HRsp Hnsq). }
   destruct (classic (R2 q r)) as [HRqr | Hnqr].
-  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-             Hnonantichain Hinc_ex
-             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-             Hcov4 HRpq). }
+  { (* p→q + q→r ⇒ p→r, contradicting Hnpr already in context. *)
+    apply (@n4_residual_one_extra_qr_contra B R2 HR2 p q r HRpq HRqr Hnpr). }
   destruct (classic (R2 r q)) as [HRrq | Hnrq].
   { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex
              p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
              Hcov4 HRpq). }
   destruct (classic (R2 q s)) as [HRqs | Hnqs].
-  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-             Hnonantichain Hinc_ex
-             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-             Hcov4 HRpq). }
+  { (* p→q + q→s ⇒ p→s, contradicting Hnps. *)
+    apply (@n4_residual_one_extra_qs_contra B R2 HR2 p q s HRpq HRqs Hnps). }
   destruct (classic (R2 s q)) as [HRsq | Hnsq].
   { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex
              p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
              Hcov4 HRpq). }
   destruct (classic (R2 r s)) as [HRrs | Hnrs].
-  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-             Hnonantichain Hinc_ex
-             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-             Hcov4 HRpq). }
+  { (* Only [(p, q), (r, s)] are strict edges; class (e). *)
+    destruct (classic (R2 s r)) as [HRsr | Hnsr].
+    { (* Both r→s and s→r ⇒ r = s by antisymmetry, contradicting Hrs_neq. *)
+      exfalso. apply Hrs_neq. apply poset_antisym; assumption. }
+    exact (@n4_residual_edge_count_2_rs B R2 HR2 Hcard p q r s
+             Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq Hcov4
+             HRpq HRrs Hnpr Hnrp Hnps Hnsp Hnqr Hnrq Hnqs Hnsq Hnsr). }
   destruct (classic (R2 s r)) as [HRsr | Hnsr].
-  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-             Hnonantichain Hinc_ex
-             p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-             Hcov4 HRpq). }
+  { (* Only [(p, q), (s, r)] are strict edges; class (e) alt labeling. *)
+    exact (@n4_residual_edge_count_2_sr B R2 HR2 Hcard p q r s
+             Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq Hcov4
+             HRpq HRsr Hnpr Hnrp Hnps Hnsp Hnqr Hnrq Hnqs Hnsq Hnrs). }
   (* All ten directed non-[{p,q}] edges are absent.  Class (a). *)
   exact (@n4_residual_edge_count_1 B R2 HR2 Hcard p q r s
            Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq Hcov4 HRpq
