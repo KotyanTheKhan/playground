@@ -12786,7 +12786,7 @@ Proof.
        [Hbc_neq [Hbd_neq [Hbe_neq
        [Hcd_neq [Hce_neq
        [Hde_neq
-       [HRab [HRcb [HRcd [HRde [HRce HR_only]]]]]]]]]]]]]]]]]]]]].
+       [HRab [HRcb [HRcd [HRde [HRce HR_only]]]]]]]]]]]]]]]]]]]].
   destruct (@carrier_5_destructure B a b Hcard Hab_neq)
     as [r [s [t [Har_neq [Has_neq [Hat_neq
                    [Hbr_neq [Hbs_neq [Hbt_neq
@@ -13009,9 +13009,9 @@ Proof.
         exact (Hinter x y HLa HLb).
   - assert (HL_neq : L1 <> L2).
     { intro Heq.
-      assert (HL1ab : L1 a b) by (unfold L1; rewrite Hrk1_a, Hrk1_b; lia).
-      assert (HL2ab : L2 a b) by (rewrite <- Heq; exact HL1ab).
-      unfold L2 in HL2ab. rewrite Hrk2_a, Hrk2_b in HL2ab. lia. }
+      assert (HL1ac : L1 a c) by (unfold L1; rewrite Hrk1_a, Hrk1_c; lia).
+      assert (HL2ac : L2 a c) by (rewrite <- Heq; exact HL1ac).
+      unfold L2 in HL2ac. rewrite Hrk2_a, Hrk2_c in HL2ac. lia. }
     unfold rls.
     apply card_add.
     + exact (singleton_cardinal _ L1).
@@ -13047,7 +13047,7 @@ Proof.
        [Hbc_neq [Hbd_neq [Hbe_neq
        [Hcd_neq [Hce_neq
        [Hde_neq
-       [HRab [HRac [HRad [HRde [HRae HR_only]]]]]]]]]]]]]]]]]]]]].
+       [HRab [HRac [HRad [HRde [HRae HR_only]]]]]]]]]]]]]]]]]]]].
   destruct (@carrier_5_destructure B a b Hcard Hab_neq)
     as [r [s [t [Har_neq [Has_neq [Hat_neq
                    [Hbr_neq [Hbs_neq [Hbt_neq
@@ -13308,7 +13308,7 @@ Proof.
        [Hbc_neq [Hbd_neq [Hbe_neq
        [Hcd_neq [Hce_neq
        [Hde_neq
-       [HRba [HRca [HRda [HRed [HRea HR_only]]]]]]]]]]]]]]]]]]]]].
+       [HRba [HRca [HRda [HRed [HRea HR_only]]]]]]]]]]]]]]]]]]]].
   destruct (@carrier_5_destructure B a b Hcard Hab_neq)
     as [r [s [t [Har_neq [Has_neq [Hat_neq
                    [Hbr_neq [Hbs_neq [Hbt_neq
@@ -14051,9 +14051,9 @@ Proof.
         exact (Hinter x y HLa HLb).
   - assert (HL_neq : L1 <> L2).
     { intro Heq.
-      assert (HL1ab : L1 a b) by (unfold L1; rewrite Hrk1_a, Hrk1_b; lia).
-      assert (HL2ab : L2 a b) by (rewrite <- Heq; exact HL1ab).
-      unfold L2 in HL2ab. rewrite Hrk2_a, Hrk2_b in HL2ab. lia. }
+      assert (HL1ac : L1 a c) by (unfold L1; rewrite Hrk1_a, Hrk1_c; lia).
+      assert (HL2ac : L2 a c) by (rewrite <- Heq; exact HL1ac).
+      unfold L2 in HL2ac. rewrite Hrk2_a, Hrk2_c in HL2ac. lia. }
     unfold rls.
     apply card_add.
     + exact (singleton_cardinal _ L1).
