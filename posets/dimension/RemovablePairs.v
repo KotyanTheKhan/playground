@@ -6624,10 +6624,45 @@ Proof.
       { (* p→q + q→s ⇒ p→s, but s→p ⇒ p=s by antisym, contradicting Hps_neq. *)
         apply (@n4_residual_antisym_contra B R2 HR2 p s Hps_neq
                  (poset_trans p q s HRpq HRqs) HRsp). }
-      apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
-               Hnonantichain Hinc_ex p q r s
-               Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
-               Hcov4 HRpq). }
+      (* All edges with q,p,r,p,s,p covered.  Forced: HRrq (rp+pq) and
+         HRsq (sp+pq).  Now split on remaining HRrs and HRsr. *)
+      destruct (classic (R2 r s)) as [HRrs | Hnrs].
+      { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+                 Hnonantichain Hinc_ex p q r s
+                 Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+                 Hcov4 HRpq). }
+      destruct (classic (R2 s r)) as [HRsr | Hnsr].
+      { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+                 Hnonantichain Hinc_ex p q r s
+                 Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
+                 Hcov4 HRpq). }
+      (* Hnrs and Hnsr both hold.  Edges are exactly the 5 N2a
+         edges: {r→p, s→p, p→q, r→q, s→q}.  Derive False from HnN2a
+         (in scope from line ~6284) via Hcov4 enumeration. *)
+      assert (HRrq : R2 r q) by exact (poset_trans r p q HRrp HRpq).
+      assert (HRsq : R2 s q) by exact (poset_trans s p q HRsp HRpq).
+      exfalso. apply HnN2a.
+      split; [exact HRrp |].
+      split; [exact HRsp |].
+      split; [exact HRrq |].
+      split; [exact HRsq |].
+      intros x y Hxy_neq HRxy.
+      destruct (Hcov4 x) as [Hx | [Hx | [Hx | Hx]]];
+      destruct (Hcov4 y) as [Hy | [Hy | [Hy | Hy]]];
+        subst x; subst y;
+        try (exfalso; apply Hxy_neq; reflexivity);
+        first
+          [ (left; split; reflexivity)                          (* (r,p) *)
+          | (right; left; split; reflexivity)                   (* (s,p) *)
+          | (right; right; left; split; reflexivity)            (* (p,q) *)
+          | (right; right; right; left; split; reflexivity)     (* (r,q) *)
+          | (right; right; right; right; split; reflexivity)    (* (s,q) *)
+          | (exfalso;
+             match goal with
+             | [ HR : R2 ?x ?y, Hn : ~ R2 ?x ?y |- _ ] => apply Hn; exact HR
+             end)
+          | (exfalso; apply Hpq_neq; apply poset_antisym;
+             [exact HRpq | exact HRxy]) ]. }
     destruct (classic (R2 q r)) as [HRqr | Hnqr].
     { (* HRrp + HRpq ⇒ HRrq (trans); combined with HRqr, antisymmetry
          forces q = r, contradicting Hqr_neq. *)
