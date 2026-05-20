@@ -5036,6 +5036,31 @@ Proof.
   exfalso. apply Hnrp. exact (poset_trans r s p HRrs HRsp).
 Qed.
 
+(** Generic direct-antisymmetry contradiction: [R2 a b] and [R2 b a]
+    with [a <> b] is False by antisymmetry. *)
+Lemma n4_residual_antisym_contra :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (a b : B) (Hab_neq : a <> b) (HRab : R2 a b) (HRba : R2 b a),
+  forall (P : Prop), P.
+Proof.
+  intros B R2 HR2 a b Hab_neq HRab HRba P.
+  exfalso. apply Hab_neq. apply poset_antisym; [exact HRab | exact HRba].
+Qed.
+
+(** Generic transitivity contradiction: [R2 a b] and [R2 b c] with
+    [~ R2 a c] is False by transitivity.  Subsumes the named
+    [n4_residual_one_extra_*_contra] helpers above but is left as a
+    convenience for inline rewiring. *)
+Lemma n4_residual_trans_contra :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (a b c : B) (HRab : R2 a b) (HRbc : R2 b c),
+  ~ R2 a c ->
+  forall (P : Prop), P.
+Proof.
+  intros B R2 HR2 a b c HRab HRbc Hnac P.
+  exfalso. apply Hnac. exact (poset_trans a b c HRab HRbc).
+Qed.
+
 (** Focused admit covering the n=4 non-antichain non-chain residual
     case AFTER the dispatcher cascade
     [n4_dispatch_residual_after_h] has exhausted its 52 structural
@@ -6563,7 +6588,11 @@ Proof.
      All OTHER patterns (multi-edge configs) fall through to
      [n4_residual_classes_two_realizer]. *)
   destruct (classic (R2 p r)) as [HRpr | Hnpr].
-  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+  { (* Inside HRpr: case-split on r→p (antisym contradiction). *)
+    destruct (classic (R2 r p)) as [HRrp | Hnrp].
+    { (* p→r and r→p ⇒ p = r by antisymmetry, contradicting Hpr_neq. *)
+      apply (@n4_residual_antisym_contra B R2 HR2 p r Hpr_neq HRpr HRrp). }
+    apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex
              p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
              Hcov4 HRpq). }
@@ -6571,12 +6600,28 @@ Proof.
   { (* Sub-cascade: if r→p with all others absent, derive contradiction
        via [r → p → q] forcing R2 r q. *)
     destruct (classic (R2 p s)) as [HRps | Hnps].
-    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+    { (* Inside HRrp + HRps: case-split on q→r or s→r extras for
+         transitivity contradictions against Hnpr. *)
+      destruct (classic (R2 q r)) as [HRqr | Hnqr].
+      { (* p→q + q→r ⇒ p→r, contradicting Hnpr. *)
+        apply (@n4_residual_one_extra_qr_contra B R2 HR2 p q r HRpq HRqr Hnpr). }
+      destruct (classic (R2 s r)) as [HRsr | Hnsr].
+      { (* p→s + s→r ⇒ p→r, contradicting Hnpr. *)
+        apply (@n4_residual_trans_contra B R2 HR2 p s r HRps HRsr Hnpr). }
+      apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
                Hnonantichain Hinc_ex p q r s
                Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
                Hcov4 HRpq). }
     destruct (classic (R2 s p)) as [HRsp | Hnsp].
-    { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+    { (* Inside HRrp + HRsp: case-split on q→r or q→s extras. *)
+      destruct (classic (R2 q r)) as [HRqr | Hnqr].
+      { (* p→q + q→r ⇒ p→r, contradicting Hnpr. *)
+        apply (@n4_residual_one_extra_qr_contra B R2 HR2 p q r HRpq HRqr Hnpr). }
+      destruct (classic (R2 q s)) as [HRqs | Hnqs].
+      { (* p→q + q→s ⇒ p→s, but s→p ⇒ p=s by antisym, contradicting Hps_neq. *)
+        apply (@n4_residual_antisym_contra B R2 HR2 p s Hps_neq
+                 (poset_trans p q s HRpq HRqs) HRsp). }
+      apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
                Hnonantichain Hinc_ex p q r s
                Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
                Hcov4 HRpq). }
@@ -6602,7 +6647,11 @@ Proof.
     (* Hnrq is in context.  r→p + p→q ⇒ r→q, contradicting Hnrq. *)
     apply (@n4_residual_one_extra_rp_contra B R2 HR2 p q r HRpq HRrp Hnrq). }
   destruct (classic (R2 p s)) as [HRps | Hnps].
-  { apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
+  { (* Inside HRps: case-split on s→p (antisym contradiction). *)
+    destruct (classic (R2 s p)) as [HRsp | Hnsp].
+    { (* p→s and s→p ⇒ p = s by antisymmetry, contradicting Hps_neq. *)
+      apply (@n4_residual_antisym_contra B R2 HR2 p s Hps_neq HRps HRsp). }
+    apply (@n4_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex
              p q r s Hpq_neq Hpr_neq Hps_neq Hqr_neq Hqs_neq Hrs_neq
              Hcov4 HRpq). }
