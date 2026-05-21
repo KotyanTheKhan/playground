@@ -364,7 +364,10 @@ Proof.
   destruct (@carrier_5_destructure B p q Hcard Hpq_neq)
     as [r [s [t [Hpr [Hps [Hpt [Hqr [Hqs [Hqt [Hrs [Hrt [Hst Hcovers]]]]]]]]]]]].
   (* L1 rank: p=0, q=1, r=2, s=3, t=4.
-     L2 rank: t=0, s=1, r=2, p=3, q=4. *)
+     L2 rank: t=0, s=1, r=2, p=3, q=4.
+     Both ranks extend the only strict edge (p,q) and their
+     intersection on the 25 carrier pairs admits only (p,q) and the
+     diagonal — both forced into R2 by HR_only / poset_refl. *)
   set (rk1 := fun a : B =>
                 if excluded_middle_informative (a = p) then 0%nat
                 else if excluded_middle_informative (a = q) then 1%nat
@@ -427,98 +430,31 @@ Proof.
     destruct (excluded_middle_informative (s = s)); [reflexivity | contradiction]. }
   assert (Hrk2_t : rk2 t = 0%nat).
   { unfold rk2. destruct (excluded_middle_informative (t = t)); [reflexivity | contradiction]. }
-  (* Injectivity of rk1, rk2 on B. *)
-  assert (Hrk1_inj : forall a b, rk1 a = rk1 b -> a = b).
-  { intros a b Hab.
-    destruct (Hcovers a) as [Ha|[Ha|[Ha|[Ha|Ha]]]]; subst a;
-    destruct (Hcovers b) as [Hb|[Hb|[Hb|[Hb|Hb]]]]; subst b;
-      first [ reflexivity
-            | exfalso;
-              rewrite ?Hrk1_p, ?Hrk1_q, ?Hrk1_r, ?Hrk1_s, ?Hrk1_t in Hab;
-              discriminate ]. }
-  assert (Hrk2_inj : forall a b, rk2 a = rk2 b -> a = b).
-  { intros a b Hab.
-    destruct (Hcovers a) as [Ha|[Ha|[Ha|[Ha|Ha]]]]; subst a;
-    destruct (Hcovers b) as [Hb|[Hb|[Hb|[Hb|Hb]]]]; subst b;
-      first [ reflexivity
-            | exfalso;
-              rewrite ?Hrk2_p, ?Hrk2_q, ?Hrk2_r, ?Hrk2_s, ?Hrk2_t in Hab;
-              discriminate ]. }
-  (* Define L1, L2 as rank-le. *)
-  set (L1 := fun a b : B => rk1 a <= rk1 b).
-  set (L2 := fun a b : B => rk2 a <= rk2 b).
-  (* L1 is a total order. *)
-  assert (HL1_pos : IsPoset B L1).
-  { constructor; unfold L1.
-    - intro a. lia.
-    - intros a b Hab Hba. apply Hrk1_inj. lia.
-    - intros a b c Hab Hbc. lia. }
-  assert (HL1_total : forall a b, L1 a b \/ L1 b a).
-  { intros a b. unfold L1. lia. }
-  assert (HL1_tot : IsTotalOrder L1).
-  { constructor; [exact HL1_pos | exact HL1_total]. }
-  assert (HL1_ext : forall a b, R2 a b -> L1 a b).
-  { intros a b HR. destruct (HR_only a b HR) as [Heq | [Hae Hbe]].
-    - subst b. unfold L1. lia.
-    - subst a b. unfold L1. rewrite Hrk1_p, Hrk1_q. lia. }
-  assert (HL1_lin : IsLinearExtension R2 L1).
-  { constructor; [exact HL1_tot | exact HL1_ext]. }
-  (* L2 is a total order. *)
-  assert (HL2_pos : IsPoset B L2).
-  { constructor; unfold L2.
-    - intro a. lia.
-    - intros a b Hab Hba. apply Hrk2_inj. lia.
-    - intros a b c Hab Hbc. lia. }
-  assert (HL2_total : forall a b, L2 a b \/ L2 b a).
-  { intros a b. unfold L2. lia. }
-  assert (HL2_tot : IsTotalOrder L2).
-  { constructor; [exact HL2_pos | exact HL2_total]. }
-  assert (HL2_ext : forall a b, R2 a b -> L2 a b).
-  { intros a b HR. destruct (HR_only a b HR) as [Heq | [Hae Hbe]].
-    - subst b. unfold L2. lia.
-    - subst a b. unfold L2. rewrite Hrk2_p, Hrk2_q. lia. }
-  assert (HL2_lin : IsLinearExtension R2 L2).
-  { constructor; [exact HL2_tot | exact HL2_ext]. }
-  (* Intersection: L1 a b ∧ L2 a b → R2 a b.
-     Case-split on (a, b) ∈ {p,q,r,s,t}^2 (25 cases). *)
-  assert (Hinter : forall a b, L1 a b -> L2 a b -> R2 a b).
-  { intros a b HLa HLb.
-    unfold L1 in HLa; unfold L2 in HLb.
-    destruct (Hcovers a) as [Ha|[Ha|[Ha|[Ha|Ha]]]]; subst a;
-    destruct (Hcovers b) as [Hb|[Hb|[Hb|[Hb|Hb]]]]; subst b;
+  (* Discharge via [n5_two_realizer_framework]. *)
+  apply (@n5_two_realizer_framework B R2 HR2 p q r s t
+           Hpq_neq Hpr Hps Hpt Hqr Hqs Hqt Hrs Hrt Hst Hcovers rk1 rk2);
+    try (rewrite ?Hrk1_p, ?Hrk1_q, ?Hrk1_r, ?Hrk1_s, ?Hrk1_t; lia);
+    try (rewrite ?Hrk2_p, ?Hrk2_q, ?Hrk2_r, ?Hrk2_s, ?Hrk2_t; lia).
+  - (* rk1 monotone *)
+    intros x y HR. destruct (HR_only x y HR) as [Heq | [Hxp Hyq]].
+    + subst y. lia.
+    + subst x y. rewrite Hrk1_p, Hrk1_q. lia.
+  - (* rk2 monotone *)
+    intros x y HR. destruct (HR_only x y HR) as [Heq | [Hxp Hyq]].
+    + subst y. lia.
+    + subst x y. rewrite Hrk2_p, Hrk2_q. lia.
+  - (* L1 ∩ L2 ⊆ R2 — 25-case enumeration *)
+    intros x y HLa HLb.
+    destruct (Hcovers x) as [Hx|[Hx|[Hx|[Hx|Hx]]]]; subst x;
+    destruct (Hcovers y) as [Hy|[Hy|[Hy|[Hy|Hy]]]]; subst y;
       first [ apply HR2.(poset_refl)
             | exact HRpq
             | exfalso;
               rewrite ?Hrk1_p, ?Hrk1_q, ?Hrk1_r, ?Hrk1_s, ?Hrk1_t in HLa;
               rewrite ?Hrk2_p, ?Hrk2_q, ?Hrk2_r, ?Hrk2_s, ?Hrk2_t in HLb;
-              lia ]. }
-  (* Build realizer set {L1, L2}. *)
-  set (rls := Add (B -> B -> Prop) (Singleton _ L1) L2).
-  exists rls. split.
-  - constructor.
-    + intros L HL. destruct HL as [L HL | L HL].
-      * destruct HL. exact HL1_lin.
-      * destruct HL. exact HL2_lin.
-    + intros a b. split.
-      * intros HRab L HL. destruct HL as [L HL | L HL].
-        { destruct HL. exact (HL1_lin.(linear_extends) a b HRab). }
-        { destruct HL. exact (HL2_lin.(linear_extends) a b HRab). }
-      * intro Hall.
-        assert (HLa : L1 a b)
-          by exact (Hall L1 (Union_introl _ _ _ _ (In_singleton _ _))).
-        assert (HLb : L2 a b)
-          by exact (Hall L2 (Union_intror _ _ _ _ (In_singleton _ _))).
-        exact (Hinter a b HLa HLb).
-  - assert (HL_neq : L1 <> L2).
-    { intro Heq.
-      (* L1 r s holds (2 ≤ 3) but L2 r s would require 2 ≤ 1. *)
-      assert (HL1rs : L1 r s) by (unfold L1; rewrite Hrk1_r, Hrk1_s; lia).
-      assert (HL2rs : L2 r s) by (rewrite <- Heq; exact HL1rs).
-      unfold L2 in HL2rs. rewrite Hrk2_r, Hrk2_s in HL2rs. lia. }
-    unfold rls.
-    apply card_add.
-    + exact (singleton_cardinal _ L1).
-    + intro Hin. destruct Hin. apply HL_neq. reflexivity.
+              lia ].
+  - (* Distinguishing pair: (r, s) since rk1 r = 2 ≤ 3 = rk1 s but rk2 s = 1 < 2 = rk2 r. *)
+    exists r, s. rewrite Hrk1_r, Hrk1_s, Hrk2_r, Hrk2_s. lia.
 Qed.
 
 (** Sub-case: n=5 poset that is a 3-element chain plus 2 isolated points.
