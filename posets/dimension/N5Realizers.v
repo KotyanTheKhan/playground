@@ -177,6 +177,169 @@ Proof.
          [right; exact HRst | left; exact HRts]) ].
 Qed.
 
+(** Reusable framework: build a 2-element realizer from two rank
+    functions on a 5-element carrier.
+
+    The hypotheses bundle the recurring obligations that every n=5
+    per-class 2-realizer lemma must discharge:
+
+    - [Hcov]   : every element of [B] is one of [a, b, c, d, e].
+    - [Hdist*] : the 10 pairwise distinctness facts for the carrier.
+    - [Hrk1_*], [Hrk2_*] : on the 5 carrier elements, the two rank
+      functions are pairwise distinct (10 inequalities each).
+    - [Hrk1_mono], [Hrk2_mono] : both ranks are monotone on [R2]
+      (i.e. [rk1], [rk2] extend [R2] to total orders [L1], [L2]).
+    - [Hinter] : the intersection [L1] ∩ [L2] is contained in [R2].
+    - [HdistL] : a distinguishing pair witnessing [L1 ≠ L2]
+      (some [x, y] with [rk1 x ≤ rk1 y] but [rk2 y < rk2 x]).
+
+    The framework then builds [{L1, L2}] as a 2-element realizer. *)
+Lemma n5_two_realizer_framework :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (a b c d e : B)
+    (Hab : a <> b) (Hac : a <> c) (Had : a <> d) (Hae : a <> e)
+    (Hbc : b <> c) (Hbd : b <> d) (Hbe : b <> e)
+    (Hcd : c <> d) (Hce : c <> e) (Hde : d <> e)
+    (Hcov : forall x : B, x = a \/ x = b \/ x = c \/ x = d \/ x = e)
+    (rk1 rk2 : B -> nat),
+  (* rk1 pairwise distinct on the 5 elements *)
+  rk1 a <> rk1 b -> rk1 a <> rk1 c -> rk1 a <> rk1 d -> rk1 a <> rk1 e ->
+  rk1 b <> rk1 c -> rk1 b <> rk1 d -> rk1 b <> rk1 e ->
+  rk1 c <> rk1 d -> rk1 c <> rk1 e ->
+  rk1 d <> rk1 e ->
+  (* rk2 pairwise distinct on the 5 elements *)
+  rk2 a <> rk2 b -> rk2 a <> rk2 c -> rk2 a <> rk2 d -> rk2 a <> rk2 e ->
+  rk2 b <> rk2 c -> rk2 b <> rk2 d -> rk2 b <> rk2 e ->
+  rk2 c <> rk2 d -> rk2 c <> rk2 e ->
+  rk2 d <> rk2 e ->
+  (* rk1, rk2 monotone on R2 (extension to L1, L2) *)
+  (forall x y : B, R2 x y -> rk1 x <= rk1 y) ->
+  (forall x y : B, R2 x y -> rk2 x <= rk2 y) ->
+  (* L1 ∩ L2 ⊆ R2 *)
+  (forall x y : B, rk1 x <= rk1 y -> rk2 x <= rk2 y -> R2 x y) ->
+  (* Distinguishing pair for cardinality 2 *)
+  (exists x y : B, rk1 x <= rk1 y /\ rk2 y < rk2 x) ->
+  exists r : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r /\ cardinal (B -> B -> Prop) r 2.
+Proof.
+  intros B R2 HR2 a b c d e
+    Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde Hcov rk1 rk2
+    Hrk1_ab Hrk1_ac Hrk1_ad Hrk1_ae Hrk1_bc Hrk1_bd Hrk1_be
+    Hrk1_cd Hrk1_ce Hrk1_de
+    Hrk2_ab Hrk2_ac Hrk2_ad Hrk2_ae Hrk2_bc Hrk2_bd Hrk2_be
+    Hrk2_cd Hrk2_ce Hrk2_de
+    Hrk1_mono Hrk2_mono Hinter Hdist.
+  (* Injectivity of rk1, rk2 on B (via cover + pairwise distinctness). *)
+  assert (Hrk1_inj : forall x y, rk1 x = rk1 y -> x = y).
+  { intros x y Hxy.
+    destruct (Hcov x) as [Hx|[Hx|[Hx|[Hx|Hx]]]]; subst x;
+    destruct (Hcov y) as [Hy|[Hy|[Hy|[Hy|Hy]]]]; subst y;
+      try reflexivity;
+      exfalso;
+      first [ exact (Hrk1_ab Hxy)
+            | exact (Hrk1_ab (eq_sym Hxy))
+            | exact (Hrk1_ac Hxy)
+            | exact (Hrk1_ac (eq_sym Hxy))
+            | exact (Hrk1_ad Hxy)
+            | exact (Hrk1_ad (eq_sym Hxy))
+            | exact (Hrk1_ae Hxy)
+            | exact (Hrk1_ae (eq_sym Hxy))
+            | exact (Hrk1_bc Hxy)
+            | exact (Hrk1_bc (eq_sym Hxy))
+            | exact (Hrk1_bd Hxy)
+            | exact (Hrk1_bd (eq_sym Hxy))
+            | exact (Hrk1_be Hxy)
+            | exact (Hrk1_be (eq_sym Hxy))
+            | exact (Hrk1_cd Hxy)
+            | exact (Hrk1_cd (eq_sym Hxy))
+            | exact (Hrk1_ce Hxy)
+            | exact (Hrk1_ce (eq_sym Hxy))
+            | exact (Hrk1_de Hxy)
+            | exact (Hrk1_de (eq_sym Hxy)) ]. }
+  assert (Hrk2_inj : forall x y, rk2 x = rk2 y -> x = y).
+  { intros x y Hxy.
+    destruct (Hcov x) as [Hx|[Hx|[Hx|[Hx|Hx]]]]; subst x;
+    destruct (Hcov y) as [Hy|[Hy|[Hy|[Hy|Hy]]]]; subst y;
+      try reflexivity;
+      exfalso;
+      first [ exact (Hrk2_ab Hxy)
+            | exact (Hrk2_ab (eq_sym Hxy))
+            | exact (Hrk2_ac Hxy)
+            | exact (Hrk2_ac (eq_sym Hxy))
+            | exact (Hrk2_ad Hxy)
+            | exact (Hrk2_ad (eq_sym Hxy))
+            | exact (Hrk2_ae Hxy)
+            | exact (Hrk2_ae (eq_sym Hxy))
+            | exact (Hrk2_bc Hxy)
+            | exact (Hrk2_bc (eq_sym Hxy))
+            | exact (Hrk2_bd Hxy)
+            | exact (Hrk2_bd (eq_sym Hxy))
+            | exact (Hrk2_be Hxy)
+            | exact (Hrk2_be (eq_sym Hxy))
+            | exact (Hrk2_cd Hxy)
+            | exact (Hrk2_cd (eq_sym Hxy))
+            | exact (Hrk2_ce Hxy)
+            | exact (Hrk2_ce (eq_sym Hxy))
+            | exact (Hrk2_de Hxy)
+            | exact (Hrk2_de (eq_sym Hxy)) ]. }
+  (* Build L1, L2 as rank-le. *)
+  set (L1 := fun x y : B => rk1 x <= rk1 y).
+  set (L2 := fun x y : B => rk2 x <= rk2 y).
+  (* L1 is a total order. *)
+  assert (HL1_pos : IsPoset B L1).
+  { constructor; unfold L1.
+    - intro x. lia.
+    - intros x y Hxy Hyx. apply Hrk1_inj. lia.
+    - intros x y z Hxy Hyz. lia. }
+  assert (HL1_total : forall x y, L1 x y \/ L1 y x).
+  { intros x y. unfold L1. lia. }
+  assert (HL1_tot : IsTotalOrder L1).
+  { constructor; [exact HL1_pos | exact HL1_total]. }
+  assert (HL1_lin : IsLinearExtension R2 L1).
+  { constructor; [exact HL1_tot |].
+    intros x y HR. unfold L1. exact (Hrk1_mono x y HR). }
+  (* L2 is a total order. *)
+  assert (HL2_pos : IsPoset B L2).
+  { constructor; unfold L2.
+    - intro x. lia.
+    - intros x y Hxy Hyx. apply Hrk2_inj. lia.
+    - intros x y z Hxy Hyz. lia. }
+  assert (HL2_total : forall x y, L2 x y \/ L2 y x).
+  { intros x y. unfold L2. lia. }
+  assert (HL2_tot : IsTotalOrder L2).
+  { constructor; [exact HL2_pos | exact HL2_total]. }
+  assert (HL2_lin : IsLinearExtension R2 L2).
+  { constructor; [exact HL2_tot |].
+    intros x y HR. unfold L2. exact (Hrk2_mono x y HR). }
+  (* Build realizer set {L1, L2}. *)
+  set (rls := Add (B -> B -> Prop) (Singleton _ L1) L2).
+  exists rls. split.
+  - constructor.
+    + intros L HL. destruct HL as [L HL | L HL].
+      * destruct HL. exact HL1_lin.
+      * destruct HL. exact HL2_lin.
+    + intros x y. split.
+      * intros HRxy L HL. destruct HL as [L HL | L HL].
+        { destruct HL. exact (HL1_lin.(linear_extends) x y HRxy). }
+        { destruct HL. exact (HL2_lin.(linear_extends) x y HRxy). }
+      * intro Hall.
+        assert (HLa : L1 x y)
+          by exact (Hall L1 (Union_introl _ _ _ _ (In_singleton _ _))).
+        assert (HLb : L2 x y)
+          by exact (Hall L2 (Union_intror _ _ _ _ (In_singleton _ _))).
+        exact (Hinter x y HLa HLb).
+  - assert (HL_neq : L1 <> L2).
+    { intro Heq.
+      destruct Hdist as [x [y [Hxy1 Hxy2]]].
+      assert (HL1xy : L1 x y) by (unfold L1; exact Hxy1).
+      assert (HL2xy : L2 x y) by (rewrite <- Heq; exact HL1xy).
+      unfold L2 in HL2xy. lia. }
+    unfold rls.
+    apply card_add.
+    + exact (singleton_cardinal _ L1).
+    + intro Hin. destruct Hin. apply HL_neq. reflexivity.
+Qed.
+
 (** Sub-case: n=5 poset with EXACTLY ONE strict edge.
 
     The carrier has 5 distinct elements; [R2] is identity plus one
