@@ -27292,6 +27292,215 @@ Proof.
     + intro Hin. destruct Hin. apply HL_neq. reflexivity.
 Qed.
 
+(** Sub-case: n=5 K_{3,2} minus a perfect matching.
+
+    Carrier [a, b, c, d, e] pairwise distinct.  Bipartite with bottoms
+    [a, b, c] and tops [d, e]; the 6 K_{3,2} edges minus the matching
+    [{a < d, b < e}] leave exactly 4 R-edges:
+    [a < e], [b < d], [c < d], [c < e].
+    Incomparable pairs: [{a, b}], [{a, c}], [{a, d}], [{b, c}],
+    [{b, e}], [{d, e}].
+
+    Distinct from [n5_K_3_2_minus_two_edges_two_realizer] (which removes
+    two edges incident to the SAME top, yielding tops of degrees 3 and 1)
+    and from [n5_bowtie_plus_isolated_two_realizer] (which would arise
+    from removing two edges incident to the same bottom).
+
+    2-realizer (rank-encoded):
+    - L1: b < c < d < a < e.
+    - L2: a < c < e < b < d.
+    Every incomparable pair is flipped between [L1] and [L2]. *)
+Lemma n5_K_3_2_minus_matching_two_realizer :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
+  cardinal B (Full_set B) 5 ->
+  (exists a b c d e : B,
+     a <> b /\ a <> c /\ a <> d /\ a <> e /\
+     b <> c /\ b <> d /\ b <> e /\
+     c <> d /\ c <> e /\
+     d <> e /\
+     R2 a e /\ R2 b d /\ R2 c d /\ R2 c e /\
+     (forall x y : B,
+        R2 x y -> x = y \/
+        ((x = a /\ y = e) \/ (x = b /\ y = d) \/
+         (x = c /\ y = d) \/ (x = c /\ y = e)))) ->
+  exists r : Ensemble (B -> B -> Prop),
+    IsRealizer R2 r /\ cardinal (B -> B -> Prop) r 2.
+Proof.
+  intros B R2 HR2 Hcard
+    [a [b [c [d [e [Hab_neq [Hac_neq [Had_neq [Hae_neq
+       [Hbc_neq [Hbd_neq [Hbe_neq
+       [Hcd_neq [Hce_neq
+       [Hde_neq
+       [HRae [HRbd [HRcd [HRce HR_only]]]]]]]]]]]]]]]]]]].
+  destruct (@carrier_5_destructure B a b Hcard Hab_neq)
+    as [r [s [t [Har_neq [Has_neq [Hat_neq
+                   [Hbr_neq [Hbs_neq [Hbt_neq
+                   [Hrs_neq [Hrt_neq [Hst_neq Hcov5]]]]]]]]]]]].
+  assert (Hcovers : forall x : B, x = a \/ x = b \/ x = c \/ x = d \/ x = e).
+  { assert (Hc_in : c = r \/ c = s \/ c = t).
+    { destruct (Hcov5 c) as [Hc | [Hc | [Hc | [Hc | Hc]]]].
+      - contradiction Hac_neq; symmetry; exact Hc.
+      - contradiction Hbc_neq; symmetry; exact Hc.
+      - left; exact Hc.
+      - right; left; exact Hc.
+      - right; right; exact Hc. }
+    assert (Hd_in : d = r \/ d = s \/ d = t).
+    { destruct (Hcov5 d) as [Hd | [Hd | [Hd | [Hd | Hd]]]].
+      - contradiction Had_neq; symmetry; exact Hd.
+      - contradiction Hbd_neq; symmetry; exact Hd.
+      - left; exact Hd.
+      - right; left; exact Hd.
+      - right; right; exact Hd. }
+    assert (He_in : e = r \/ e = s \/ e = t).
+    { destruct (Hcov5 e) as [He | [He | [He | [He | He]]]].
+      - contradiction Hae_neq; symmetry; exact He.
+      - contradiction Hbe_neq; symmetry; exact He.
+      - left; exact He.
+      - right; left; exact He.
+      - right; right; exact He. }
+    assert (Hr_in : r = c \/ r = d \/ r = e).
+    { destruct Hc_in as [Hc | [Hc | Hc]];
+      destruct Hd_in as [Hd | [Hd | Hd]];
+      destruct He_in as [He | [He | He]];
+      try (left; symmetry; exact Hc);
+      try (right; left; symmetry; exact Hd);
+      try (right; right; symmetry; exact He);
+      try (exfalso; apply Hcd_neq; rewrite Hc, Hd; reflexivity);
+      try (exfalso; apply Hce_neq; rewrite Hc, He; reflexivity);
+      try (exfalso; apply Hde_neq; rewrite Hd, He; reflexivity). }
+    assert (Hs_in : s = c \/ s = d \/ s = e).
+    { destruct Hc_in as [Hc | [Hc | Hc]];
+      destruct Hd_in as [Hd | [Hd | Hd]];
+      destruct He_in as [He | [He | He]];
+      try (left; symmetry; exact Hc);
+      try (right; left; symmetry; exact Hd);
+      try (right; right; symmetry; exact He);
+      try (exfalso; apply Hcd_neq; rewrite Hc, Hd; reflexivity);
+      try (exfalso; apply Hce_neq; rewrite Hc, He; reflexivity);
+      try (exfalso; apply Hde_neq; rewrite Hd, He; reflexivity). }
+    assert (Ht_in : t = c \/ t = d \/ t = e).
+    { destruct Hc_in as [Hc | [Hc | Hc]];
+      destruct Hd_in as [Hd | [Hd | Hd]];
+      destruct He_in as [He | [He | He]];
+      try (left; symmetry; exact Hc);
+      try (right; left; symmetry; exact Hd);
+      try (right; right; symmetry; exact He);
+      try (exfalso; apply Hcd_neq; rewrite Hc, Hd; reflexivity);
+      try (exfalso; apply Hce_neq; rewrite Hc, He; reflexivity);
+      try (exfalso; apply Hde_neq; rewrite Hd, He; reflexivity). }
+    intro x.
+    destruct (Hcov5 x) as [Hx | [Hx | [Hx | [Hx | Hx]]]].
+    - auto.
+    - auto.
+    - subst x. destruct Hr_in as [Hr | [Hr | Hr]];
+        [right; right; left | right; right; right; left | right; right; right; right];
+        exact Hr.
+    - subst x. destruct Hs_in as [Hs | [Hs | Hs]];
+        [right; right; left | right; right; right; left | right; right; right; right];
+        exact Hs.
+    - subst x. destruct Ht_in as [Ht | [Ht | Ht]];
+        [right; right; left | right; right; right; left | right; right; right; right];
+        exact Ht. }
+  (* L1: b=0, c=1, d=2, a=3, e=4.
+     L2: a=0, c=1, e=2, b=3, d=4. *)
+  set (rk1 := fun x : B =>
+                if excluded_middle_informative (x = b) then 0%nat
+                else if excluded_middle_informative (x = c) then 1%nat
+                else if excluded_middle_informative (x = d) then 2%nat
+                else if excluded_middle_informative (x = a) then 3%nat
+                else 4%nat).
+  set (rk2 := fun x : B =>
+                if excluded_middle_informative (x = a) then 0%nat
+                else if excluded_middle_informative (x = c) then 1%nat
+                else if excluded_middle_informative (x = e) then 2%nat
+                else if excluded_middle_informative (x = b) then 3%nat
+                else 4%nat).
+  assert (Hrk1_b : rk1 b = 0%nat).
+  { unfold rk1. destruct (excluded_middle_informative (b = b)); [reflexivity | contradiction]. }
+  assert (Hrk1_c : rk1 c = 1%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (c = b)) as [He'|_]; [contradiction Hbc_neq; symmetry; auto |].
+    destruct (excluded_middle_informative (c = c)); [reflexivity | contradiction]. }
+  assert (Hrk1_d : rk1 d = 2%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (d = b)) as [He'|_]; [contradiction Hbd_neq; symmetry; auto |].
+    destruct (excluded_middle_informative (d = c)) as [He'|_]; [contradiction Hcd_neq; symmetry; auto |].
+    destruct (excluded_middle_informative (d = d)); [reflexivity | contradiction]. }
+  assert (Hrk1_a : rk1 a = 3%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (a = b)) as [He'|_]; [contradiction Hab_neq; auto |].
+    destruct (excluded_middle_informative (a = c)) as [He'|_]; [contradiction Hac_neq; auto |].
+    destruct (excluded_middle_informative (a = d)) as [He'|_]; [contradiction Had_neq; auto |].
+    destruct (excluded_middle_informative (a = a)); [reflexivity | contradiction]. }
+  assert (Hrk1_e : rk1 e = 4%nat).
+  { unfold rk1.
+    destruct (excluded_middle_informative (e = b)) as [He'|_]; [contradiction Hbe_neq; symmetry; auto |].
+    destruct (excluded_middle_informative (e = c)) as [He'|_]; [contradiction Hce_neq; symmetry; auto |].
+    destruct (excluded_middle_informative (e = d)) as [He'|_]; [contradiction Hde_neq; symmetry; auto |].
+    destruct (excluded_middle_informative (e = a)) as [He'|_]; [contradiction Hae_neq; symmetry; auto |].
+    reflexivity. }
+  assert (Hrk2_a : rk2 a = 0%nat).
+  { unfold rk2. destruct (excluded_middle_informative (a = a)); [reflexivity | contradiction]. }
+  assert (Hrk2_c : rk2 c = 1%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (c = a)) as [He'|_]; [contradiction Hac_neq; symmetry; auto |].
+    destruct (excluded_middle_informative (c = c)); [reflexivity | contradiction]. }
+  assert (Hrk2_e : rk2 e = 2%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (e = a)) as [He'|_]; [contradiction Hae_neq; symmetry; auto |].
+    destruct (excluded_middle_informative (e = c)) as [He'|_]; [contradiction Hce_neq; symmetry; auto |].
+    destruct (excluded_middle_informative (e = e)); [reflexivity | contradiction]. }
+  assert (Hrk2_b : rk2 b = 3%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (b = a)) as [He'|_]; [contradiction Hab_neq; symmetry; auto |].
+    destruct (excluded_middle_informative (b = c)) as [He'|_]; [contradiction Hbc_neq; auto |].
+    destruct (excluded_middle_informative (b = e)) as [He'|_]; [contradiction Hbe_neq; auto |].
+    destruct (excluded_middle_informative (b = b)); [reflexivity | contradiction]. }
+  assert (Hrk2_d : rk2 d = 4%nat).
+  { unfold rk2.
+    destruct (excluded_middle_informative (d = a)) as [He'|_]; [contradiction Had_neq; symmetry; auto |].
+    destruct (excluded_middle_informative (d = c)) as [He'|_]; [contradiction Hcd_neq; auto |].
+    destruct (excluded_middle_informative (d = e)) as [He'|_]; [contradiction Hde_neq; auto |].
+    destruct (excluded_middle_informative (d = b)) as [He'|_]; [contradiction Hbd_neq; auto |].
+    reflexivity. }
+  apply (@n5_two_realizer_framework B R2 HR2 a b c d e
+           Hab_neq Hac_neq Had_neq Hae_neq Hbc_neq Hbd_neq Hbe_neq
+           Hcd_neq Hce_neq Hde_neq Hcovers rk1 rk2);
+    try (rewrite ?Hrk1_a, ?Hrk1_b, ?Hrk1_c, ?Hrk1_d, ?Hrk1_e; lia);
+    try (rewrite ?Hrk2_a, ?Hrk2_b, ?Hrk2_c, ?Hrk2_d, ?Hrk2_e; lia).
+  - (* rk1 monotone on R2 *)
+    intros x y HR. destruct (HR_only x y HR) as
+      [Heq | [[Hxa Hye] | [[Hxb Hyd] | [[Hxc Hyd] | [Hxc Hye]]]]].
+    + subst y. lia.
+    + subst x y. rewrite Hrk1_a, Hrk1_e. lia.
+    + subst x y. rewrite Hrk1_b, Hrk1_d. lia.
+    + subst x y. rewrite Hrk1_c, Hrk1_d. lia.
+    + subst x y. rewrite Hrk1_c, Hrk1_e. lia.
+  - (* rk2 monotone on R2 *)
+    intros x y HR. destruct (HR_only x y HR) as
+      [Heq | [[Hxa Hye] | [[Hxb Hyd] | [[Hxc Hyd] | [Hxc Hye]]]]].
+    + subst y. lia.
+    + subst x y. rewrite Hrk2_a, Hrk2_e. lia.
+    + subst x y. rewrite Hrk2_b, Hrk2_d. lia.
+    + subst x y. rewrite Hrk2_c, Hrk2_d. lia.
+    + subst x y. rewrite Hrk2_c, Hrk2_e. lia.
+  - (* L1 ∩ L2 ⊆ R2 — 25-cell enumeration *)
+    intros x y HLa HLb.
+    destruct (Hcovers x) as [Hx|[Hx|[Hx|[Hx|Hx]]]]; subst x;
+    destruct (Hcovers y) as [Hy|[Hy|[Hy|[Hy|Hy]]]]; subst y;
+      first [ apply HR2.(poset_refl)
+            | exact HRae
+            | exact HRbd
+            | exact HRcd
+            | exact HRce
+            | exfalso;
+              rewrite ?Hrk1_a, ?Hrk1_b, ?Hrk1_c, ?Hrk1_d, ?Hrk1_e in HLa;
+              rewrite ?Hrk2_a, ?Hrk2_b, ?Hrk2_c, ?Hrk2_d, ?Hrk2_e in HLb;
+              lia ].
+  - (* Distinguishing pair: (b, c) gives L1 b<c but L2 c<b. *)
+    exists b, c. rewrite Hrk1_b, Hrk1_c, Hrk2_b, Hrk2_c. lia.
+Qed.
+
 (** Focused (refined) admit for the n=5 non-antichain non-chain case
     EXCLUDING the single-strict-edge class.
 
@@ -27413,6 +27622,8 @@ Admitted.
                                                      (K_{2,3} minus two edges from different bottoms to different tops, 4 edges)
       - [n5_K_3_2_minus_two_edges_two_realizer]
                                                      (K_{3,2} minus two edges from different tops to different bottoms, 4 edges; dual of K_{2,3} variant)
+      - [n5_K_3_2_minus_matching_two_realizer]
+                                                     (K_{3,2} minus a perfect matching: two non-adjacent edges, 4 edges)
       - [n5_one_edge_two_realizer]                   (single edge)
 
     Residual fall-through: routes to [n5_residual_classes_two_realizer]
@@ -29169,6 +29380,23 @@ Proof.
     as [HBtP | HnBtP].
   { apply (@n5_chain3_bot_pendant_and_top_pendant_two_realizer B R2 HR2 Hcard).
     exact HBtP. }
+  (* (nnnn) K_{3,2} minus a perfect matching.  4 edges [a<e], [b<d],
+     [c<d], [c<e]: bipartite (a,b,c) -> (d,e) with non-adjacent edges
+     a<d and b<e removed. *)
+  destruct (classic
+    (exists a b c d e : B,
+       a <> b /\ a <> c /\ a <> d /\ a <> e /\
+       b <> c /\ b <> d /\ b <> e /\
+       c <> d /\ c <> e /\
+       d <> e /\
+       R2 a e /\ R2 b d /\ R2 c d /\ R2 c e /\
+       (forall x y : B,
+          R2 x y -> x = y \/
+          ((x = a /\ y = e) \/ (x = b /\ y = d) \/
+           (x = c /\ y = d) \/ (x = c /\ y = e)))))
+    as [HK32mmatch | HnK32mmatch].
+  { apply (@n5_K_3_2_minus_matching_two_realizer B R2 HR2 Hcard).
+    exact HK32mmatch. }
   (* Fall-through: either one_edge or residual.
 
      Before reaching the focused residual admit, discharge total-order
