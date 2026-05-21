@@ -27306,6 +27306,14 @@ Qed.
     and from [n5_bowtie_plus_isolated_two_realizer] (which would arise
     from removing two edges incident to the same bottom).
 
+    KNOWN ISOMORPHIC TO [n5_K_2_3_minus_two_edges_two_realizer]: relabel
+    bottoms (a, b, c) → (d, e, c) and tops (d, e) → (a, b); both classes
+    have a central element connecting to both elements of the opposite
+    side plus two "pendant" connections.  This lemma is preserved as a
+    Qed-closed alternate-shape proof but the dispatcher branch below
+    is unreachable in practice — the earlier K_{2,3}_minus_two_edges
+    branch fires first via classical existential pattern matching.
+
     2-realizer (rank-encoded):
     - L1: b < c < d < a < e.
     - L2: a < c < e < b < d.
@@ -27623,7 +27631,7 @@ Admitted.
       - [n5_K_3_2_minus_two_edges_two_realizer]
                                                      (K_{3,2} minus two edges from different tops to different bottoms, 4 edges; dual of K_{2,3} variant)
       - [n5_K_3_2_minus_matching_two_realizer]
-                                                     (K_{3,2} minus a perfect matching: two non-adjacent edges, 4 edges)
+                                                     (K_{3,2} minus a perfect matching: two non-adjacent edges, 4 edges; isomorphic to K_{2,3}_minus_two_edges — dispatch branch unreachable in practice)
       - [n5_one_edge_two_realizer]                   (single edge)
 
     Residual fall-through: routes to [n5_residual_classes_two_realizer]
