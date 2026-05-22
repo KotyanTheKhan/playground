@@ -32312,7 +32312,7 @@ Proof.
             intros [Hsp _]; apply Hps_neq; symmetry; exact Hsp.
           - exfalso. apply HninvVc.
             exists t, s, r, p, q.
-            split; [exact Hst_neq |].
+            split; [intro Hts_eq; apply Hst_neq; symmetry; exact Hts_eq |].
             split; [intro Htr_eq; apply Hrt_neq; symmetry; exact Htr_eq |].
             split; [intro Htp_eq; apply Hpt_neq; symmetry; exact Htp_eq |].
             split; [intro Htq_eq; apply Hqt_neq; symmetry; exact Htq_eq |].
