@@ -30183,6 +30183,52 @@ Proof.
         exists u, v. split; [exact Huv_neq |].
         split; [exact HRuv |].
         split; [exact Hnot_upq |]. exact Hnot_urs. }
+    (* Micro-case (iii): if the second edge is [(s, r)] AND no third strict
+       edge exists, the carrier is again exactly two disjoint chains
+       [(p, q)] and [(s, r)], plus isolated [t].  Same disjoint-chains
+       contradiction against [HnDisj], with the [(c, d)] slot bound to
+       [(s, r)]. *)
+    destruct (classic (x = s /\ y = r)) as [[Hxs Hyr] | Hnot_sr].
+    { subst x y.
+      destruct (classic (exists a b : B,
+                a <> b /\ R2 a b /\
+                ~ (a = p /\ b = q) /\ ~ (a = s /\ b = r)))
+        as [Hthird | Hno_third].
+      - (* A third strict edge exists: route to the focused admit. *)
+        apply (@n5_residual_classes_two_realizer B R2 HR2 Hcard
+                 Hnonantichain Hinc_ex).
+        exists p, q, s, r.
+        split; [exact Hpq_neq |].
+        split; [exact HRpq |].
+        split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
+        split; [exact HRxy |].
+        exact Hnot_pq.
+      - exfalso. apply HnDisj.
+        exists p, q, s, r, t.
+        split; [exact Hpq_neq |].
+        split; [exact Hps_neq |].
+        split; [exact Hpr_neq |].
+        split; [exact Hpt_neq |].
+        split; [exact Hqs_neq |].
+        split; [exact Hqr_neq |].
+        split; [exact Hqt_neq |].
+        split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
+        split; [exact Hst_neq |].
+        split; [exact Hrt_neq |].
+        split; [exact HRpq |].
+        split; [exact HRxy |].
+        intros u v HRuv.
+        destruct (classic (u = v)) as [Heq | Huv_neq];
+          [left; exact Heq |].
+        right.
+        destruct (classic (u = p /\ v = q)) as [Hupq | Hnot_upq];
+          [left; exact Hupq |].
+        destruct (classic (u = s /\ v = r)) as [Husr | Hnot_usr];
+          [right; exact Husr |].
+        exfalso. apply Hno_third.
+        exists u, v. split; [exact Huv_neq |].
+        split; [exact HRuv |].
+        split; [exact Hnot_upq |]. exact Hnot_usr. }
     (* Otherwise, route the residual configuration to the focused admit. *)
     apply (@n5_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex).
