@@ -30795,6 +30795,151 @@ Proof.
         split; [exact HRuv |].
         split; [exact Hnot_upq |].
         split; [exact Hnot_uqt |]. exact Hnot_upt. }
+    (* Micro-case (xvii): second edge is [(r, p)] — by transitivity R2 r q
+       holds, so the carrier admits the 3-chain [r < p < q] plus isolated
+       [s], [t]. Contradicts [HnChain3]. *)
+    destruct (classic (x = r /\ y = p)) as [[Hxr Hyp] | Hnot_rp].
+    { subst x y.
+      assert (HRrq : R2 r q) by exact (HR2.(poset_trans) r p q HRxy HRpq).
+      destruct (classic (exists a b : B,
+                a <> b /\ R2 a b /\
+                ~ (a = p /\ b = q) /\ ~ (a = r /\ b = p) /\
+                ~ (a = r /\ b = q)))
+        as [Hfourth | Hno_fourth].
+      - apply (@n5_residual_classes_two_realizer B R2 HR2 Hcard
+                 Hnonantichain Hinc_ex).
+        exists p, q, r, p.
+        split; [exact Hpq_neq |].
+        split; [exact HRpq |].
+        split; [intro Hrp_eq; apply Hpr_neq; symmetry; exact Hrp_eq |].
+        split; [exact HRxy |].
+        exact Hnot_pq.
+      - exfalso. apply HnChain3.
+        exists r, p, q, s, t.
+        split; [intro Hrp_eq; apply Hpr_neq; symmetry; exact Hrp_eq |].
+        split; [intro Hrq_eq; apply Hqr_neq; symmetry; exact Hrq_eq |].
+        split; [exact Hrs_neq |].
+        split; [exact Hrt_neq |].
+        split; [exact Hpq_neq |].
+        split; [exact Hps_neq |].
+        split; [exact Hpt_neq |].
+        split; [exact Hqs_neq |].
+        split; [exact Hqt_neq |].
+        split; [exact Hst_neq |].
+        split; [exact HRxy |].
+        split; [exact HRpq |].
+        split; [exact HRrq |].
+        intros u v HRuv.
+        destruct (classic (u = v)) as [Heq | Huv_neq];
+          [left; exact Heq |].
+        right.
+        destruct (classic (u = r /\ v = p)) as [Hurp | Hnot_urp];
+          [left; exact Hurp |].
+        destruct (classic (u = r /\ v = q)) as [Hurq | Hnot_urq];
+          [right; left; exact Hurq |].
+        destruct (classic (u = p /\ v = q)) as [Hupq | Hnot_upq];
+          [right; right; exact Hupq |].
+        exfalso. apply Hno_fourth.
+        exists u, v. split; [exact Huv_neq |].
+        split; [exact HRuv |].
+        split; [exact Hnot_upq |].
+        split; [exact Hnot_urp |]. exact Hnot_urq. }
+    (* Micro-case (xviii): second edge is [(s, p)] — 3-chain [s < p < q],
+       plus isolated [r], [t]. *)
+    destruct (classic (x = s /\ y = p)) as [[Hxs Hyp] | Hnot_sp].
+    { subst x y.
+      assert (HRsq : R2 s q) by exact (HR2.(poset_trans) s p q HRxy HRpq).
+      destruct (classic (exists a b : B,
+                a <> b /\ R2 a b /\
+                ~ (a = p /\ b = q) /\ ~ (a = s /\ b = p) /\
+                ~ (a = s /\ b = q)))
+        as [Hfourth | Hno_fourth].
+      - apply (@n5_residual_classes_two_realizer B R2 HR2 Hcard
+                 Hnonantichain Hinc_ex).
+        exists p, q, s, p.
+        split; [exact Hpq_neq |].
+        split; [exact HRpq |].
+        split; [intro Hsp_eq; apply Hps_neq; symmetry; exact Hsp_eq |].
+        split; [exact HRxy |].
+        exact Hnot_pq.
+      - exfalso. apply HnChain3.
+        exists s, p, q, r, t.
+        split; [intro Hsp_eq; apply Hps_neq; symmetry; exact Hsp_eq |].
+        split; [intro Hsq_eq; apply Hqs_neq; symmetry; exact Hsq_eq |].
+        split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
+        split; [exact Hst_neq |].
+        split; [exact Hpq_neq |].
+        split; [exact Hpr_neq |].
+        split; [exact Hpt_neq |].
+        split; [exact Hqr_neq |].
+        split; [exact Hqt_neq |].
+        split; [exact Hrt_neq |].
+        split; [exact HRxy |].
+        split; [exact HRpq |].
+        split; [exact HRsq |].
+        intros u v HRuv.
+        destruct (classic (u = v)) as [Heq | Huv_neq];
+          [left; exact Heq |].
+        right.
+        destruct (classic (u = s /\ v = p)) as [Husp | Hnot_usp];
+          [left; exact Husp |].
+        destruct (classic (u = s /\ v = q)) as [Husq | Hnot_usq];
+          [right; left; exact Husq |].
+        destruct (classic (u = p /\ v = q)) as [Hupq | Hnot_upq];
+          [right; right; exact Hupq |].
+        exfalso. apply Hno_fourth.
+        exists u, v. split; [exact Huv_neq |].
+        split; [exact HRuv |].
+        split; [exact Hnot_upq |].
+        split; [exact Hnot_usp |]. exact Hnot_usq. }
+    (* Micro-case (xix): second edge is [(t, p)] — 3-chain [t < p < q],
+       plus isolated [r], [s]. *)
+    destruct (classic (x = t /\ y = p)) as [[Hxt Hyp] | Hnot_tp].
+    { subst x y.
+      assert (HRtq : R2 t q) by exact (HR2.(poset_trans) t p q HRxy HRpq).
+      destruct (classic (exists a b : B,
+                a <> b /\ R2 a b /\
+                ~ (a = p /\ b = q) /\ ~ (a = t /\ b = p) /\
+                ~ (a = t /\ b = q)))
+        as [Hfourth | Hno_fourth].
+      - apply (@n5_residual_classes_two_realizer B R2 HR2 Hcard
+                 Hnonantichain Hinc_ex).
+        exists p, q, t, p.
+        split; [exact Hpq_neq |].
+        split; [exact HRpq |].
+        split; [intro Htp_eq; apply Hpt_neq; symmetry; exact Htp_eq |].
+        split; [exact HRxy |].
+        exact Hnot_pq.
+      - exfalso. apply HnChain3.
+        exists t, p, q, r, s.
+        split; [intro Htp_eq; apply Hpt_neq; symmetry; exact Htp_eq |].
+        split; [intro Htq_eq; apply Hqt_neq; symmetry; exact Htq_eq |].
+        split; [intro Htr_eq; apply Hrt_neq; symmetry; exact Htr_eq |].
+        split; [intro Hts_eq; apply Hst_neq; symmetry; exact Hts_eq |].
+        split; [exact Hpq_neq |].
+        split; [exact Hpr_neq |].
+        split; [exact Hps_neq |].
+        split; [exact Hqr_neq |].
+        split; [exact Hqs_neq |].
+        split; [exact Hrs_neq |].
+        split; [exact HRxy |].
+        split; [exact HRpq |].
+        split; [exact HRtq |].
+        intros u v HRuv.
+        destruct (classic (u = v)) as [Heq | Huv_neq];
+          [left; exact Heq |].
+        right.
+        destruct (classic (u = t /\ v = p)) as [Hutp | Hnot_utp];
+          [left; exact Hutp |].
+        destruct (classic (u = t /\ v = q)) as [Hutq | Hnot_utq];
+          [right; left; exact Hutq |].
+        destruct (classic (u = p /\ v = q)) as [Hupq | Hnot_upq];
+          [right; right; exact Hupq |].
+        exfalso. apply Hno_fourth.
+        exists u, v. split; [exact Huv_neq |].
+        split; [exact HRuv |].
+        split; [exact Hnot_upq |].
+        split; [exact Hnot_utp |]. exact Hnot_utq. }
     (* Otherwise, route the residual configuration to the focused admit. *)
     apply (@n5_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex).
