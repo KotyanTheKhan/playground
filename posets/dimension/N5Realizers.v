@@ -30111,8 +30111,30 @@ Proof.
              Hcmp_rs Hcmp_rt Hcmp_st _). }
   destruct (classic (exists x y : B, x <> y /\ R2 x y /\ ~ (x = p /\ y = q)))
     as [Hother | Honly].
-  - (* Some other strict edge exists: route to the residual admit. *)
+  - (* Some other strict edge exists.  Before routing to the residual
+       admit, peel off micro-cases that can be closed Qed-style in the
+       dispatcher:
+
+         (i) [(x, y) = (q, p)] — reverse of [(p, q)] — yields
+             [R2 p q /\ R2 q p], so antisymmetry gives [p = q],
+             contradicting [Hpq_neq].
+
+       Extract the remaining three carrier elements [r, s, t] up front
+       via [carrier_5_destructure] so that subsequent expansions of this
+       branch can label the second edge against the full 5-element
+       structure. *)
+    destruct (@carrier_5_destructure B p q Hcard Hpq_neq)
+      as [r [s [t [Hpr_neq [Hps_neq [Hpt_neq
+                     [Hqr_neq [Hqs_neq [Hqt_neq
+                     [Hrs_neq [Hrt_neq [Hst_neq Hcov5]]]]]]]]]]]].
     destruct Hother as [x [y [Hxy_neq [HRxy Hnot_pq]]]].
+    (* Micro-case (i): if the second edge is [(q, p)], antisymmetry kills it. *)
+    destruct (classic (x = q /\ y = p)) as [[Hxq Hyp] | Hnot_qp].
+    { exfalso.
+      subst x y.
+      apply Hpq_neq.
+      exact (HR2.(poset_antisym) p q HRpq HRxy). }
+    (* Otherwise, route the residual configuration to the focused admit. *)
     apply (@n5_residual_classes_two_realizer B R2 HR2 Hcard
              Hnonantichain Hinc_ex).
     exists p, q, x, y.
