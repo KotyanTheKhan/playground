@@ -1,0 +1,9 @@
+# Iso classes MISSING from N5Realizers.v dispatcher
+# (count=3)
+# These are the iso classes that fall through to
+# [n5_residual_classes_two_realizer] (Admitted), so they are the
+# concrete targets for Phase A2.
+# Format: Class <id> | |E|=<count> | edges = <canonical-direct-edges>
+Class  31 | |E|= 6 | edges = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3)]
+Class  38 | |E|= 6 | edges = [(0, 1), (0, 2), (0, 3), (1, 2), (4, 2), (4, 3)]
+Class  40 | |E|= 6 | edges = [(0, 1), (0, 2), (1, 2), (3, 1), (3, 2), (4, 2)]
