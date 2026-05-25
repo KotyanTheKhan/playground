@@ -7,7 +7,7 @@ From Stdlib Require Import IndefiniteDescription ClassicalDescription.
 From Stdlib Require Import Relations.Relation_Operators.
 From Posets Require Import PosetClasses.
 From Dimension Require Import DimDefs CriticalPairs Szpilrajn Theorems.
-From Dimension Require Import N4Realizers N5Realizers.
+From Dimension Require Import N4Realizers N5Realizers N5Dispatcher.
 From ZornsLemma Require Import FiniteTypes EnsemblesExplicit.
 From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts.
 
