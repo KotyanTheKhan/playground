@@ -1440,20 +1440,66 @@ Section RemovablePairs.
       possible choice; Trotter's proof actually picks an L'-DEPENDENT
       boundary subset to ensure acyclicity in pathological cases.
 
-      Why constant-list might still work.  In practice, the boundary
-      CPs not reversed by [L_extra] are those where [L_extra] orients
-      them "with R-flow," and reversing them via the lift creates
-      cycles only when [L'] makes inconsistent choices on related
-      pairs.  Extremality of [(x', y')] eliminates one class of
-      pathologies (the cp_le chain "tower").  Whether the constant
-      witness is acyclic in full generality is an open question of
-      this proof — Trotter's original argument uses the per-L' subset
-      precisely because the constant witness can fail in general.
+      *** STATUS UPDATE (2026-05-25 Phase B5): COUNTER-EXAMPLE FOUND ***
 
-      Status:  Focused sub-Admitted.  When closed, this immediately
-      closes [trotter_boundary_existence] (Qed) and hence
-      [trotter_boundary_coverage] (already Qed-composed) and the
-      non-antichain n ≥ 4 branch of the Hiraguchi bound proof. *)
+      A concrete 4-element counter-example demonstrates that the
+      CONSTANT-LIST witness FAILS even under [IsExtremalCP].  Hence
+      this lemma AS STATED is NOT PROVABLE; it must be refactored to
+      use a per-L' boundary SUBSET (Trotter's actual approach).
+
+      COUNTER-EXAMPLE.  Take A = {x', y', z, q} with R the reflexive
+      closure plus the single edge (x', z).  Then:
+
+        - (x', y') is a critical pair (incomparable; critical_up/down
+          are vacuous since x' is R-minimal and y' is R-maximal).
+        - (x', y') is EXTREMAL: any CP (p, q*) with R p x' forces
+          p = x' (only reflexive R-edges into x'), and R y' q* forces
+          q* = y' (only reflexive R-edges out of y').  So
+          [IsExtremalCP R x' y'] holds.
+        - L_extra := the linear extension y' < x' < z < q satisfies
+          [IsLinearExtension R L_extra] and [L_extra y' x'].
+        - The boundary CPs (one endpoint in {x', y'}, not (x', y'),
+          not (y', x'), L_extra-unreversed) include (x', q) — since
+          (x', q) is a CP (vacuous critical conditions) and L_extra
+          puts x' < q so ~L_extra q x'.
+        - S' = {z, q}.  R|_{S'} is the identity.  Choose L' on S' so
+          L'_lift z q holds (i.e., L' has z < q).
+        - Then Aug contains:
+            * (x', z)  via R,
+            * (z, q)   via L'_lift,
+            * (q, x')  via boundary-reverse of (x', q) ∈ boundary.
+          These form a 3-cycle x' → z → q → x' in Aug, contradicting
+          the lemma's acyclicity conclusion.
+
+      MORAL.  Extremality of (x', y') prevents some pathologies (e.g.
+      [Type A] CP (x', q) with R y' q forces q = y'; [Type D] CP
+      (p, y') with R p x' forces p = x'), but it does NOT prevent a
+      Type-A CP (x', q) from forming a cycle x' →R→ z →L'→ q →B→ x'
+      when an unrelated R-edge (x', z) and an L'-witness (z, q) line
+      up.  Trotter's per-L'-boundary CHOICE drops exactly those
+      Type-A CPs that would close such a cycle for the given L', and
+      this finer selection has no analogue in a constant-list witness.
+
+      WHAT TO DO NEXT.  The fix is to weaken the witness in
+      [trotter_boundary_existence]: instead of a CONSTANT
+      [B_of L' := boundary], pick [B_of L' := boundary \ {bad CPs
+      for L'}], where "bad" means "forming a cycle in Aug for this
+      L'".  Coverage (clause c) still holds because dropping a CP
+      from B_of L' for one L' is compensated by KEEPING it in B_of
+      L'' for some L'' where it does NOT form a cycle.  Establishing
+      coverage in this per-L' setting requires showing that for every
+      boundary CP (p, q) NOT reversed by L_extra, there EXISTS some
+      L' ∈ r' for which (p, q) does NOT form an Aug-cycle —
+      i.e., the "bad-for-every-L'" set is empty.  This is precisely
+      Trotter's Ch.6 argument and is outside the scope of the present
+      attempt.
+
+      Status:  Lemma is FALSE as stated.  Kept Admitted (rather than
+      replaced by [False -> ...]) because the downstream caller
+      [trotter_boundary_existence] currently relies on this exact
+      shape.  The REAL fix is to refactor that caller to choose a
+      per-L' subset, at which point this lemma can be deleted in
+      favor of a properly-stated per-L'-subset acyclicity lemma. *)
   Lemma trotter_constant_boundary_acyclic :
     forall (x' y' : A) (S' : Ensemble A)
            (boundary : list (A * A))
