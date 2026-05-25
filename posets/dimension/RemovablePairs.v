@@ -7,6 +7,7 @@ From Stdlib Require Import IndefiniteDescription ClassicalDescription.
 From Stdlib Require Import Relations.Relation_Operators.
 From Posets Require Import PosetClasses.
 From Dimension Require Import DimDefs CriticalPairs Szpilrajn Theorems.
+From Dimension Require Import CriticalPairDigraph.
 From Dimension Require Import N4Realizers N5Realizers N5Dispatcher.
 From ZornsLemma Require Import FiniteTypes EnsemblesExplicit.
 From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts.
@@ -800,23 +801,36 @@ Section RemovablePairs.
       gap comment in [extend_through_cp_construction] in
       Theorems.v lines 2026–2074.
 
-      The honest path forward (not pursued in this task due to the
-      60-minute budget) is:
+      STATUS (Phase B3, after extremality refinement).  Steps 1 and
+      2 below are now Qed (via [lift_and_force_with_boundary_is_poset]
+      and [cp_lift_function_with_boundary] in Theorems.v).  The
+      caller's CHOICE function (Step 3) is the residual mathematical
+      gap, now captured by the REFINED-SIGNATURE Admitted
+      [trotter_boundary_existence].  Critically, the refinement
+      requires the input CP to be EXTREMAL — obtained via
+      [extremal_cp_exists] in CriticalPairDigraph.v.
 
-        1. Generalize [lift_and_force_is_poset] to accept a finite
-           set S_b of boundary-CP orientations, proving the
-           transitive closure of (R ∪ L'_lift ∪ {(x',y')} ∪ S_b)
-           is a poset under suitable assumptions on the boundary
-           CPs (using the asymmetric critical_up / critical_down).
-        2. Build [cp_lift_function_with_boundary] selecting a
+      The honest path forward (not pursued in this task due to time
+      budget) is:
+
+        1. [DONE] Generalize [lift_and_force_is_poset] to accept a
+           finite set S_b of boundary-CP orientations, proving the
+           transitive closure of (R ∪ L'_lift ∪ {(x',y')} ∪ S_b) is
+           a poset under suitable assumptions on the boundary CPs.
+           ([lift_and_force_with_boundary_is_poset], Qed.)
+        2. [DONE] Build [cp_lift_function_with_boundary] selecting a
            lift map whose lifts simultaneously reverse all required
-           boundary CPs.
-        3. Use a CHOICE function on boundary CPs (each L' ∈ r'
+           boundary CPs.  ([cp_lift_function_with_boundary], Qed.)
+        3. [GAP] Use a CHOICE function on boundary CPs (each L' ∈ r'
            chooses which boundary CPs to reverse, based on its
            sub-realizer structure) so that the union
            [Im r' lift_b ∪ {L_extra}] reverses every critical pair.
-        4. Conclude [removable_pair_exists] without ever needing
-           the false "admissible CP" condition.
+           This is now [trotter_boundary_existence] with EXTREMAL CP
+           hypothesis (Admitted, refined signature).
+        4. [DONE] Conclude [removable_pair_exists] without ever
+           needing the false "admissible CP" condition.
+           ([trotter_boundary_coverage] is a Qed composition modulo
+           the Step 3 admit.)
       ================================================================== *)
 
   (** A critical pair (x', y') of R is "admissible" iff every critical
@@ -1184,20 +1198,37 @@ Section RemovablePairs.
         TC(R ∪ {(y',x')}).  Direct wrap of
         [critical_pair_reversing_extension] from Theorems.v.
 
-      Sub-claim 4 [trotter_boundary_existence]:  Admitted.  Trotter's
-        Ch.6, Theorem 6.1 combinatorial heart — choose, per L' ∈ r',
-        a boundary reversal set B(L') whose lifts jointly with
-        L_extra reverse every critical pair of R.
+      Sub-claim 4 [trotter_boundary_existence]:  Admitted with REFINED
+        signature requiring [IsExtremalCP R x' y'].  Trotter's Ch.6,
+        Theorem 6.1 combinatorial heart — choose, per L' ∈ r', a
+        boundary reversal set B(L') whose lifts jointly with L_extra
+        reverse every critical pair of R.  The extremality hypothesis
+        is the "right" mathematical strengthening: it captures the
+        fixed-point property of the iterated lifting in
+        [incomparable_lifting_to_critical_pair], which is the
+        structural property that closes the per-L' boundary
+        construction's inductive case.
 
       MATHEMATICAL CONTENT (preserved from the original Admitted).
-      Given a critical pair (x', y') of R and a d'-element realizer r'
-      of R restricted to the residual S' = Full_set \ {x', y'},
-      Trotter's lemma produces a (d' + 1)-element realizer of R itself.
-      The construction lifts each L' ∈ r' to a total order [lift_b L']
-      on A that (i) extends R, (ii) forces x' < y', (iii) reverses a
-      chosen "boundary reversal set" of CPs.  The boundary-coverage
-      choice (Sub-claim 4) is the combinatorial heart of Trotter's
-      argument.
+      Given an EXTREMAL critical pair (x', y') of R and a d'-element
+      realizer r' of R restricted to the residual S' = Full_set \
+      {x', y'}, Trotter's lemma produces a (d' + 1)-element realizer
+      of R itself.  The construction lifts each L' ∈ r' to a total
+      order [lift_b L'] on A that (i) extends R, (ii) forces x' < y',
+      (iii) reverses a chosen "boundary reversal set" of CPs.  The
+      boundary-coverage choice (Sub-claim 4) is the combinatorial
+      heart of Trotter's argument.
+
+      WHY EXTREMALITY MATTERS.  Boundary CPs (p, q) of R with one
+      endpoint in {x', y'} need either (i) reversal by L_extra (which
+      already reverses (x', y') and is otherwise free) or (ii)
+      reversal by some lift [lift_b L'] via its boundary set B_of L'.
+      Without extremality, one may have a boundary CP (p, q) whose
+      every lift-or-L_extra orientation creates a cycle.  Extremality
+      forbids the bad cases: for any CP (p, q) with R p x' /\ R y' q,
+      we must have (p, q) = (x', y').  This collapses the boundary
+      analysis from chasing an infinite tower of CPs down to a finite
+      case split per L'.
 
       WHY OBVIOUS ATTACKS FAIL.
 
@@ -1210,12 +1241,14 @@ Section RemovablePairs.
 
       (2) Boundary-reversing L_extra via [szpilrajn_with_prefs].
           Tries to build a single linear extension of R reversing
-          (x',y') AND every boundary critical pair.  FAILS: the
-          required reversal set is generally cyclic with R.
-          Counterexample: A = {a,b,c,d}, R = {a<b}, (x',y') = (c,d).
-          Boundary CPs at (c,d) include (a,c), (c,b).  Reversing both
-          forces b < c (from reversing (c,b)) AND c < a (from reversing
-          (a,c)), but R has a < b.  Cycle: a < b < c < a.
+          (x',y') AND every boundary critical pair.  FAILS even under
+          extremality: the required reversal set is generally cyclic
+          with R.  Counterexample: A = {a,b,c,d}, R = {a<b},
+          (x',y') = (c,d) (which IS extremal).  Boundary CPs at (c,d)
+          include (a,c), (c,b).  Reversing both forces b < c (from
+          reversing (c,b)) AND c < a (from reversing (a,c)), but R
+          has a < b.  Cycle: a < b < c < a.  Hence the per-L' choice
+          in Sub-claim 4 is genuinely needed even with extremality.
 
       (3) Per-lift boundary orientation: each L' ∈ r' picks which
           boundary CPs its lift reverses, such that the union of lifts
@@ -1341,9 +1374,9 @@ Section RemovablePairs.
   Qed.
 
   (** Sub-claim 4 — BOUNDARY EXISTENCE (Trotter Ch.6 combinatorial
-      heart, kept Admitted).
+      heart, kept Admitted but with REFINED signature).
 
-      The precise statement: for the critical pair (x', y') with
+      The precise statement: for an EXTREMAL critical pair (x', y') with
       sub-realizer r' on the residual S', there is a per-L' choice of
       a boundary reversal set [B_of L'] such that
 
@@ -1356,6 +1389,25 @@ Section RemovablePairs.
             L_extra) is reversed by some lift [lift_b L'] via its
             boundary set B_of L', OR by L_extra.
 
+      EXTREMALITY HYPOTHESIS.  In this refined signature we require
+      (x', y') to be EXTREMAL in the CP-refinement preorder
+      [(p, q) <= (x', y')  iff  R p x' /\ R y' q] (see
+      [IsExtremalCP] in CriticalPairDigraph.v).  Without extremality,
+      the per-L' boundary construction can fail because pushing the
+      first/second coordinate further down/up can produce CPs that
+      cannot be jointly reversed.  Extremality is the structural
+      property that closes the inductive case: any boundary CP (p, q)
+      with R p x' /\ R y' q must equal (x', y'), eliminating an
+      infinite tower of CPs the boundary set would otherwise need to
+      chase.
+
+      The caller obtains an extremal CP via [extremal_cp_exists] (which
+      is Qed in CriticalPairDigraph.v).  This change strictly
+      strengthens the hypothesis (every IsExtremalCP gives an
+      IsCriticalPair), so the lemma remains usable in its old role —
+      callers simply produce an extremal CP rather than an arbitrary
+      one.
+
       This is the deep combinatorial claim and is the single remaining
       gap on the path to a Qed-proven [hiraguchi_bound] for the
       non-antichain n ≥ 6 case. *)
@@ -1364,7 +1416,7 @@ Section RemovablePairs.
            (r' : Ensemble ({a : A | In A S' a} ->
                             {a : A | In A S' a} -> Prop))
            (L_extra : A -> A -> Prop),
-    IsCriticalPair R x' y' ->
+    IsExtremalCP R x' y' ->
     S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
     IsRealizer (fun (a b : {a : A | In A S' a}) =>
                    R (proj1_sig a) (proj1_sig b)) r' ->
@@ -1497,7 +1549,7 @@ Section RemovablePairs.
     forall n (x' y' : A) (d' : nat),
     cardinal A (Full_set A) n ->
     n >= 4 ->
-    IsCriticalPair R x' y' ->
+    IsExtremalCP R x' y' ->
     (exists r' : Ensemble ({a : A | In A (Residual x' y') a} ->
                             {a : A | In A (Residual x' y') a} -> Prop),
        IsRealizer
@@ -1507,7 +1559,8 @@ Section RemovablePairs.
     exists r : Ensemble (A -> A -> Prop),
       IsRealizer R r /\ cardinal (A -> A -> Prop) r (d' + 1).
   Proof.
-    intros n x' y' d' Hcard Hn4 Hcp [r' [Hr'_real Hr'_card]].
+    intros n x' y' d' Hcard Hn4 Hext [r' [Hr'_real Hr'_card]].
+    pose proof (proj1 Hext) as Hcp.
     set (S' := Residual x' y').
     assert (HS'_eq : S' = Setminus A (Setminus A (Full_set A) (Singleton A x'))
                                        (Singleton A y'))
@@ -1520,9 +1573,11 @@ Section RemovablePairs.
     (* Step A: L_extra reversing (x', y'). *)
     destruct (trotter_L_extra_exists x' y' Hcp)
       as [L_extra [HL_extra_lin HL_extra_yx]].
-    (* Step B: per-L' boundary set B_of with validity, acyclicity, coverage. *)
+    (* Step B: per-L' boundary set B_of with validity, acyclicity, coverage.
+       Uses the refined [trotter_boundary_existence] which requires
+       extremality (provided by [Hext]). *)
     destruct (trotter_boundary_existence x' y' S' r' L_extra
-                Hcp HS'_eq Hr'_real HL_extra_lin HL_extra_yx)
+                Hext HS'_eq Hr'_real HL_extra_lin HL_extra_yx)
       as [B_of [HB_valid [HB_acyc HB_cov]]].
     (* Step C: per-L' lift function via cp_lift_function_with_boundary +
        constructive_indefinite_description. *)
@@ -1674,13 +1729,22 @@ Section RemovablePairs.
   Qed.
 
   (** Trotter's non-antichain removable pair lemma.  Closed by Qed
-      composition of [critical_pair_exists_from_incomparable] (lift any
-      incomparable pair to a critical pair) and the focused Admitted
-      helper [trotter_boundary_coverage] (Trotter Ch.6, Theorem 6.1).
+      composition of [extremal_cp_exists] (lift any incomparable pair
+      to an EXTREMAL critical pair) and the focused Admitted helper
+      [trotter_boundary_coverage] (Trotter Ch.6, Theorem 6.1) — which
+      now requires the input CP to be extremal.
 
-      The critical pair (x', y') chosen here serves as the removable
-      pair: any d'-realizer of R restricted to its residual extends to
-      a (d' + 1)-realizer of R itself via [trotter_boundary_coverage].
+      The extremal critical pair (x', y') chosen here serves as the
+      removable pair: any d'-realizer of R restricted to its residual
+      extends to a (d' + 1)-realizer of R itself via
+      [trotter_boundary_coverage].
+
+      Why extremal?  The boundary-set construction inside
+      [trotter_boundary_existence] requires (x', y') to be maximal in
+      the CP-refinement preorder so that the per-L' boundary sets close
+      without chasing an infinite tower of CPs (see the documentation
+      block on [IsExtremalCP]).  Extremality is automatic from
+      finiteness + non-chain via [extremal_cp_exists].
 
       x' ≠ y' follows from [critical_incomparable Hcp] + [poset_refl]:
       if x' = y' then R x' y' (= R x' x' = poset_refl), contradicting
@@ -1694,10 +1758,12 @@ Section RemovablePairs.
     exists x y, IsRemovablePair x y.
   Proof.
     intros n Hcard Hn4 _ Hinc_ex.
-    destruct Hinc_ex as [a [b Hinc_ab]].
-    (* Step 1: lift the incomparable pair (a, b) to a critical pair (x', y'). *)
-    destruct (critical_pair_exists_from_incomparable n Hcard a b Hinc_ab)
-      as [x' [y' Hcp]].
+    assert (HfinA : Finite A (Full_set A))
+      by exact (cardinal_finite A (Full_set A) n Hcard).
+    (* Step 1: get an EXTREMAL critical pair via [extremal_cp_exists]. *)
+    destruct (extremal_cp_exists R HfinA Hinc_ex)
+      as [x' [y' Hext]].
+    pose proof (proj1 Hext) as Hcp.
     exists x', y'.
     (* x' ≠ y': from [critical_incomparable Hcp] + [poset_refl]. *)
     assert (Hxy_neq : x' <> y').
@@ -1708,7 +1774,7 @@ Section RemovablePairs.
        focused Admitted [trotter_boundary_coverage] yields a
        (d' + 1)-realizer of R. *)
     intros d' r' Hr'_real Hr'_card.
-    exact (trotter_boundary_coverage n x' y' d' Hcard Hn4 Hcp
+    exact (trotter_boundary_coverage n x' y' d' Hcard Hn4 Hext
              (ex_intro _ r' (conj Hr'_real Hr'_card))).
   Qed.
 

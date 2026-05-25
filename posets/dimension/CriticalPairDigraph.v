@@ -383,27 +383,81 @@ Proof.
   apply extremal_cp_exists; assumption.
 Qed.
 
-(** ** Discharge sketch for [trotter_boundary_existence].
+(** ** IMPORTANT: extremality is TAUTOLOGICAL given criticality.
 
-    With [extremal_cp_exists] in hand, the still-Admitted Sub-claim 4
-    in [posets/dimension/RemovablePairs.v] becomes:
+    The CP-refinement preorder [cp_le pq rs := R fst(rs) fst(pq) /\
+    R snd(pq) snd(rs)] looks substantive, but in fact every critical
+    pair is automatically maximal under it.  The reason: if (p, q) is
+    a CP with R p x' and R y' q for an arbitrary CP (x', y'), then by
+    the asymmetric closure properties of [IsCriticalPair] (critical_up
+    and critical_down) applied to (x', y'), one derives R p y'
+    (whenever p ≠ x') and R x' q (whenever q ≠ y').  In either case
+    transitivity then forces R p q, contradicting Incomparable R p q.
+    So the only way to satisfy R p x' /\ R y' q is the trivial
+    (p, q) = (x', y').
 
-    1. Apply [extremal_cp_exists] to obtain an extremal CP
-       [(x_e, y_e)].
-    2. If [(x_e, y_e) = (x', y')] (the "designated" CP in the
-       lemma's hypothesis), then the second clause of [IsExtremalCP]
-       collapses every interior boundary CP into [(x', y')] — making
-       the [B_of L' := nil] witness valid for clauses (a) and (b),
-       and L_extra alone covers clause (c).
-    3. Otherwise [(x_e, y_e) ≠ (x', y')] but is still a CP and is
-       maximal under [cp_le].  Either reduce to case 2 by switching
-       the designated CP, or feed the extremal CP through Trotter's
-       L_extra and boundary set construction to discharge clause (c)
-       for every CP whose endpoints intersect [{x', y'}] — by
-       extremality, no such CP can refine [(x', y')] further.
+    The lemma [cp_is_extremal] below states this formally.  This means
+    [IsExtremalCP R x' y' <-> IsCriticalPair R x' y'], and in
+    particular [extremal_cp_exists] gives no STRONGER conclusion than
+    [critical_pair_exists_from_incomparable] from RemovablePairs.v.
 
-    Step 3 is the residual combinatorial work; it requires a careful
-    case analysis on which endpoint of the boundary CP lies in
-    [{x', y'}], plus reuse of [trotter_L_extra_exists] (already Qed)
-    for the boundary CPs reversed via [L_extra].  The Coq side of
-    that work belongs in [RemovablePairs.v], not here. *)
+    Why keep the predicate?  Stylistic: the EXTREMAL CP framing is
+    closer to the standard Trotter / Bogart presentation and makes the
+    interface to [trotter_boundary_existence] more transparent about
+    the cp_le maximality property the body would need (which, again,
+    holds automatically — extremality "buys" no additional information
+    but the API contract is clearer).  Phase B3's signature refinement
+    therefore reflects mathematical hygiene rather than a real
+    strengthening: the boundary-existence proof must close on the same
+    combinatorial argument as the original Admitted with [IsCriticalPair].
+
+    See [trotter_boundary_existence] in RemovablePairs.v for the
+    remaining gap: the genuine combinatorial work (per-L' choice of
+    boundary set, with acyclicity verified per L') that extremality
+    cannot, by itself, replace. *)
+
+Lemma cp_is_extremal :
+  forall {A : Type} (R : A -> A -> Prop) `{IsPoset A R} (x' y' : A),
+  IsCriticalPair R x' y' -> IsExtremalCP R x' y'.
+Proof.
+  intros A R Hpos x' y' Hcp.
+  split; [exact Hcp |].
+  intros p q Hcp_pq HRpx HRyq.
+  pose proof (critical_incomparable Hcp_pq) as Hpq_inc.
+  (* Case split on p = x' and q = y'. *)
+  destruct (classic (p = x')) as [Hpx | Hpnx].
+  - destruct (classic (q = y')) as [Hqy | Hqny].
+    + (* (p, q) = (x', y'). *)
+      split; assumption.
+    + (* p = x', q ≠ y'.  Strict R y' q, so critical_up gives R x' q,
+         contradicting Incomparable R p q (= Incomparable R x' q). *)
+      exfalso.
+      assert (HStr_yq : Strict R y' q).
+      { unfold Strict. split; [exact HRyq |].
+        intro Heq. apply Hqny. symmetry. exact Heq. }
+      pose proof (critical_up Hcp q HStr_yq) as HRxq.
+      apply Hpq_inc. subst p. left. exact HRxq.
+  - (* p ≠ x'.  Strict R p x', so critical_down gives R p y'; combined
+       with R y' q by transitivity gives R p q, contradicting
+       Incomparable R p q. *)
+    exfalso.
+    assert (HStr_px : Strict R p x').
+    { unfold Strict. split; [exact HRpx | exact Hpnx]. }
+    pose proof (critical_down Hcp p HStr_px) as HRpy.
+    assert (HRpq : R p q) by exact (poset_trans p y' q HRpy HRyq).
+    apply Hpq_inc. left. exact HRpq.
+Qed.
+
+(** ** Discharge note for [trotter_boundary_existence].
+
+    [extremal_cp_exists] gives an extremal CP, but by [cp_is_extremal]
+    above, every CP is automatically extremal.  The Phase B3
+    signature refinement in [trotter_boundary_existence] is therefore
+    a documentation / interface improvement rather than a
+    mathematically new tool: any caller could have produced the same
+    hypothesis from a bare critical pair via [cp_is_extremal].
+
+    Closing the body requires the genuine combinatorial argument
+    (per-L' choice of boundary set with acyclicity), which is not
+    discharged by extremality alone.  See the long comment block on
+    [trotter_boundary_existence] in [RemovablePairs.v]. *)
