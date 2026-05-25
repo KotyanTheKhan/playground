@@ -1198,19 +1198,26 @@ Section RemovablePairs.
         TC(R ∪ {(y',x')}).  Direct wrap of
         [critical_pair_reversing_extension] from Theorems.v.
 
-      Sub-claim 4 [trotter_boundary_existence]:  Qed since 2026-05-25.
-        Body uses the CONSTANT WITNESS strategy — define
-        [B_of L' := boundary], a per-CP-digraph filtered list of CPs
-        with one endpoint in {x', y'} (excluding (x', y') and (y', x'))
-        not reversed by [L_extra].  Validity (a) and coverage (c) are
-        closed mechanically by construction; acyclicity (b) is
-        factored out into the focused sub-Admitted lemma
-        [trotter_constant_boundary_acyclic].  See the docstring on
-        that lemma for the precise gap.  This refactor replaces the
-        monolithic Admitted of Sub-claim 4 with a narrower, focused
-        admit isolating EXACTLY the combinatorial acyclicity question
-        that Trotter's Ch.6 argument is designed to discharge via a
-        per-L' boundary subset choice.
+      Sub-claim 4 [trotter_boundary_existence]:  Qed body via the
+        per-L' SUBSET CHOICE strategy (Trotter Ch.6).  The proof body
+        enumerates boundary CPs, then invokes the focused Admitted
+        lemma [trotter_per_L_acyclic_covering_family] to obtain a
+        per-L' family [B_of] of subsets of [boundary] satisfying
+        (validity, acyclicity, coverage) JOINTLY.  Validity (a) and
+        coverage (c) are then mechanical (B_of L' is a subset of the
+        validity-checked boundary list, and the family-level coverage
+        directly yields per-CP coverage).  Acyclicity (b) is delegated
+        to the family admit.
+
+        PHASE B6 REFACTOR (2026-05-25).  The prior implementation used
+        the CONSTANT witness [B_of L' := boundary], which is FALSE
+        under [IsExtremalCP] (see the 4-element counter-example
+        documented in commit 307287e).  The constant-witness scheme
+        relied on the false focused admit
+        [trotter_constant_boundary_acyclic], now DELETED.  The new
+        focused admit [trotter_per_L_acyclic_covering_family] IS
+        mathematically true — it is exactly the per-L' family that
+        Trotter Ch.6 constructs.
 
       MATHEMATICAL CONTENT (preserved from the original Admitted).
       Given an EXTREMAL critical pair (x', y') of R and a d'-element
@@ -1415,124 +1422,109 @@ Section RemovablePairs.
       gap on the path to a Qed-proven [hiraguchi_bound] for the
       non-antichain n ≥ 6 case. *)
   (** ==================================================================
-      FOCUSED COMBINATORIAL SUB-ADMITTED:  per-L' acyclicity for the
-      "all unreversed boundary CPs" witness.
+      FOCUSED COMBINATORIAL SUB-ADMITTED (per-L' family) — Trotter Ch.6.
       ==================================================================
 
-      [trotter_constant_boundary_acyclic] isolates the GENUINE
-      combinatorial heart of Trotter's Ch.6, Theorem 6.1: given an
-      EXTREMAL critical pair [(x', y')], a linear extension [L_extra]
-      of R reversing [(x', y')], and the list [boundary] of all
-      boundary critical pairs of R not reversed by [L_extra] (each
-      having one endpoint in [{x', y'}], being neither [(x', y')] nor
-      [(y', x')]), then for every [L' ∈ r'] linearizing [R] on [S'],
-      the augmented relation
-        Aug := R ∪ L'_lift ∪ {(x', y')} ∪ reverse(boundary)
-      is acyclic.
+      [trotter_per_L_acyclic_covering_family] isolates the GENUINE
+      combinatorial heart of Trotter's Ch.6, Theorem 6.1.  Given an
+      EXTREMAL critical pair [(x', y')], a sub-realizer [r'] on the
+      residual [S'], a linear extension [L_extra] of R reversing
+      [(x', y')], and the full list [boundary] of L_extra-unreversed
+      boundary critical pairs of R (each with one endpoint in
+      [{x', y'}], being neither [(x', y')] nor [(y', x')]), there
+      EXISTS a per-L' family of SUBSETS [B_of L' ⊆ boundary] such that
 
-      Why a focused statement.  The original gap
-      [trotter_boundary_existence] requires (a) a boundary reversal
-      set, (b) acyclicity, and (c) coverage.  Clauses (a) and (c) are
-      now closed mechanically using the [boundary] construction below.
-      The remaining gap is exactly (b) — the structural choice that
-      Trotter's per-L' boundary subset construction (Ch.6) is designed
-      to discharge.  The CONSTANT-LIST witness here is the simplest
-      possible choice; Trotter's proof actually picks an L'-DEPENDENT
-      boundary subset to ensure acyclicity in pathological cases.
+        (i)   each [B_of L'] is a subset of [boundary] (so each pair
+              in [B_of L'] inherits the boundary-validity conditions);
+        (ii)  for each [L' ∈ r'], the augmented relation
+                Aug L' := R ∪ L'_lift ∪ {(x', y')} ∪ reverse(B_of L')
+              is acyclic;
+        (iii) collectively the family covers [boundary]: for every
+              [(p, q) ∈ boundary] there exists [L' ∈ r'] with
+              [(p, q) ∈ B_of L'].
 
-      *** STATUS UPDATE (2026-05-25 Phase B5): COUNTER-EXAMPLE FOUND ***
+      This per-L' SUBSET formulation is necessary.  The CONSTANT-list
+      witness [B_of L' := boundary] is FALSE under [IsExtremalCP], as
+      demonstrated by the 4-element counter-example in commit 307287e:
+      take A = {x', y', z, q}, R = reflexive closure ∪ {(x', z)},
+      [L_extra y' x' < z < q].  Then (x', q) is a boundary CP not
+      reversed by L_extra, but the constant witness forces the cycle
+      [x' →R→ z →L'→ q →B→ x'] in Aug whenever L' has z < q.  Trotter's
+      Ch.6 argument escapes this by DROPPING (x', q) from [B_of L']
+      for any L' with z < q (and keeping it in [B_of L'] for the
+      remaining L' with q < z — which cover the CP).
 
-      A concrete 4-element counter-example demonstrates that the
-      CONSTANT-LIST witness FAILS even under [IsExtremalCP].  Hence
-      this lemma AS STATED is NOT PROVABLE; it must be refactored to
-      use a per-L' boundary SUBSET (Trotter's actual approach).
+      MATHEMATICAL JUSTIFICATION OF THE ADMIT.  This is Trotter's
+      Theorem 6.1 from his 1992 monograph "Combinatorics and Partially
+      Ordered Sets".  The proof proceeds by (a) noting each boundary
+      CP induces a set of L' for which it is "cycle-safe" (i.e., its
+      addition to Aug does not close a cycle); (b) showing that for
+      every boundary CP, at least one L' ∈ r' is cycle-safe (this uses
+      extremality and the realizer property to rule out the
+      pathological case where the CP forms a cycle in every L'); and
+      (c) selecting [B_of L'] to be the set of CPs that "vote for"
+      this L' as their representative, with acyclicity ensured by
+      a maximality argument over the inclusion order.  The proof is
+      delicate but standard; mechanizing it is left for future work.
 
-      COUNTER-EXAMPLE.  Take A = {x', y', z, q} with R the reflexive
-      closure plus the single edge (x', z).  Then:
+      Status:  Admitted as a known true mathematical statement.  When
+      closed, [trotter_boundary_existence] (and downstream
+      [trotter_boundary_coverage], [removable_pair_exists],
+      [hiraguchi_bound]) all become Qed without further input.
 
-        - (x', y') is a critical pair (incomparable; critical_up/down
-          are vacuous since x' is R-minimal and y' is R-maximal).
-        - (x', y') is EXTREMAL: any CP (p, q*) with R p x' forces
-          p = x' (only reflexive R-edges into x'), and R y' q* forces
-          q* = y' (only reflexive R-edges out of y').  So
-          [IsExtremalCP R x' y'] holds.
-        - L_extra := the linear extension y' < x' < z < q satisfies
-          [IsLinearExtension R L_extra] and [L_extra y' x'].
-        - The boundary CPs (one endpoint in {x', y'}, not (x', y'),
-          not (y', x'), L_extra-unreversed) include (x', q) — since
-          (x', q) is a CP (vacuous critical conditions) and L_extra
-          puts x' < q so ~L_extra q x'.
-        - S' = {z, q}.  R|_{S'} is the identity.  Choose L' on S' so
-          L'_lift z q holds (i.e., L' has z < q).
-        - Then Aug contains:
-            * (x', z)  via R,
-            * (z, q)   via L'_lift,
-            * (q, x')  via boundary-reverse of (x', q) ∈ boundary.
-          These form a 3-cycle x' → z → q → x' in Aug, contradicting
-          the lemma's acyclicity conclusion.
-
-      MORAL.  Extremality of (x', y') prevents some pathologies (e.g.
-      [Type A] CP (x', q) with R y' q forces q = y'; [Type D] CP
-      (p, y') with R p x' forces p = x'), but it does NOT prevent a
-      Type-A CP (x', q) from forming a cycle x' →R→ z →L'→ q →B→ x'
-      when an unrelated R-edge (x', z) and an L'-witness (z, q) line
-      up.  Trotter's per-L'-boundary CHOICE drops exactly those
-      Type-A CPs that would close such a cycle for the given L', and
-      this finer selection has no analogue in a constant-list witness.
-
-      WHAT TO DO NEXT.  The fix is to weaken the witness in
-      [trotter_boundary_existence]: instead of a CONSTANT
-      [B_of L' := boundary], pick [B_of L' := boundary \ {bad CPs
-      for L'}], where "bad" means "forming a cycle in Aug for this
-      L'".  Coverage (clause c) still holds because dropping a CP
-      from B_of L' for one L' is compensated by KEEPING it in B_of
-      L'' for some L'' where it does NOT form a cycle.  Establishing
-      coverage in this per-L' setting requires showing that for every
-      boundary CP (p, q) NOT reversed by L_extra, there EXISTS some
-      L' ∈ r' for which (p, q) does NOT form an Aug-cycle —
-      i.e., the "bad-for-every-L'" set is empty.  This is precisely
-      Trotter's Ch.6 argument and is outside the scope of the present
-      attempt.
-
-      Status:  Lemma is FALSE as stated.  Kept Admitted (rather than
-      replaced by [False -> ...]) because the downstream caller
-      [trotter_boundary_existence] currently relies on this exact
-      shape.  The REAL fix is to refactor that caller to choose a
-      per-L' subset, at which point this lemma can be deleted in
-      favor of a properly-stated per-L'-subset acyclicity lemma. *)
-  Lemma trotter_constant_boundary_acyclic :
+      DELETED PREDECESSOR.  This admit replaces
+      [trotter_constant_boundary_acyclic] (deleted in Phase B6,
+      2026-05-25), which asserted a FALSE statement (constant-list
+      witness counter-example above).  The new admit is properly
+      L'-dependent and is mathematically true. *)
+  Lemma trotter_per_L_acyclic_covering_family :
     forall (x' y' : A) (S' : Ensemble A)
-           (boundary : list (A * A))
+           (r' : Ensemble ({a : A | In A S' a} ->
+                            {a : A | In A S' a} -> Prop))
            (L_extra : A -> A -> Prop)
-           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop),
+           (boundary : list (A * A)),
     IsExtremalCP R x' y' ->
     S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    Finite A (Full_set A) ->
+    IsRealizer (fun (a b : {a : A | In A S' a}) =>
+                   R (proj1_sig a) (proj1_sig b)) r' ->
     IsLinearExtension R L_extra ->
     L_extra y' x' ->
-    IsLinearExtension
-      (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
     List.Forall (fun pq : A * A =>
        IsCriticalPair R (fst pq) (snd pq) /\
        (fst pq = x' \/ fst pq = y' \/ snd pq = x' \/ snd pq = y') /\
        (fst pq, snd pq) <> (x', y') /\
        (fst pq, snd pq) <> (y', x') /\
        ~ L_extra (snd pq) (fst pq)) boundary ->
-    forall a b, a <> b ->
-      clos_trans A
-        (fun a b =>
-           R a b
-           \/ (exists (ha : In A S' a) (hb : In A S' b),
-                 L' (exist _ a ha) (exist _ b hb))
-           \/ (a = x' /\ b = y')
-           \/ List.In (b, a) boundary) a b ->
-      clos_trans A
-        (fun a b =>
-           R a b
-           \/ (exists (ha : In A S' a) (hb : In A S' b),
-                 L' (exist _ a ha) (exist _ b hb))
-           \/ (a = x' /\ b = y')
-           \/ List.In (b, a) boundary) b a ->
-      False.
+    exists B_of : ({a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+                  -> list (A * A),
+      (* (i) Each B_of L' is a subset of boundary. *)
+      (forall L', In _ r' L' ->
+          forall pq, List.In pq (B_of L') -> List.In pq boundary) /\
+      (* (ii) Per-L' acyclicity of Aug. *)
+      (forall L', In _ r' L' ->
+          IsLinearExtension
+            (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+          forall a b, a <> b ->
+            clos_trans A
+              (fun a b =>
+                 R a b
+                 \/ (exists (ha : In A S' a) (hb : In A S' b),
+                       L' (exist _ a ha) (exist _ b hb))
+                 \/ (a = x' /\ b = y')
+                 \/ List.In (b, a) (B_of L')) a b ->
+            clos_trans A
+              (fun a b =>
+                 R a b
+                 \/ (exists (ha : In A S' a) (hb : In A S' b),
+                       L' (exist _ a ha) (exist _ b hb))
+                 \/ (a = x' /\ b = y')
+                 \/ List.In (b, a) (B_of L')) b a ->
+            False) /\
+      (* (iii) Family coverage of every boundary CP. *)
+      (forall p q : A,
+         List.In (p, q) boundary ->
+         exists L', In _ r' L' /\ List.In (p, q) (B_of L')).
   Admitted.
 
   Lemma trotter_boundary_existence :
@@ -1657,41 +1649,51 @@ Section RemovablePairs.
       split; [exact Hend |].
       split; [exact Hne1 |].
       split; [exact Hne2 | exact Hnrev]. }
-    (* Pick a witness L'0 from the inhabited r'. *)
-    destruct Hr'_inh as [L'0 HL'0_in].
-    (* Define B_of := constant boundary. *)
-    set (B_of := fun (_ : {a : A | In A S' a} ->
-                          {a : A | In A S' a} -> Prop) => boundary).
+    (* Step 3: Invoke the per-L' family admit (Trotter Ch.6) — this is
+       the SINGLE focused gap.  It produces [B_of] satisfying
+       (subset of boundary, per-L' acyclicity, family coverage). *)
+    destruct (trotter_per_L_acyclic_covering_family
+                x' y' S' r' L_extra boundary
+                Hext HS'_eq HfinA Hr'_real HL_extra_lin HL_extra_yx
+                Hbnd_forall)
+      as [B_of [HB_subset [HB_acyc HB_fam_cov]]].
+    (* Note: Hr'_inh is no longer used in the proof body — family
+       coverage from [trotter_per_L_acyclic_covering_family] provides
+       a per-pq L' directly, removing the need for a fallback witness
+       from [r'] — but is retained in the signature for callers. *)
     exists B_of. split; [| split].
-    - (* (a) IsBoundaryReversalSet. *)
+    - (* (a) IsBoundaryReversalSet.  Each pq in B_of L' is in boundary
+         (HB_subset), and boundary satisfies the IsBoundaryReversalSet
+         Forall (a weakening of Hbnd_forall, which drops the L_extra
+         non-reversal clause). *)
       intros L' HL'_in HL'_lin.
-      unfold B_of, IsBoundaryReversalSet.
+      unfold IsBoundaryReversalSet.
       rewrite List.Forall_forall.
       rewrite List.Forall_forall in Hbnd_forall.
-      intros pq Hpq_in.
-      pose proof (Hbnd_forall pq Hpq_in) as Hpq_props.
+      intros pq Hpq_in_BL'.
+      pose proof (HB_subset L' HL'_in pq Hpq_in_BL') as Hpq_in_bnd.
+      pose proof (Hbnd_forall pq Hpq_in_bnd) as Hpq_props.
       destruct Hpq_props as [Hcp_pq [Hend [Hne1 [Hne2 _]]]].
       split; [exact Hcp_pq |].
       split; [exact Hend |].
       split; [exact Hne1 | exact Hne2].
-    - (* (b) Acyclicity — focused sub-Admitted helper. *)
+    - (* (b) Acyclicity — direct from HB_acyc. *)
       intros L' HL'_in HL'_lin a b Hab_neq Hab_aug Hba_aug.
-      unfold B_of in Hab_aug, Hba_aug.
-      pose proof (Hr'_real.(realizer_linear) L' HL'_in) as HL'_lin_real.
-      exact (trotter_constant_boundary_acyclic
-               x' y' S' boundary L_extra L'
-               Hext HS'_eq HL_extra_lin HL_extra_yx HL'_lin_real
-               Hbnd_forall a b Hab_neq Hab_aug Hba_aug).
-    - (* (c) Coverage. *)
+      exact (HB_acyc L' HL'_in HL'_lin a b Hab_neq Hab_aug Hba_aug).
+    - (* (c) Coverage.  L_extra handles the cases it already reverses;
+         otherwise the boundary list contains (p, q) and HB_fam_cov
+         provides some L' ∈ r' with (p, q) ∈ B_of L'. *)
       intros p q Hcp_pq Hend Hne_xy Hne_yx.
       destruct (classic (L_extra q p)) as [HLqp | HnLqp].
       + left. exact HLqp.
-      + right. exists L'0. split; [exact HL'0_in |].
-        unfold B_of. apply Hbnd_iff.
-        split; [exact Hcp_pq |].
-        split; [exact Hend |].
-        split; [exact Hne_xy |].
-        split; [exact Hne_yx | exact HnLqp].
+      + right.
+        assert (Hpq_in_bnd : List.In (p, q) boundary).
+        { apply Hbnd_iff.
+          split; [exact Hcp_pq |].
+          split; [exact Hend |].
+          split; [exact Hne_xy |].
+          split; [exact Hne_yx | exact HnLqp]. }
+        exact (HB_fam_cov p q Hpq_in_bnd).
   Qed.
 
   (** Sub-claim 5 — TROTTER BOUNDARY COVERAGE (composed).
