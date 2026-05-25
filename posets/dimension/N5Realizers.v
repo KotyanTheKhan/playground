@@ -15,6 +15,91 @@ From Dimension Require Import DimDefs CriticalPairs Szpilrajn Theorems.
 From ZornsLemma Require Import FiniteTypes EnsemblesExplicit.
 From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts.
 
+(** ** Tactics for the n=5 dispatcher cascade
+
+    The dispatcher cascade discharges ~80 isomorphism classes for
+    posets on a 5-element carrier.  Most cascade branches close
+    [Hno_fourth] sub-goals by witnessing some upstream [Hn<class>]
+    hypothesis with the five carrier elements [p, q, r, s, t].  The
+    witnessing pattern is mechanical:
+
+      - 10 [a <> b] distinctness obligations (either available
+        directly or via [symmetry]).
+      - A handful of [R2 a b] edge obligations (available locally).
+      - One [forall u v, R2 u v -> u = v \/ ...] closure obligation,
+        which is dispatched by classical case-analysis on whether
+        [(u, v)] matches each named edge, then falling through to
+        [Hno_fourth]. *)
+
+(** Discharge a distinctness obligation [a <> b] using whichever
+    direction is in context.  Falls back to plain [assumption]. *)
+Ltac n5_neq_assumption :=
+  first
+    [ assumption
+    | (let Heq := fresh "Heq" in
+       intro Heq; symmetry in Heq; revert Heq; assumption)
+    ].
+
+(** Solve the head of an [exists a b c d e, ...] obligation built from
+    a chain of [/\] conjuncts of distinctness, edges, and a trailing
+    [forall] closure.  The user supplies the 5 witnesses; [repeat split]
+    fans out the conjuncts and [n5_neq_assumption] discharges
+    distinctness sub-goals while plain [assumption] handles edges. *)
+Ltac n5_split_witness w1 w2 w3 w4 w5 :=
+  exists w1, w2, w3, w4, w5;
+  repeat (split; [ first [ n5_neq_assumption | assumption ] |]);
+  first [ n5_neq_assumption | assumption | idtac ].
+
+(** Close the trailing [forall u v, R2 u v -> u = v \/ branches...]
+    obligation of a [Hn<class>] witness, where [branches] is a
+    disjunction of [(u = a_i /\ v = b_i)] clauses.  At each step,
+    classically decide whether [(u, v)] matches the current edge; if
+    so, prove that branch; otherwise descend into the right disjunct.
+    Once all named edges are exhausted, fall through to [Hno_fourth]
+    (or analogously named "no further edge" hypothesis), which asserts
+    no extra edge exists. *)
+Ltac n5_close_forall_step :=
+  match goal with
+  | [ |- _ \/ _ ] =>
+      let Heq := fresh "Heq" in
+      let Hne := fresh "Hne" in
+      first
+        [ left; split; reflexivity
+        | right; n5_close_forall_step
+        | (* Fall-through: caller's responsibility. *) idtac ]
+  end.
+
+Ltac n5_close_forall_via Hno_fourth :=
+  let u := fresh "u" in
+  let v := fresh "v" in
+  let HRuv := fresh "HRuv" in
+  let Heq := fresh "Heq" in
+  let Huv_neq := fresh "Huv_neq" in
+  intros u v HRuv;
+  destruct (classic (u = v)) as [Heq | Huv_neq];
+    [left; exact Heq |];
+  right;
+  (* Recursively decide each named-edge case. *)
+  repeat
+    (match goal with
+     | [ |- (u = ?a /\ v = ?b) \/ _ ] =>
+         let Hcase := fresh "Hcase" in
+         let Hnot := fresh "Hnot" in
+         destruct (classic (u = a /\ v = b)) as [Hcase | Hnot];
+         [ left; exact Hcase | right ]
+     | [ |- u = ?a /\ v = ?b ] =>
+         let Hcase := fresh "Hcase" in
+         let Hnot := fresh "Hnot" in
+         destruct (classic (u = a /\ v = b)) as [Hcase | Hnot];
+         [ exact Hcase | ]
+     end);
+  (* Fall-through: contradict Hno_fourth using HRuv and the accumulated
+     Hnot* hypotheses. *)
+  exfalso; apply Hno_fourth;
+  exists u, v;
+  repeat (split; [ first [ exact Huv_neq | exact HRuv | assumption ] |]);
+  first [ exact Huv_neq | exact HRuv | assumption ].
+
 (** Helper for [n5_one_edge_two_realizer]: when [Full_set B] has
     cardinal 5, extract 5 pairwise distinct elements and confirm that
     every element of [B] equals one of them.  Follows the same pattern
@@ -30372,35 +30457,8 @@ Proof.
             split; [exact HRpt |].
             intros [_ Htq]; apply Hqt_neq; symmetry; exact Htq.
           - exfalso. apply HnVc.
-            exists p, q, t, r, s.
-            split; [exact Hpq_neq |].
-            split; [exact Hpt_neq |].
-            split; [exact Hpr_neq |].
-            split; [exact Hps_neq |].
-            split; [exact Hqt_neq |].
-            split; [exact Hqr_neq |].
-            split; [exact Hqs_neq |].
-            split; [intro Htr_eq; apply Hrt_neq; symmetry; exact Htr_eq |].
-            split; [intro Hts_eq; apply Hst_neq; symmetry; exact Hts_eq |].
-            split; [exact Hrs_neq |].
-            split; [exact HRpq |].
-            split; [exact HRpt |].
-            split; [exact HRxy |].
-            intros u v HRuv.
-            destruct (classic (u = v)) as [Heq | Huv_neq];
-              [left; exact Heq |].
-            right.
-            destruct (classic (u = p /\ v = q)) as [Hupq | Hnot_upq];
-              [left; exact Hupq |].
-            destruct (classic (u = p /\ v = t)) as [Hupt | Hnot_upt];
-              [right; left; exact Hupt |].
-            destruct (classic (u = r /\ v = s)) as [Hurs | Hnot_urs];
-              [right; right; exact Hurs |].
-            exfalso. apply Hno_fourth.
-            exists u, v. split; [exact Huv_neq |].
-            split; [exact HRuv |].
-            split; [exact Hnot_upq |].
-            split; [exact Hnot_upt |]. exact Hnot_urs. }
+            n5_split_witness p q t r s.
+            n5_close_forall_via Hno_fourth. }
         (* Sub-case (f): third edge is [(t, q)].  Inv-V at [q] with bottoms
            [p], [t], plus chain [r < s].  Contradicts [HninvVc]. *)
         destruct (classic (R2 t q)) as [HRtq | HnRtq].
@@ -30418,35 +30476,8 @@ Proof.
             split; [exact HRtq |].
             intros [Htp _]; apply Hpt_neq; symmetry; exact Htp.
           - exfalso. apply HninvVc.
-            exists p, t, q, r, s.
-            split; [exact Hpt_neq |].
-            split; [exact Hpq_neq |].
-            split; [exact Hpr_neq |].
-            split; [exact Hps_neq |].
-            split; [intro Htq_eq; apply Hqt_neq; symmetry; exact Htq_eq |].
-            split; [intro Htr_eq; apply Hrt_neq; symmetry; exact Htr_eq |].
-            split; [intro Hts_eq; apply Hst_neq; symmetry; exact Hts_eq |].
-            split; [exact Hqr_neq |].
-            split; [exact Hqs_neq |].
-            split; [exact Hrs_neq |].
-            split; [exact HRpq |].
-            split; [exact HRtq |].
-            split; [exact HRxy |].
-            intros u v HRuv.
-            destruct (classic (u = v)) as [Heq | Huv_neq];
-              [left; exact Heq |].
-            right.
-            destruct (classic (u = p /\ v = q)) as [Hupq | Hnot_upq];
-              [left; exact Hupq |].
-            destruct (classic (u = t /\ v = q)) as [Hutq | Hnot_utq];
-              [right; left; exact Hutq |].
-            destruct (classic (u = r /\ v = s)) as [Hurs | Hnot_urs];
-              [right; right; exact Hurs |].
-            exfalso. apply Hno_fourth.
-            exists u, v. split; [exact Huv_neq |].
-            split; [exact HRuv |].
-            split; [exact Hnot_upq |].
-            split; [exact Hnot_utq |]. exact Hnot_urs. }
+            n5_split_witness p t q r s.
+            n5_close_forall_via Hno_fourth. }
         (* Sub-case (g): third edge is [(r, t)].  V at [r] with leaves [s],
            [t], plus chain [p < q].  Contradicts [HnVc]. *)
         destruct (classic (R2 r t)) as [HRrt | HnRrt].
