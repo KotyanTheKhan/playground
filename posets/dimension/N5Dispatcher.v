@@ -5042,6 +5042,23 @@ Proof.
     split; [exact Hnot_upq |]. exact Hnot_uts.
 Qed.
 
+(** Micro-case (i) of the second-edge cascade inside the residual handler:
+    if the second strict edge is [(q, p)] then antisymmetry against
+    [R2 p q] forces [p = q], contradicting [p <> q].  Routes to [False],
+    so the residual realizer-existence goal follows by [exfalso]. *)
+Lemma n5_dispatcher_microcase_i :
+  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+    (p q : B)
+    (Hpq_neq : p <> q)
+    (HRpq : R2 p q)
+    (HRqp : R2 q p),
+  False.
+Proof.
+  intros B R2 HR2 p q Hpq_neq HRpq HRqp.
+  apply Hpq_neq.
+  exact (HR2.(poset_antisym) p q HRpq HRqp).
+Qed.
+
 Lemma n5_nonantichain_nonchain_two_realizer :
   forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2},
   cardinal B (Full_set B) 5 ->
@@ -6921,12 +6938,12 @@ Proof.
                      [Hqr_neq [Hqs_neq [Hqt_neq
                      [Hrs_neq [Hrt_neq [Hst_neq Hcov5]]]]]]]]]]]].
     destruct Hother as [x [y [Hxy_neq [HRxy Hnot_pq]]]].
-    (* Micro-case (i): if the second edge is [(q, p)], antisymmetry kills it. *)
+    (* Micro-case (i): if the second edge is [(q, p)], antisymmetry kills it
+       (delegated to [n5_dispatcher_microcase_i]). *)
     destruct (classic (x = q /\ y = p)) as [[Hxq Hyp] | Hnot_qp].
     { exfalso.
       subst x y.
-      apply Hpq_neq.
-      exact (HR2.(poset_antisym) p q HRpq HRxy). }
+      exact (@n5_dispatcher_microcase_i B R2 HR2 p q Hpq_neq HRpq HRxy). }
     (* Micro-case (ii): second edge is [(r, s)] — delegated to
        [n5_dispatcher_microcase_ii] (Qed-closed). *)
     destruct (classic (x = r /\ y = s)) as [[Hxr Hys] | Hnot_rs].
