@@ -7,12 +7,11 @@
       residual catch-all (single TODO).
     - [n5_dispatcher_microcase_i] — single-fact lemma routing the (q, p)
       branch to antisymmetry-against-[HRpq] contradiction.
-    - [n5_dispatcher_microcase_ii] .. [n5_dispatcher_microcase_vii] —
-      Qed-closed handlers for the second-edge cascade branches (r, s),
-      (s, r), (r, t), (t, r), (s, t), and (t, s) respectively.
+    - [n5_dispatcher_microcase_ii] .. [n5_dispatcher_microcase_xiv] —
+      Qed-closed handlers for the second-edge cascade branches.
       Extracted from the dispatcher to split its giant Qed into
       independently-compilable proof terms.  Partial progress on the
-      broader refactor: micro-cases (viii)–(xix) of the same second-
+      broader refactor: micro-cases (xv)–(xix) of the same second-
       edge cascade remain inline inside
       [n5_nonantichain_nonchain_two_realizer] and contribute the bulk
       of its compile time.
