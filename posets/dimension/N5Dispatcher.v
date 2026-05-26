@@ -5,6 +5,14 @@
 
     - [n5_residual_classes_two_realizer] — focused [Admitted] for the
       residual catch-all (single TODO).
+    - [n5_dispatcher_microcase_ii], [n5_dispatcher_microcase_iii] —
+      Qed-closed handlers for the second-edge cascade branches (r, s)
+      and (s, r) respectively.  Extracted from the dispatcher to split
+      its giant Qed into independently-compilable proof terms.  Partial
+      progress on the broader refactor: micro-cases (iv)–(xix) of the
+      same second-edge cascade remain inline inside
+      [n5_nonantichain_nonchain_two_realizer] and contribute the bulk
+      of its compile time.
     - [n5_nonantichain_nonchain_two_realizer] — the dispatcher that
       pattern-matches each Qed-closed isomorphism class lemma in
       N5Realizers.v, falling through to [n5_residual_classes_two_realizer]
