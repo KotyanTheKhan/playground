@@ -1,8 +1,17 @@
-# Plan: Close the 2 Remaining Admits
+# Plan: Close the 2 Remaining Admits — Session-by-Session
 
 **Date:** 2026-05-28
-**Goal:** Reduce admit count from 2 to 0.
+**Goal:** Reduce admit count from 2 to 0 across multiple multi-hour sessions.
 **Constraint:** Each new file must compile in <5 minutes. No file >500 lines.
+
+---
+
+## Session-based structure
+
+Each session below is **2-4 hours of focused work** with a SINGLE clear deliverable. Sessions are designed so that:
+- Each ends with a committed, building Coq state.
+- The next session can start cold with only the plan + commit hash.
+- Sessions within a track build on each other; sessions across tracks are independent.
 
 ---
 
@@ -12,220 +21,366 @@
 
 1. **`trotter_coverage_via_extremality`** (RemovablePairs.v:1688)
    - Claims: for every `(p, q) ∈ boundary`, there exists `L' ∈ r'` with `(p, q) ∈ greedy_acyclic_subset S' x' y' L' nil boundary`.
-   - This is the deep Trotter Ch.6 Theorem 6.1 coverage step.
+   - Trotter Ch.6 Theorem 6.1 coverage step.
 
 2. **`n5_residual_classes_two_realizer`** (N5DispatcherShapes.v:38)
    - Catch-all for n=5 non-antichain non-chain configurations the dispatcher cascade doesn't enumerate.
    - 276 call sites across N5Dispatcher_*.v files.
 
-### Approaches considered
+### Approaches chosen
 
-**For Trotter:**
-- **Direct Trotter Ch.6 formalization** — long path, multi-week.
-- **Structural induction on boundary list** — recursive contradiction.
-- **CP-refinement chain argument** — uses extremality directly.
+- **For Trotter:** CP-refinement chain. If (p, q) excluded by greedy for L', there's a "shadow" CP (p', q') with R p' p ∧ R q q' already in the accumulator. By extremality, this chain terminates at (x', y'). Coverage follows.
 
-**Chosen approach:** CP-refinement chain. Trotter's actual argument: if (p, q) is excluded by greedy for some L', then there's a CP (p', q') with R p' p AND R q q' that was already in the accumulator. By extremality, this chain of refinements must terminate, contradicting "excluded by every L'".
-
-**For n5_residual:**
-- **Per-call-site closure** — 276 sites, infeasible manually.
-- **Edge-count exhaustiveness theorem** — single meta-lemma routing all call sites.
-- **Direct construction of removable pair** — circular with Hiraguchi.
-
-**Chosen approach:** Edge-count exhaustiveness. Define a counter function, prove `forall R2 on 5 elements with ≥2 strict edges, edge_count(R2) ∈ {2, 3, ..., 9}` and for each count exhaustively case-split into named iso classes.
+- **For n5_residual:** Edge-count exhaustiveness. Count strict edges, exhaustively case-split into named iso classes for each count.
 
 ---
 
-## File structure (avoid long compiles)
+## File structure
 
 ```
 posets/dimension/
   Trotter/                           ← NEW subdirectory
-    CoverageRefinement.v             — CP-refinement preorder lemmas (~200 lines)
-    GreedyExcluded.v                 — Greedy exclusion implies cycle (~250 lines)
-    CycleStructure.v                 — Cycle analysis under acyclicity invariant (~300 lines)
-    ExtremalityContradiction.v       — Termination via extremal CP (~250 lines)
-    CoverageProof.v                  — Main Qed proof of trotter_coverage_via_extremality (~150 lines)
-  
+    CoverageRefinement.v
+    GreedyExcluded.v
+    CycleStructure.v
+    ExtremalityContradiction.v
+    CoverageProof.v
   N5Exhaustive/                      ← NEW subdirectory
-    EdgeCount.v                      — Define edge_count + bounds (~150 lines)
-    EdgeCount1.v                     — n=5, ec=1 case: route to n5_one_edge (~100 lines)
-    EdgeCount2.v                     — n=5, ec=2 case: V/inv-V/disjoint (~250 lines)
-    EdgeCount3.v                     — n=5, ec=3 case (~400 lines)
-    EdgeCount4.v                     — n=5, ec=4 case (~400 lines)
-    EdgeCount5.v                     — n=5, ec=5 case (~400 lines)
-    EdgeCount6_9.v                   — n=5, ec=6..9 case (smaller — denser posets) (~400 lines)
-    Exhaustive.v                     — Main Qed of n5_residual_classes_two_realizer (~150 lines)
+    EdgeCount.v
+    EdgeCount1.v
+    EdgeCount2.v
+    EdgeCount3.v
+    EdgeCount4.v
+    EdgeCount5.v
+    EdgeCount6_9.v
+    Exhaustive.v
 ```
 
 Each file independent (parallel compilation), each <500 lines, no Qed exceeds 30 min.
 
 ---
 
-## Phase T (Trotter) — 5 sub-files
+# Track N (n5_residual) — 9 sessions
 
-### Phase T1: CoverageRefinement.v
+**Per-session time: 2-3 hours.** Sessions can be done in any order EXCEPT N9 (must be last).
 
-**Goal:** Formalize the CP-refinement preorder needed for termination.
+## Session N1: Edge counter + bounds (2 hours)
 
-- Re-import `cp_le`, `cp_le_refl`, `cp_le_trans` from `CriticalPairDigraph.v`.
-- Prove `cp_le_finite_chain_terminates`: any chain of `cp_le`-strict refinements on a finite poset terminates.
-- Prove `cp_le_strict_irreflexive_under_extremality`: under `IsExtremalCP R x' y'`, the strict refinement preorder has no cycle.
+**Goal:** Define `edge_count_5` and prove its basic properties.
 
-**Tasks:**
-- [ ] Define `cp_le_strict` (strict version of `cp_le`).
-- [ ] Prove `cp_le_strict_acyclic_via_extremality` (Qed).
-- [ ] Prove well-foundedness of `cp_le_strict`.
+**File:** `posets/dimension/N5Exhaustive/EdgeCount.v` (~150 lines)
 
-### Phase T2: GreedyExcluded.v
+**Deliverables (all Qed):**
+- [ ] `edge_count_5 : (B -> B -> Prop) -> B -> B -> B -> B -> B -> nat` — sums 20 indicators for ordered pairs (a,b), (b,a), (a,c), etc.
+- [ ] `edge_count_5_le_10`: with antisymmetry, count ≤ 10 (each unordered pair contributes at most 1).
+- [ ] `non_antichain_iff_edge_count_pos`: `~ (forall a b, R2 a b -> a = b) <-> edge_count_5 R2 a b c d e >= 1`.
+- [ ] `non_chain_iff_edge_count_lt_10`: similar.
 
-**Goal:** Characterize when greedy excludes a pair.
+**Exit criteria:**
+- File compiles in <5 min.
+- 4 Qed lemmas committed.
+- `mise build` green.
 
-**Statement:** `greedy_acyclic_subset` excludes `(p, q)` iff adding `(p, q)` to the current accumulator creates a cycle in `aug_step L' acc`.
+**Session entry:** Read commit `0b7eb2b` plan. Start fresh, no context needed beyond Coq Stdlib + project headers.
 
-**Tasks:**
-- [ ] Prove `greedy_excludes_iff_creates_cycle` (Qed).
-- [ ] Prove a cycle in `aug_step` implies existence of a specific structural pattern (involving R-paths + L'-lift paths).
+**Session commit:** `feat(N5Exhaustive): edge counter for 5-element posets`.
 
-### Phase T3: CycleStructure.v
+---
 
-**Goal:** Analyze the structure of cycles in `aug_step`.
+## Session N2: Edge count = 1 case (1 hour)
 
-**Statement:** A cycle in `aug_step L' acc` with `(p, q)` involves a "shadow" CP `(p', q')` such that `R p' p ∧ R q q'`.
+**Goal:** Prove that with exactly 1 strict edge, R2 matches `n5_one_edge_two_realizer`.
 
-**Tasks:**
-- [ ] Define `shadow_cp` predicate.
-- [ ] Prove `cycle_implies_shadow_cp` (Qed).
-- [ ] Prove `shadow_cp_in_accumulator`: the shadow CP is already in `acc`.
+**File:** `posets/dimension/N5Exhaustive/EdgeCount1.v` (~100 lines)
 
-### Phase T4: ExtremalityContradiction.v
+**Deliverables:**
+- [ ] Lemma `n5_edge_count_1_two_realizer` (Qed): if `edge_count_5 = 1`, applies `n5_one_edge_two_realizer`.
 
-**Goal:** Use extremality to bound shadow-CP chains.
+**Exit criteria:** File compiles in <5 min. 1 Qed.
 
-**Statement:** If `(p, q)` is excluded by every `L'`, the shadow-CP chain leads to `(x', y')`, which by extremality means `(p, q) = (x', y')` — but `(x', y') ∉ boundary` (excluded).
+**Session commit:** `feat(N5Exhaustive): edge_count = 1 closes via one_edge`.
 
-**Tasks:**
-- [ ] Prove `shadow_chain_terminates_at_extremal` (Qed).
-- [ ] Prove `(x', y') ∉ boundary` (definitionally).
-- [ ] Derive `False` from excluded-by-every-L' assumption.
+---
 
-### Phase T5: CoverageProof.v
+## Session N3: Edge count = 2 case (3 hours)
+
+**Goal:** With 2 strict edges, R2 is V-shape, ∧-shape, or 2 disjoint edges.
+
+**File:** `posets/dimension/N5Exhaustive/EdgeCount2.v` (~250 lines)
+
+**Deliverables:**
+- [ ] Sub-lemma: 2 edges sharing source → V-shape → apply `n5_V_plus_2isolated_two_realizer`.
+- [ ] Sub-lemma: 2 edges sharing target → ∧-shape.
+- [ ] Sub-lemma: 2 disjoint edges → `n5_disjoint_chains_plus_isolated_two_realizer`.
+- [ ] Main lemma `n5_edge_count_2_two_realizer` combining them.
+
+**Exit criteria:** File compiles in <5 min. 4 Qed lemmas.
+
+**Session commit:** `feat(N5Exhaustive): edge_count = 2 case complete`.
+
+---
+
+## Session N4: Edge count = 3 case (3 hours)
+
+**Goal:** With 3 strict edges, R2 is chain-3, N-shape, 3-claw-up, or 3-claw-down.
+
+**File:** `posets/dimension/N5Exhaustive/EdgeCount3.v` (~400 lines)
+
+**Deliverables:**
+- [ ] 4 sub-lemmas (one per iso class).
+- [ ] Main `n5_edge_count_3_two_realizer`.
+
+**Exit criteria:** File compiles in <10 min. Multiple Qed lemmas.
+
+**Session commit:** `feat(N5Exhaustive): edge_count = 3 case complete`.
+
+---
+
+## Session N5: Edge count = 4 case (3 hours)
+
+**Goal:** 4 edges → bowtie, chain3+below, chain3+above, or other shapes.
+
+**File:** `posets/dimension/N5Exhaustive/EdgeCount4.v` (~400 lines)
+
+**Same structure as N4.**
+
+**Session commit:** `feat(N5Exhaustive): edge_count = 4 case complete`.
+
+---
+
+## Session N6: Edge count = 5 case (3 hours)
+
+**Goal:** 5 edges → diamond, Y-shapes, etc.
+
+**File:** `posets/dimension/N5Exhaustive/EdgeCount5.v` (~400 lines)
+
+**Session commit:** `feat(N5Exhaustive): edge_count = 5 case complete`.
+
+---
+
+## Session N7: Edge counts 6-9 combined (3 hours)
+
+**Goal:** Handle denser posets (close to chain).
+
+**File:** `posets/dimension/N5Exhaustive/EdgeCount6_9.v` (~400 lines)
+
+**Deliverables:**
+- [ ] Case ec=6: usually chain4 + variant.
+- [ ] Case ec=7-9: progressively denser; use existing per-class lemmas (chain4_pendant, etc.).
+
+**Session commit:** `feat(N5Exhaustive): edge_count 6-9 cases complete`.
+
+---
+
+## Session N8: Compose into exhaustiveness theorem (2 hours)
+
+**Goal:** Combine N1-N7 into the final lemma.
+
+**File:** `posets/dimension/N5Exhaustive/Exhaustive.v` (~150 lines)
+
+**Deliverables:**
+- [ ] `n5_residual_exhaustive` (Qed): the main exhaustiveness theorem.
+  - Statement: same as `n5_residual_classes_two_realizer`'s claim.
+  - Proof: extract elements, compute `edge_count_5`, case-split on value, apply N2-N7 sub-lemmas.
+
+**Session commit:** `feat(N5Exhaustive): main exhaustiveness theorem (Qed)`.
+
+---
+
+## Session N9: Replace the admit (1 hour)
+
+**Goal:** Replace `n5_residual_classes_two_realizer` Admitted with Qed via N8.
+
+**Files modified:** `posets/dimension/N5DispatcherShapes.v`.
+
+**Deliverables:**
+- [ ] Remove `Admitted.` of `n5_residual_classes_two_realizer`.
+- [ ] Replace with `Proof. exact n5_residual_exhaustive. Qed.` (or direct port).
+- [ ] Verify `mise build` green.
+- [ ] Verify the 276 call sites still resolve.
+
+**Session commit:** `refactor(N5DispatcherShapes): close residual admit via N5Exhaustive`.
+
+**MAJOR MILESTONE:** N5 admit closed. 2 → 1 admit.
+
+---
+
+# Track T (Trotter) — 5 sessions
+
+**Per-session time: 2-4 hours.** Sessions T1-T4 must be done in order. T5 last.
+
+## Session T1: CP-refinement preorder + well-foundedness (3 hours)
+
+**Goal:** Set up the structural framework for Trotter's termination argument.
+
+**File:** `posets/dimension/Trotter/CoverageRefinement.v` (~200 lines)
+
+**Deliverables (all Qed):**
+- [ ] `cp_le_strict`: strict variant of `cp_le` (use existing `cp_le` from CriticalPairDigraph.v).
+- [ ] `cp_le_strict_irreflexive`: `cp_le_strict x y -> x <> y`.
+- [ ] `cp_le_strict_finite_chain_terminates`: any chain x1 ≺ x2 ≺ ... in `cp_le_strict` on a finite poset is finite.
+- [ ] (Optional) `well_founded cp_le_strict`.
+
+**Strategy:** Use `Finite` + induction on cardinality. Each step in a `cp_le_strict` chain strictly reduces the count of unvisited CPs above (or below) the current pair.
+
+**Exit criteria:** File compiles in <5 min. ≥3 Qed.
+
+**Session commit:** `feat(Trotter): CP-refinement preorder + finite termination`.
+
+---
+
+## Session T2: Greedy exclusion characterization (3 hours)
+
+**Goal:** Show `greedy_acyclic_subset` excludes `(p, q)` only when adding it would create a cycle.
+
+**File:** `posets/dimension/Trotter/GreedyExcluded.v` (~250 lines)
+
+**Deliverables:**
+- [ ] `greedy_excluded_iff_cycle`: `(p, q) ∉ greedy ... boundary ↔ adding (q, p) creates a cycle in aug_step acc`.
+- [ ] `cycle_at_step_implies_witness`: when a cycle exists, there's a concrete path through the augmented relation.
+
+**Strategy:** Induction on the boundary list in the Fixpoint definition.
+
+**Exit criteria:** File compiles in <10 min. ≥2 Qed.
+
+**Session commit:** `feat(Trotter): greedy exclusion ↔ cycle characterization`.
+
+---
+
+## Session T3: Cycle structure analysis (4 hours)
+
+**Goal:** Characterize the structure of cycles in `aug_step L' acc`.
+
+**File:** `posets/dimension/Trotter/CycleStructure.v` (~300 lines)
+
+**Deliverables:**
+- [ ] `cycle_implies_shadow_cp`: a cycle through `(q, p)` in aug_step exposes a CP `(p', q')` with `R p' p ∧ R q q'`.
+- [ ] `shadow_cp_in_accumulator`: the shadow CP was already added to acc by the greedy step.
+
+**Strategy:** Case-analyze the cycle's edges. R-edges go "up", L'-lift edges respect L'-order, the `(x', y')` edge is fixed. Any cycle must contain at least one R-edge and one L'-lift edge crossing the boundary CP.
+
+**Exit criteria:** File compiles in <15 min. ≥2 Qed.
+
+**Session commit:** `feat(Trotter): cycle structure via shadow CP`.
+
+---
+
+## Session T4: Extremality contradiction (3 hours)
+
+**Goal:** Close the loop: shadow CP chain + extremality → False.
+
+**File:** `posets/dimension/Trotter/ExtremalityContradiction.v` (~250 lines)
+
+**Deliverables:**
+- [ ] `shadow_chain_terminates_at_extremal`: iterating the shadow CP relationship hits `(x', y')` (via extremality).
+- [ ] `excluded_by_all_iff_chain_to_extremal`: `(p, q)` excluded by every L' iff there's a chain from `(p, q)` to `(x', y')` in CP-refinement.
+- [ ] `cp_chain_to_extremal_means_eq`: by extremality, any chain ending at `(x', y')` started at `(x', y')`.
+- [ ] Final contradiction: `(p, q) ∈ boundary` excludes `(x', y')`, so the chain has length > 0, but extremality forces `(p, q) = (x', y')`. Contradiction.
+
+**Exit criteria:** File compiles in <10 min. ≥3 Qed.
+
+**Session commit:** `feat(Trotter): extremality contradiction for excluded-by-all`.
+
+---
+
+## Session T5: Main coverage proof (2 hours)
 
 **Goal:** Compose T1-T4 into the main lemma.
 
-**Tasks:**
-- [ ] Replace `trotter_coverage_via_extremality` Admitted with Qed proof using sub-lemmas.
-- [ ] Update RemovablePairs.v to import the new module.
-- [ ] Verify `mise build` green.
+**File:** `posets/dimension/Trotter/CoverageProof.v` (~150 lines)
+
+**Deliverables:**
+- [ ] `trotter_coverage_main` (Qed): the statement of `trotter_coverage_via_extremality` proven via T1-T4.
+
+**Then:** modify `posets/dimension/RemovablePairs.v`:
+- [ ] Replace the `Admitted.` of `trotter_coverage_via_extremality` with `Proof. exact trotter_coverage_main. Qed.`
+- [ ] Update imports.
+
+**Session commit:** `refactor(RemovablePairs): close trotter_coverage_via_extremality (Qed)`.
+
+**MAJOR MILESTONE:** Trotter admit closed. 1 → 0 admits.
 
 ---
 
-## Phase N (n5_residual) — 8 sub-files
+# Cross-track session N8/T5 (final integration, 1 hour)
 
-### Phase N1: EdgeCount.v
+After BOTH tracks complete:
 
-**Goal:** Define edge counter for 5-element posets.
+**Goal:** Verify everything is clean.
 
-```coq
-Definition edge_count_5 (R2 : B -> B -> Prop) (a b c d e : B) : nat :=
-  (if excluded_middle_informative (R2 a b /\ a <> b) then 1 else 0) +
-  (if excluded_middle_informative (R2 a c /\ a <> c) then 1 else 0) +
-  ... (* 20 ordered pairs *)
-```
-
-**Tasks:**
-- [ ] Define `edge_count_5`.
-- [ ] Prove `edge_count_5_bounds`: `0 <= edge_count_5 <= 20`.
-- [ ] Prove `edge_count_5_antisym`: with antisymmetry, count ≤ 10 (10 unordered pairs).
-- [ ] Prove `non_antichain_iff_edge_count_pos`.
-
-### Phase N2-N6: EdgeCount<k>.v for k ∈ {1, 2, 3, 4, 5}
-
-Each file proves: if `edge_count_5 R2 a b c d e = k` and `≥2 strict edges`, then ∃ realizer (2 elements).
-
-For each `k`, case-split on the structural pattern (V, ∧, disjoint, chain, etc.) and apply the matching per-class lemma from N5Realizers.v.
-
-**Tasks per file:**
-- [ ] State the lemma `n5_edge_count_<k>_two_realizer`.
-- [ ] Enumerate structural patterns at edge count k.
-- [ ] For each pattern, apply existing per-class lemma.
-
-### Phase N7: EdgeCount6_9.v
-
-Goal: handle edge counts 6, 7, 8, 9. These correspond to denser posets (close to chain).
-
-**Tasks:**
-- [ ] Combined enumeration for high edge counts.
-- [ ] Use chain-like routing.
-- [ ] Show 10 edges = chain (excluded by non-chain).
-
-### Phase N8: Exhaustive.v
-
-**Goal:** Compose N1-N7 into the main lemma.
-
-**Tasks:**
-- [ ] Restate `n5_residual_classes_two_realizer` here.
-- [ ] Extract 5 elements, compute edge_count_5.
-- [ ] Case-split: for each value in {2, 3, 4, 5, 6, 7, 8, 9}, apply corresponding sub-lemma.
-- [ ] Exclude impossible values (0 = antichain, 1 = excluded by hypothesis, 10 = chain).
-- [ ] Replace `N5DispatcherShapes.v` admit with import of this Qed lemma.
+**Deliverables:**
+- [ ] `grep -rn "Admitted\.$" posets/dimension/` returns nothing.
+- [ ] `mise build` green.
+- [ ] Update INDEX.md or top-level documentation.
+- [ ] Commit final state with explicit Qed verification.
 
 ---
 
-## Build-time discipline
+# Session execution playbook
 
-**Per-file budget:** ≤5 min compile.
+## Per-session checklist (start of session)
 
-**Strategies to keep files fast:**
-- Each Lemma's proof body ≤200 lines.
-- Avoid `n5_split_witness` / `n5_close_forall_via` (slow Ltac combinators — caused 100x slowdown earlier).
-- Use explicit `destruct (classic ...)` patterns.
-- One Qed per "task" listed above.
+1. `git pull` (or sync with last session's commit).
+2. `git status` clean.
+3. `mise build` should be green at start.
+4. Open the session's target file path; create with header.
+5. Read sibling files for context (e.g., relevant per-class lemmas).
 
-**Verification protocol:**
-- After each Qed addition: `opam exec -- dune build <file>.vo` with 5-min timeout.
-- If exceeds 5 min, split the Qed further.
+## Per-session checklist (end of session)
 
----
-
-## Risk register
-
-### Risk T-1: Trotter chain doesn't terminate in finite CP digraph
-The `cp_le_strict` chain might be infinite without additional hypotheses.
-**Mitigation:** finite cardinality + acyclicity of `cp_le` gives well-foundedness.
-
-### Risk T-2: Greedy exclusion ≠ cycle creation
-The exact characterization might differ from the stated equivalence.
-**Mitigation:** prove the direction we need (excluded → cycle exists) rather than iff.
-
-### Risk N-1: Edge-count classification misses iso classes
-Some edge counts may have iso classes that don't match any per-class lemma.
-**Mitigation:** Phase A1's Python enumeration already identified all 61 iso classes. Each edge-count bucket maps to a finite list of iso classes; verify completeness.
-
-### Risk N-2: Per-class lemma application requires permutation
-The per-class lemmas take canonical element orderings; routing may need element permutation.
-**Mitigation:** Use `exists` with the right permutation, leverage the per-class lemma's existential witness.
+1. Compile target file: `opam exec -- dune build <file>.vo` with 5-min timeout.
+2. If exceeds 5 min, split the file further.
+3. Run `mise build` (full project) — must remain green.
+4. Commit with the session's commit message.
+5. Update this plan: check off completed deliverables.
 
 ---
 
-## Execution order
+# Risk register & mitigations
 
-**Track T (Trotter)** and **Track N (n5)** are INDEPENDENT and can be done in parallel via separate worktrees if desired.
+### Risk T-1: cp_le chain doesn't terminate
+**Mitigation:** Show termination via finite cardinality + acyclicity. Worst case: split T1 into 2 sessions.
 
-**Recommended:** Track N first (more mechanical, faster wins). Then Track T.
+### Risk T-3: Cycle structure analysis is hairy
+**Mitigation:** Use case analysis on edge type. Each case ~30 lines. If T3 grows beyond 500 lines, split into T3a/T3b.
 
-**Phase ordering within each track:**
-- Track T: T1 → T2 → T3 → T4 → T5
-- Track N: N1 → (N2 through N7 in any order) → N8
+### Risk N-3/4/5/6/7: Edge-count cases don't cleanly map to iso classes
+**Mitigation:** Use Phase A1's Python enumeration data (already in `scripts/iso_classes_all.txt`) as ground truth. For each edge-count bucket, list the iso classes upfront.
+
+### Risk N-9 / T-5: Final composition reveals signature mismatches
+**Mitigation:** Each track ends with a "compose" session that's only 1-2 hours. Plenty of margin to adapt signatures.
 
 ---
 
-## Estimated effort
+# Total effort estimate
 
-- **Track N:** 8 files × ~30 min each = 4 hours.
-- **Track T:** 5 files × ~45 min each = ~4 hours.
-- **Total:** ~8 hours focused work.
+| Track | Sessions | Hours |
+|-------|----------|-------|
+| N (n5) | 9 | 23 hours |
+| T (Trotter) | 5 | 15 hours |
+| Final | 1 | 1 hour |
+| **Total** | **15** | **~39 hours** |
 
-If both tracks succeed: admit count drops 2 → 0.
+**At 1-2 sessions per day:** 8-15 days of focused work.
 
-If partial: each phase that closes is incremental progress (smaller admit).
+**Each session is independently committable** — partial progress always lands a green build.
+
+---
+
+# Stopping criteria
+
+- **Hard stop:** any session that exceeds its time budget by 2x → restructure (split into more sessions).
+- **Soft stop:** if 3 consecutive sessions in one track fail to converge → revisit the approach for that admit.
+- **Success:** `grep -rn "Admitted\.$" posets/dimension/` empty → DONE.
+
+---
+
+# Execution kickoff
+
+Start with **Session N1** (lowest-risk, foundational): build the edge counter.
+
+After N1 lands, parallel work possible: any N2-N7 can be done independently.
+
+After N9 lands (n5 admit closed), start Track T from T1.
+
+Document each session's completion in this file (check the boxes).
