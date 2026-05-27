@@ -35,7 +35,7 @@ Lemma n5_dispatcher_microcase_xvii_subcase_c :
             R2 a b /\ R2 b c /\ R2 a c /\ R2 d e /\
             (forall x y : B,
                R2 x y -> x = y \/
-               ((x = a /\ y = b) \/ (x = a /\ y = c) \/ (x = b /\ y = c) \/
+               ((x = a /\ y = b) \/ (x = b /\ y = c) \/ (x = a /\ y = c) \/
                 (x = d /\ y = e)))))
     (HnTopP :
        ~ (exists a b c d e : B,
@@ -273,10 +273,10 @@ Proof.
         right.
         destruct (classic (u = r /\ v = p)) as [Hurp | Hnot_urp];
           [left; exact Hurp |].
-        destruct (classic (u = r /\ v = q)) as [Hurq | Hnot_urq];
-          [right; left; exact Hurq |].
         destruct (classic (u = p /\ v = q)) as [Hupq | Hnot_upq];
-          [right; right; left; exact Hupq |].
+          [right; left; exact Hupq |].
+        destruct (classic (u = r /\ v = q)) as [Hurq | Hnot_urq];
+          [right; right; left; exact Hurq |].
         destruct (classic (u = s /\ v = t)) as [Hust | Hnot_ust];
           [right; right; right; exact Hust |].
         exfalso. apply Hno_fifth.
@@ -323,10 +323,10 @@ Proof.
         right.
         destruct (classic (u = r /\ v = p)) as [Hurp | Hnot_urp];
           [left; exact Hurp |].
-        destruct (classic (u = r /\ v = q)) as [Hurq | Hnot_urq];
-          [right; left; exact Hurq |].
         destruct (classic (u = p /\ v = q)) as [Hupq | Hnot_upq];
-          [right; right; left; exact Hupq |].
+          [right; left; exact Hupq |].
+        destruct (classic (u = r /\ v = q)) as [Hurq | Hnot_urq];
+          [right; right; left; exact Hurq |].
         destruct (classic (u = t /\ v = s)) as [Huts | Hnot_uts];
           [right; right; right; exact Huts |].
         exfalso. apply Hno_fifth.

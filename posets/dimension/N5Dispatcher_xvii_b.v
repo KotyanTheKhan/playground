@@ -36,7 +36,7 @@ Lemma n5_dispatcher_microcase_xvii_subcase_b :
             R2 a b /\ R2 b c /\ R2 a c /\ R2 d e /\
             (forall x y : B,
                R2 x y -> x = y \/
-               ((x = a /\ y = b) \/ (x = a /\ y = c) \/ (x = b /\ y = c) \/
+               ((x = a /\ y = b) \/ (x = b /\ y = c) \/ (x = a /\ y = c) \/
                 (x = d /\ y = e)))))
     (HnPd :
        ~ (exists a b c d e : B,
@@ -44,11 +44,11 @@ Lemma n5_dispatcher_microcase_xvii_subcase_b :
             b <> c /\ b <> d /\ b <> e /\
             c <> d /\ c <> e /\
             d <> e /\
-            R2 a b /\ R2 b c /\ R2 a c /\ R2 a d /\
+            R2 a b /\ R2 b c /\ R2 a d /\ R2 a c /\
             (forall x y : B,
                R2 x y -> x = y \/
                ((x = a /\ y = b) \/ (x = b /\ y = c) \/
-                (x = a /\ y = c) \/ (x = a /\ y = d)))))
+                (x = a /\ y = d) \/ (x = a /\ y = c)))))
     (HnTopP :
        ~ (exists a b c d e : B,
             a <> b /\ a <> c /\ a <> d /\ a <> e /\
