@@ -180,8 +180,8 @@ Proof.
       exact (HR2.(poset_antisym) p r HRxy HRrp). }
     (* (c) third edge = (q, r): delegated to N5Dispatcher_viii_c.v. *)
     destruct (classic (R2 q r)) as [HRqr_third | HnRqr_third].
-    { apply (n5_dispatcher_microcase_viii_subcase_c R2 Hcard Hnonantichain Hinc_ex
-               p q r s t
+    { apply (@n5_dispatcher_microcase_viii_subcase_c B R2 HR2 Hcard
+               Hnonantichain Hinc_ex p q r s t
                Hpq_neq Hpr_neq Hps_neq Hpt_neq Hqr_neq Hqs_neq Hqt_neq
                Hrs_neq Hrt_neq Hst_neq Hcov5 HRpq HRxy
                HnChain3 HnCC HnC4 HnPd HnYup HnYdn HnTopP
