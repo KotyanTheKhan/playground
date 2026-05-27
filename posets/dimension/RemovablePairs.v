@@ -1476,7 +1476,217 @@ Section RemovablePairs.
       [trotter_constant_boundary_acyclic] (deleted in Phase B6,
       2026-05-25), which asserted a FALSE statement (constant-list
       witness counter-example above).  The new admit is properly
-      L'-dependent and is mathematically true. *)
+      L'-dependent and is mathematically true.
+
+      PHASE B7 REFACTOR (2026-05-28).  Reduced the previously
+      monolithic [Admitted] to a FOCUSED coverage sub-admit
+      [trotter_coverage_via_extremality].  The per-L' family is now
+      constructed EXPLICITLY via the greedy maximal-subset construction
+      [greedy_acyclic_subset], and clauses (i) and (ii) are proved Qed.
+      The remaining gap (iii) is a tightly-scoped predicate about the
+      greedy subset wrt the L'-dependent acyclicity test, factored as
+      [trotter_coverage_via_extremality].  This isolates the deep
+      Trotter-extremality content in a single statement of minimal
+      surface area. *)
+
+  (** ===================================================================
+      Helper definitions for the per-L' family construction.
+      ===================================================================
+
+      We define the augmented step relation [aug_step] (4-clause) and
+      its acyclicity predicate [aug_acyclic] PARAMETRIZED by L' and a
+      candidate boundary subset B.  The per-L' family is then built by
+      walking [boundary] greedily, adding each pair only if doing so
+      preserves [aug_acyclic].  Clauses (i) and (ii) of the main lemma
+      then follow mechanically; clause (iii) — the deep
+      Trotter-extremality coverage — is factored as the focused admit
+      [trotter_coverage_via_extremality] below.
+
+      All these helpers are inside [Section RemovablePairs] so they
+      share the ambient context [R `{IsPoset A R}]. *)
+
+  (** [aug_step S' x' y' L' B]: the 4-clause augmented step relation
+      whose transitive closure is studied by Trotter Ch.6.  Adding a
+      pair [(p, q)] to [B] adds an edge [q → p] to the step relation. *)
+  Definition aug_step
+      (S' : Ensemble A) (x' y' : A)
+      (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+      (B : list (A * A)) (a b : A) : Prop :=
+    R a b
+    \/ (exists (ha : In A S' a) (hb : In A S' b),
+          L' (exist _ a ha) (exist _ b hb))
+    \/ (a = x' /\ b = y')
+    \/ List.In (b, a) B.
+
+  (** [aug_acyclic S' x' y' L' B]: the augmented relation is acyclic in
+      the sense that no pair of distinct points form a 2-cycle in
+      [clos_trans (aug_step ...)]. *)
+  Definition aug_acyclic
+      (S' : Ensemble A) (x' y' : A)
+      (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+      (B : list (A * A)) : Prop :=
+    forall a b, a <> b ->
+      clos_trans A (aug_step S' x' y' L' B) a b ->
+      clos_trans A (aug_step S' x' y' L' B) b a ->
+      False.
+
+  (** Acyclicity at [B = nil] for any L' that linearly extends Rsub.
+      Wraps [lift_and_force_is_poset] via the same bridge used in
+      [boundary_assignment_exists_weak]. *)
+  Lemma aug_acyclic_nil :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop),
+    IsCriticalPair R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    IsLinearExtension
+      (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+    aug_acyclic S' x' y' L' nil.
+  Proof.
+    intros x' y' S' L' Hcp HS'_eq HL' a b Hneq Hab Hba.
+    set (step3 := fun a b =>
+                    R a b
+                 \/ (exists (ha : In A S' a) (hb : In A S' b),
+                       L' (exist _ a ha) (exist _ b hb))
+                 \/ (a = x' /\ b = y')).
+    assert (Hbridge : forall u v, aug_step S' x' y' L' nil u v <-> step3 u v).
+    { intros u v. unfold step3, aug_step. simpl. tauto. }
+    assert (Hct_bridge : forall u v,
+              clos_trans A (aug_step S' x' y' L' nil) u v ->
+              clos_trans A step3 u v).
+    { intros u v Hct. induction Hct as [u v Huv | u w v Huw IHuw Hwv IHwv].
+      - apply t_step. apply Hbridge. exact Huv.
+      - eapply t_trans; eauto. }
+    pose proof (lift_and_force_is_poset R x' y' S' L' Hcp HS'_eq HL') as Hpos3.
+    apply Hneq.
+    exact (poset_antisym (R := clos_trans A step3) a b
+             (Hct_bridge a b Hab) (Hct_bridge b a Hba)).
+  Qed.
+
+  (** Greedy maximal-subset construction.  Walks [rest] (typically
+      [boundary]) prepending each candidate to [acc] iff doing so
+      preserves [aug_acyclic L' (hd :: acc)].  Returns the final
+      accumulated subset.
+
+      Because [aug_acyclic] is a [Prop], we use
+      [excluded_middle_informative] to turn it into an informative
+      decision.  This relies on classical reasoning, which is already
+      pervasive in this development. *)
+  Fixpoint greedy_acyclic_subset
+      (S' : Ensemble A) (x' y' : A)
+      (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+      (acc rest : list (A * A)) : list (A * A) :=
+    match rest with
+    | nil => acc
+    | hd :: tl =>
+        if excluded_middle_informative (aug_acyclic S' x' y' L' (hd :: acc))
+        then greedy_acyclic_subset S' x' y' L' (hd :: acc) tl
+        else greedy_acyclic_subset S' x' y' L' acc tl
+    end.
+
+  (** [greedy_acyclic_subset] outputs a list whose elements are in
+      [acc ∪ rest].  Combined with [acc = nil] at the top level, this
+      gives (i). *)
+  Lemma greedy_acyclic_subset_in :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+           (acc rest : list (A * A)) pq,
+    List.In pq (greedy_acyclic_subset S' x' y' L' acc rest) ->
+    List.In pq acc \/ List.In pq rest.
+  Proof.
+    intros x' y' S' L'.
+    intros acc rest. revert acc.
+    induction rest as [| hd tl IH]; intros acc pq Hin; simpl in Hin.
+    - left. exact Hin.
+    - destruct (excluded_middle_informative
+                  (aug_acyclic S' x' y' L' (hd :: acc)))
+        as [Hyes | Hno].
+      + apply IH in Hin.
+        destruct Hin as [Hin_acc | Hin_tl].
+        * destruct Hin_acc as [Heq | Hrest_acc].
+          { right. left. exact Heq. }
+          { left. exact Hrest_acc. }
+        * right. right. exact Hin_tl.
+      + apply IH in Hin.
+        destruct Hin as [Hin_acc | Hin_tl].
+        * left. exact Hin_acc.
+        * right. right. exact Hin_tl.
+  Qed.
+
+  (** [greedy_acyclic_subset] preserves the invariant [aug_acyclic ...].
+      If we start with an acyclic [acc] and walk any [rest], the output
+      is acyclic.  This is the heart of (ii). *)
+  Lemma greedy_acyclic_subset_acyclic :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+           (acc rest : list (A * A)),
+    aug_acyclic S' x' y' L' acc ->
+    aug_acyclic S' x' y' L' (greedy_acyclic_subset S' x' y' L' acc rest).
+  Proof.
+    intros x' y' S' L' acc rest. revert acc.
+    induction rest as [| hd tl IH]; intros acc Hacc_acyc; simpl.
+    - exact Hacc_acyc.
+    - destruct (excluded_middle_informative
+                  (aug_acyclic S' x' y' L' (hd :: acc)))
+        as [Hyes | Hno].
+      + apply IH. exact Hyes.
+      + apply IH. exact Hacc_acyc.
+  Qed.
+
+  (** ===================================================================
+      Focused coverage sub-admit (Trotter Ch.6, EXTREMALITY-based).
+      ===================================================================
+
+      This is the GENUINE deep claim from Trotter's Theorem 6.1, now
+      stated in its tightest form against the [greedy_acyclic_subset]
+      construction.  Mathematical content:
+
+      Given an extremal critical pair (x', y'), a sub-realizer r' on
+      S', the L_extra-unreversed boundary list, and any [(p, q) ∈
+      boundary], there exists some [L' ∈ r'] for which the greedy
+      construction NEVER REJECTS [(p, q)] — i.e., the L'-augmented
+      relation extended by (p, q) plus whatever the greedy walker
+      previously accepted remains acyclic.
+
+      WHY THE CHOICE OF L' EXISTS.  This is exactly Trotter's
+      coverage argument:  if (p, q) was rejected by EVERY L' in r',
+      then for each L' there would be a cycle in Aug(L', B_of L' ∪ {(p,q)}).
+      Cycles in Aug correspond (after Trotter's algebra) to CPs that
+      refine (p, q) — meaning CPs (p', q') with R p' p and R q q' — and
+      extremality of (x', y') eliminates such refinement chains.
+
+      WHY FACTORED OUT.  This claim is the SINGLE remaining
+      mathematical input.  Everything else in
+      [trotter_per_L_acyclic_covering_family] is now mechanical.
+      Closing this admit instantly closes [hiraguchi_bound].
+
+      STATUS:  Admitted as a known true mathematical statement,
+      following Trotter (1992, Ch.6, Thm 6.1).  *)
+  Lemma trotter_coverage_via_extremality :
+    forall (x' y' : A) (S' : Ensemble A)
+           (r' : Ensemble ({a : A | In A S' a} ->
+                            {a : A | In A S' a} -> Prop))
+           (L_extra : A -> A -> Prop)
+           (boundary : list (A * A)),
+    IsExtremalCP R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    Finite A (Full_set A) ->
+    IsRealizer (fun (a b : {a : A | In A S' a}) =>
+                   R (proj1_sig a) (proj1_sig b)) r' ->
+    IsLinearExtension R L_extra ->
+    L_extra y' x' ->
+    List.Forall (fun pq : A * A =>
+       IsCriticalPair R (fst pq) (snd pq) /\
+       (fst pq = x' \/ fst pq = y' \/ snd pq = x' \/ snd pq = y') /\
+       (fst pq, snd pq) <> (x', y') /\
+       (fst pq, snd pq) <> (y', x') /\
+       ~ L_extra (snd pq) (fst pq)) boundary ->
+    forall p q : A,
+       List.In (p, q) boundary ->
+       exists L', In _ r' L'
+                  /\ List.In (p, q)
+                       (greedy_acyclic_subset S' x' y' L' nil boundary).
+  Admitted.
+
   Lemma trotter_per_L_acyclic_covering_family :
     forall (x' y' : A) (S' : Ensemble A)
            (r' : Ensemble ({a : A | In A S' a} ->
@@ -1525,7 +1735,37 @@ Section RemovablePairs.
       (forall p q : A,
          List.In (p, q) boundary ->
          exists L', In _ r' L' /\ List.In (p, q) (B_of L')).
-  Admitted.
+  Proof.
+    intros x' y' S' r' L_extra boundary
+           Hext HS'_eq HfinA Hr'_real HL_extra_lin HL_extra_yx Hbnd_forall.
+    pose proof (proj1 Hext) as Hcp.
+    (* Define the per-L' family via the greedy construction. *)
+    set (B_of := fun L' => greedy_acyclic_subset S' x' y' L' nil boundary).
+    exists B_of.
+    split; [| split].
+    - (* (i) Subset of boundary. *)
+      intros L' HL'_in pq Hpq_in.
+      unfold B_of in Hpq_in.
+      apply greedy_acyclic_subset_in in Hpq_in.
+      destruct Hpq_in as [Hf | Hb]; [destruct Hf | exact Hb].
+    - (* (ii) Acyclicity of Aug. *)
+      intros L' HL'_in HL'_lin a b Hneq Hab Hba.
+      pose proof (greedy_acyclic_subset_acyclic
+                    x' y' S' L' nil boundary
+                    (aug_acyclic_nil x' y' S' L' Hcp HS'_eq HL'_lin))
+        as Hacyc.
+      unfold B_of, aug_acyclic, aug_step in Hacyc.
+      exact (Hacyc a b Hneq Hab Hba).
+    - (* (iii) Family coverage — focused admit. *)
+      intros p q Hpq_in.
+      destruct (trotter_coverage_via_extremality
+                  x' y' S' r' L_extra boundary
+                  Hext HS'_eq HfinA Hr'_real HL_extra_lin HL_extra_yx
+                  Hbnd_forall p q Hpq_in)
+        as [L' [HL'_in HpqB]].
+      exists L'. split; [exact HL'_in |].
+      unfold B_of. exact HpqB.
+  Qed.
 
   Lemma trotter_boundary_existence :
     forall (x' y' : A) (S' : Ensemble A)
