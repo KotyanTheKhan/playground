@@ -327,8 +327,8 @@ Proof.
         split; [exact Hrs_neq |].
         split; [exact HRpq |].
         split; [exact HRxy |].
-        split; [exact HRpr |].
         split; [exact HRpt |].
+        split; [exact HRpr |].
         intros u v HRuv.
         destruct (classic (u = v)) as [Heq | Huv_neq];
           [left; exact Heq |].
@@ -337,10 +337,10 @@ Proof.
           [left; exact Hupq |].
         destruct (classic (u = q /\ v = t)) as [Huqt | Hnot_uqt];
           [right; left; exact Huqt |].
-        destruct (classic (u = p /\ v = r)) as [Hupr | Hnot_upr];
-          [right; right; left; exact Hupr |].
         destruct (classic (u = p /\ v = t)) as [Hupt | Hnot_upt];
-          [right; right; right; exact Hupt |].
+          [right; right; left; exact Hupt |].
+        destruct (classic (u = p /\ v = r)) as [Hupr | Hnot_upr];
+          [right; right; right; exact Hupr |].
         exfalso. apply Hno_fifth.
         exists u, v. split; [exact Huv_neq |].
         split; [exact HRuv |].
@@ -376,8 +376,8 @@ Proof.
         split; [intro Hsr_eq; apply Hrs_neq; symmetry; exact Hsr_eq |].
         split; [exact HRpq |].
         split; [exact HRxy |].
-        split; [exact HRps |].
         split; [exact HRpt |].
+        split; [exact HRps |].
         intros u v HRuv.
         destruct (classic (u = v)) as [Heq | Huv_neq];
           [left; exact Heq |].
@@ -386,10 +386,10 @@ Proof.
           [left; exact Hupq |].
         destruct (classic (u = q /\ v = t)) as [Huqt | Hnot_uqt];
           [right; left; exact Huqt |].
-        destruct (classic (u = p /\ v = s)) as [Hups | Hnot_ups];
-          [right; right; left; exact Hups |].
         destruct (classic (u = p /\ v = t)) as [Hupt | Hnot_upt];
-          [right; right; right; exact Hupt |].
+          [right; right; left; exact Hupt |].
+        destruct (classic (u = p /\ v = s)) as [Hups | Hnot_ups];
+          [right; right; right; exact Hups |].
         exfalso. apply Hno_fifth.
         exists u, v. split; [exact Huv_neq |].
         split; [exact HRuv |].

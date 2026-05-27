@@ -94,10 +94,10 @@ Proof.
         right.
         destruct (classic (u = p /\ v = q)) as [Hupq | Hnot_upq];
           [left; exact Hupq |].
-        destruct (classic (u = q /\ v = t)) as [Huqt | Hnot_uqt];
-          [right; left; exact Huqt |].
         destruct (classic (u = p /\ v = t)) as [Hupt | Hnot_upt];
-          [right; right; left; exact Hupt |].
+          [right; left; exact Hupt |].
+        destruct (classic (u = q /\ v = t)) as [Huqt | Hnot_uqt];
+          [right; right; left; exact Huqt |].
         destruct (classic (u = r /\ v = s)) as [Hurs | Hnot_urs];
           [right; right; right; exact Hurs |].
         exfalso. apply Hno_fifth.
@@ -143,10 +143,10 @@ Proof.
         right.
         destruct (classic (u = p /\ v = q)) as [Hupq | Hnot_upq];
           [left; exact Hupq |].
-        destruct (classic (u = q /\ v = t)) as [Huqt | Hnot_uqt];
-          [right; left; exact Huqt |].
         destruct (classic (u = p /\ v = t)) as [Hupt | Hnot_upt];
-          [right; right; left; exact Hupt |].
+          [right; left; exact Hupt |].
+        destruct (classic (u = q /\ v = t)) as [Huqt | Hnot_uqt];
+          [right; right; left; exact Huqt |].
         destruct (classic (u = s /\ v = r)) as [Husr | Hnot_usr];
           [right; right; right; exact Husr |].
         exfalso. apply Hno_fifth.
