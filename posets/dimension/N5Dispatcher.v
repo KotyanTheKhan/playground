@@ -2087,15 +2087,39 @@ Proof.
                Hpq_neq Hpr_neq Hps_neq Hpt_neq Hqr_neq Hqs_neq Hqt_neq
                Hrs_neq Hrt_neq Hst_neq Hcov5 HRpq HRxy Hnot_pq
                HnChain3 HnCC HnC4 HnPd HnTopP HnYup HnYdn). }
-    (* Otherwise, route the residual configuration to the focused admit. *)
-    apply (@n5_residual_classes_two_realizer B R2 HR2 Hcard
-             Hnonantichain Hinc_ex).
-    exists p, q, x, y.
-    split; [exact Hpq_neq |].
-    split; [exact HRpq |].
-    split; [exact Hxy_neq |].
-    split; [exact HRxy |].
-    exact Hnot_pq.
+    (* Catch-all: the cascade above has tested every ordered pair of
+       distinct elements from the 5-element carrier {p, q, r, s, t}.
+       Concretely, [Hcov5] forces [x, y ∈ {p, q, r, s, t}], [Hxy_neq]
+       rules out the 5 diagonal pairs, and [Hnot_pq] plus the 19
+       per-case [Hnot_*] hypotheses rule out all 20 distinct ordered
+       pairs.  Hence this branch is unreachable; we close it by [False]
+       (avoiding the focused admit). *)
+    exfalso.
+    destruct (Hcov5 x) as [Hxp | [Hxq | [Hxr | [Hxs | Hxt]]]];
+      destruct (Hcov5 y) as [Hyp | [Hyq | [Hyr | [Hys | Hyt]]]];
+      subst;
+      first
+        [ exact (Hxy_neq eq_refl)
+        | exact (Hnot_pq (conj eq_refl eq_refl))
+        | exact (Hnot_pr (conj eq_refl eq_refl))
+        | exact (Hnot_ps (conj eq_refl eq_refl))
+        | exact (Hnot_pt (conj eq_refl eq_refl))
+        | exact (Hnot_qp (conj eq_refl eq_refl))
+        | exact (Hnot_qr (conj eq_refl eq_refl))
+        | exact (Hnot_qs (conj eq_refl eq_refl))
+        | exact (Hnot_qt (conj eq_refl eq_refl))
+        | exact (Hnot_rp (conj eq_refl eq_refl))
+        | exact (Hnot_rq (conj eq_refl eq_refl))
+        | exact (Hnot_rs (conj eq_refl eq_refl))
+        | exact (Hnot_rt (conj eq_refl eq_refl))
+        | exact (Hnot_sp (conj eq_refl eq_refl))
+        | exact (Hnot_sq (conj eq_refl eq_refl))
+        | exact (Hnot_sr (conj eq_refl eq_refl))
+        | exact (Hnot_st (conj eq_refl eq_refl))
+        | exact (Hnot_tp (conj eq_refl eq_refl))
+        | exact (Hnot_tq (conj eq_refl eq_refl))
+        | exact (Hnot_tr (conj eq_refl eq_refl))
+        | exact (Hnot_ts (conj eq_refl eq_refl)) ].
   - (* Only (p, q) is a non-trivial relation: class (a). *)
     apply (@n5_one_edge_two_realizer B R2 HR2 Hcard).
     exists p, q.
