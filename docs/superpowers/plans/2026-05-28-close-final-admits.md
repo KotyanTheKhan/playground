@@ -4,6 +4,14 @@
 **Goal:** Reduce admit count from 2 to 0 across multiple multi-hour sessions.
 **Constraint:** Each new file must compile in <5 minutes. No file >500 lines.
 
+## Live status
+
+See `docs/superpowers/specs/2026-05-28-status.md` for live progress tracking.
+
+**Track N**: N1 ✅, N2 ✅, N3 ✅, N4 ✅, N5 ⚠️ BLOCKED (admit placeholder), N6-N9 ⏸ TODO
+**Track T**: T1-T5 ⏸ TODO
+**Current admit count**: 3 (target: 0)
+
 ---
 
 ## Session-based structure
