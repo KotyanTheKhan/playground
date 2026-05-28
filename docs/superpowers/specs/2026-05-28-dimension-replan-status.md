@@ -43,24 +43,33 @@ vm_compute completes the full 12650-sublist reflection check in under 4 seconds.
   - Permutation infrastructure (`in_permutations_iff` + lemmas).
 - Commit: `36bbf18`.
 
-## R2 remaining work (TODO for next session)
+## R2 done (2026-05-29)
 
-The 10 `is_<pattern>_b_iff` lemmas are NOT done.  Earlier partial attempt at `N5Transport_iff.v` had only 2 of 10 patterns and a slow `find_fifth_distinct` proof (1024-case cascade) that hangs.  Deleted.
+- `posets/dimension/N5Exhaustive/N5Iff.v` (379 lines): 10 `is_<pattern>_b_to_exists` lemmas (→ direction is sufficient for R3 wire-in; full ↔ deferred).
+  - Supporting helpers: `abcde_NoDup`, `make_NoDup5`, `find_fifth_distinct` (clean pigeon via `NoDup_incl_length`, no 1024-case cascade), `perm_in_all_perms5_nodup`, `NoDup5_pairwise`.
+  - 15 lemmas, 0 admits, ~90s build.
+  - Commit: `545765a`.
 
-**Next-session strategy for the 10 iff lemmas:**
+## R3 BLOCKED on pre-existing EdgeCount4 helper bugs
 
-1. Each pattern in its own file: `N5Iff_<pattern>.v`.  Total ~10 small files.
-2. Use a shared helper file `N5Iff_Common.v` for:
-   - `find_fifth_distinct` — replace the 1024-case cascade with a clean 5-element pigeon argument (use `In _ all5` + `NoDup` + length argument).
-   - `extract_pattern` tactic.
-   - `mk_perm5_in` tactic.
-3. Each `N5Iff_<pattern>.v` follows the same template; copy-modify.
-4. Target: each file < 50 lines, builds < 10s.
+R3 wire-in attempted at `EdgeCount4.v:213-221`.  Tooling discovered that 5 of the 11 `EdgeCount4_*.v` helper files DO NOT BUILD:
+  - `EdgeCount4_4claw_down.v`, `EdgeCount4_K32mm.v`, `EdgeCount4_M_shape.v`, `EdgeCount4_3claw_up_xp.v`, `EdgeCount4_3claw_down_xl.v` — hang or fail.
+  - `EdgeCount4_chain3_above.v` had a polarity bug (`apply strict_indicator_eq_1; assumption` failed on `delta <> gamma` when only `gamma <> delta` was in scope) — fixed in commit `388a293`.
 
-## R3 status
+These files were all committed in `83ee831` (Session N5 BLOCKED).  The session was tagged BLOCKED and the build was never green — those .vo files were never produced.  The Admitted at EdgeCount4.v:221 hid the failure because EdgeCount4.v itself didn't get to that admit until its helpers built.
 
-Blocked on R2's iff lemmas.  Once those are done, R3 is the mechanical wire-in (~2 hr per the design).
+Each broken file likely has:
+  1. 2-3 polarity bugs in `apply strict_indicator_eq_1; assumption` (same shape as chain3_above).
+  2. A 5^6 = 15625-case `destruct (Hcov alpha); destruct (Hcov beta); ...` cascade that takes minutes to compile.
+
+**Resolution options for R3:**
+
+A. **Fix each broken EdgeCount4_*.v file.** ~5-10 hours.  Polarity fixes are mechanical (1-3 per file); the slow cartesian destructs need extended (5-10 min) compile budgets.
+
+B. **Bypass per-class dispatcher entirely.**  Replace `n5_edge_count_4_two_realizer`'s body with a reflection-only proof using R2_matrix + exhaustive_4edge + N5Iff lemmas + direct `IsRealizer` construction from `N5Realizers.v`.  Skips EdgeCount4_*.v files entirely.  ~5-8 hours.
+
+C. **Skip R3 for now, ship R0-R2.**  Phase R partially landed: reflection infrastructure built, but admits #1 and #3 remain.  Move to Phase T (Trotter).
+
+**Decision pending from user.**
 
 ## Admit count: 3 (unchanged)
-
-Phase R will close admits #1 + #3 once R2 iff lemmas land and R3 wires them in.
