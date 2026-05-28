@@ -69,7 +69,7 @@ destruct (classic (P_i)) as [Hi | HnotI].
 
 After each extraction:
 ```bash
-opam exec -- dune build posets/dimension/<file>.vo  # timeout 300s
+mise exec -- dune build posets/dimension/<file>.vo  # timeout 300s
 ```
 
 If it compiles, commit immediately. Don't batch multiple extractions before commit — easier to bisect failures.
@@ -112,7 +112,7 @@ Pitfalls:
 
 Do NOT use `mise run build <file>.v` to verify — it silently no-ops on the .v target.
 
-Use `opam exec -- dune build <file>.vo` instead, with explicit timeout.
+Use `mise exec -- dune build <file>.vo` instead, with explicit timeout.
 
 ## Worked example
 

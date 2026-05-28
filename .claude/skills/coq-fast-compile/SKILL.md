@@ -11,7 +11,7 @@ Keep Coq proofs compiling fast by structural choices made BEFORE writing the pro
 
 1. **Each `.v` file ≤ 500 lines.** If it grows past 300, plan a split.
 2. **Each `Qed` body ≤ 100 lines.** If it grows past 50, factor into helper Lemmas.
-3. **Each individual file compile ≤ 5 min.** Use `opam exec -- dune build <file>.vo` with timeout to measure.
+3. **Each individual file compile ≤ 5 min.** Use `mise exec -- dune build <file>.vo` with timeout to measure.
 4. **Per-case cascades go in SEPARATE FILES, not separate Lemmas in one file.** Dune compiles files in parallel; Lemmas in one file compile sequentially.
 5. **Avoid Ltac combinators that produce large proof terms.** Specific anti-patterns: `n5_split_witness`, `n5_close_forall_via`, anything that constructs an `exists` witness via tactics. These caused 100x slowdowns. Use explicit `destruct (classic ...)` + `assumption` chains instead.
 
@@ -19,7 +19,7 @@ Keep Coq proofs compiling fast by structural choices made BEFORE writing the pro
 
 After writing each Qed:
 ```bash
-opam exec -- dune build posets/dimension/<file>.vo
+mise exec -- dune build posets/dimension/<file>.vo
 ```
 
 **ALWAYS set a timeout** (300 seconds / 5 min). On timeout:
@@ -35,7 +35,7 @@ opam exec -- dune build posets/dimension/<file>.vo
 | All cases in one file | No parallelism even after Lemma extraction | Move each Lemma to its own .v file |
 | Ltac that builds witnesses | 10+ min Qed on small file | Inline the witness construction with explicit `exists` |
 | `5^N` destruct nesting | Memory exhaustion at large N | Use per-structural-case closure helpers, each `5^3` to `5^5` max |
-| Single-file `mise run build <file>.v` | Silently no-ops | Use `opam exec -- dune build <file>.vo` instead |
+| Single-file `mise run build <file>.v` | Silently no-ops | Use `mise exec -- dune build <file>.vo` instead |
 
 ## Anti-pattern detection in code review
 
@@ -47,6 +47,6 @@ When reviewing or writing Coq, flag these for refactor:
 
 ## Quick reference
 
-- **vos build** (`dune build @check`): fast, type-checks only, skips Qed. Use for structure validation.
-- **vo build** (`dune build <file>.vo`): full, verifies Qed. Use for correctness validation. Set timeout.
+- **vos build** (`mise run check-all` or `mise exec -- dune build @check`): fast, type-checks only, skips Qed. Use for structure validation.
+- **vo build** (`mise exec -- dune build <file>.vo`): full, verifies Qed. Use for correctness validation. Set timeout.
 - **Full project**: `mise build`. Use sparingly; only after structural changes settle.

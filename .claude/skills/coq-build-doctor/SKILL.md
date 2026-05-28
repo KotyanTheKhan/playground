@@ -61,7 +61,7 @@ Then either fix the slow file (use `coq-cascade-split-pattern`) or commit and pr
 - After running `mise run build`, check `_build/default/posets/dimension/<file>.vo` timestamp.
 - If unchanged from before the run, the build didn't happen.
 
-**Fix:** Use `opam exec -- dune build <file>.vo` instead. This is the correct invocation.
+**Fix:** Use `mise exec -- dune build <file>.vo` instead. This is the correct invocation.
 
 ### Mode 3: Stale cache claims success
 
@@ -126,7 +126,7 @@ git log --oneline | head -20
 # Test each:
 for commit in <suspect commits>; do
   git checkout $commit
-  opam exec -- dune build @check  # FAST vos build (no Qed verification)
+  mise exec -- dune build @check  # FAST vos build (no Qed verification)
   echo "Commit $commit: exit $?"
 done
 
@@ -164,7 +164,7 @@ Better to lose recent work than to push broken code forward.
 | `mise build` | Full project Qed-verified build |
 | `mise run check-all` | Fast vos build (type-check only) |
 | `mise run clean` | Clear `_build/` cache |
-| `opam exec -- dune build <file>.vo` | Single-file Qed-verified build |
-| `opam exec -- dune build @check` | Fast vos for all files |
+| `mise exec -- dune build <file>.vo` | Single-file Qed-verified build |
+| `mise exec -- dune build @check` | Fast vos for all files |
 | `rm -f _build/.lock` | Clear stuck lock |
 | `ps -ef | grep rocqworker` | Find Coq workers |

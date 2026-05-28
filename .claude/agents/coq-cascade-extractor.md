@@ -1,6 +1,6 @@
 ---
 name: coq-cascade-extractor
-description: Mechanical extraction of one branch from a large Coq Qed cascade into its own sibling Lemma in a new file. Use when you have a giant cascade with parallel branches and want to extract them for parallel compilation. The agent receives precise extraction targets (file path, branch identifier, source line range, expected hypothesis bundle) and produces a single new .v file plus a one-line `apply` replacement in the parent. Verifies the extracted file compiles via `opam exec -- dune build <file>.vo` with timeout.
+description: Mechanical extraction of one branch from a large Coq Qed cascade into its own sibling Lemma in a new file. Use when you have a giant cascade with parallel branches and want to extract them for parallel compilation. The agent receives precise extraction targets (file path, branch identifier, source line range, expected hypothesis bundle) and produces a single new .v file plus a one-line `apply` replacement in the parent. Verifies the extracted file compiles via `mise exec -- dune build <file>.vo` with timeout.
 tools: Bash, Read, Edit, Write
 model: sonnet
 ---
@@ -68,7 +68,7 @@ Verify the rest of the parent's cascade is unchanged.
 
 Run:
 ```bash
-opam exec -- dune build posets/dimension/<target_file>.vo
+mise exec -- dune build posets/dimension/<target_file>.vo
 ```
 
 **Set a 300-second timeout** via the Bash tool's `timeout` parameter.
@@ -107,7 +107,7 @@ When in doubt: copy verbatim first, fix on compile error.
 
 `mise run build <file>.v` is a SILENT NO-OP — it returns success without compiling. Do NOT use it for verification.
 
-Use `opam exec -- dune build <file>.vo` exclusively.
+Use `mise exec -- dune build <file>.vo` exclusively.
 
 ### Pitfall 4: Implicit args via `apply`
 
