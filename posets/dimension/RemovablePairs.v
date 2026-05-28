@@ -1633,6 +1633,160 @@ Section RemovablePairs.
   Qed.
 
   (** ===================================================================
+      STRUCTURAL Qed helper:
+        non-acyclicity at B=[(p,q)] implies clos_refl_trans step3 p q.
+      ===================================================================
+
+      Key fact: with [B = [(p, q)]] the only new edge in [aug_step]
+      beyond [step3] is the single (q, p) edge (i.e., [aug_step]
+      adds [q → p]).  If [aug_acyclic ... [(p,q)]] FAILS, there is a
+      cycle in [clos_trans aug_step].  Since [step3 = aug_step ... []]
+      is already acyclic (a poset, by [lift_and_force_is_poset]), the
+      cycle must use the q→p edge at least once.  Removing that edge
+      from the cycle splits it into two step3-paths whose composition
+      gives a step3-path p → q (after at least one rotation).
+
+      This lemma extracts that p → q step3-path (in [clos_refl_trans]
+      form, allowing 0-length).  *)
+  Lemma aug_cycle_implies_step3_path :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+           (p q : A),
+    IsCriticalPair R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    IsLinearExtension
+      (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L' ->
+    ~ aug_acyclic S' x' y' L' ((p, q) :: nil) ->
+    clos_refl_trans A
+      (fun a b =>
+         R a b
+         \/ (exists (ha : In A S' a) (hb : In A S' b),
+               L' (exist _ a ha) (exist _ b hb))
+         \/ (a = x' /\ b = y')) p q.
+  Proof.
+    intros x' y' S' L' p q Hcp HS'_eq HL' Hnot_acyc.
+    set (step3 := fun a b =>
+                    R a b
+                 \/ (exists (ha : In A S' a) (hb : In A S' b),
+                       L' (exist _ a ha) (exist _ b hb))
+                 \/ (a = x' /\ b = y')).
+    (* Poset structure on clos_trans step3. *)
+    pose proof (lift_and_force_is_poset R x' y' S' L' Hcp HS'_eq HL')
+      as Hpos3.
+    (* Unfold ~ aug_acyclic to get a witness cycle. *)
+    unfold aug_acyclic in Hnot_acyc.
+    apply not_all_ex_not in Hnot_acyc. destruct Hnot_acyc as [a Hnot_acyc].
+    apply not_all_ex_not in Hnot_acyc. destruct Hnot_acyc as [b Hnot_acyc].
+    apply imply_to_and in Hnot_acyc. destruct Hnot_acyc as [Hneq Hnot_acyc].
+    apply imply_to_and in Hnot_acyc. destruct Hnot_acyc as [Hab Hnot_acyc].
+    apply imply_to_and in Hnot_acyc. destruct Hnot_acyc as [Hba _].
+    (* Bridge:  aug_step S' x' y' L' [(p,q)] u v   iff   step3 u v \/ (u=q /\ v=p). *)
+    set (step4 := fun a b =>
+                    R a b
+                 \/ (exists (ha : In A S' a) (hb : In A S' b),
+                       L' (exist _ a ha) (exist _ b hb))
+                 \/ (a = x' /\ b = y')
+                 \/ List.In (b, a) ((p, q) :: nil)).
+    assert (Hbridge : forall u v, step4 u v <-> step3 u v \/ (u = q /\ v = p)).
+    { intros u v. unfold step3, step4. simpl.
+      split.
+      - intros [HR | [HL | [Hxy | HIn]]].
+        + left. left. exact HR.
+        + left. right. left. exact HL.
+        + left. right. right. exact Hxy.
+        + destruct HIn as [Heq | Hf]; [| destruct Hf].
+          right. inversion Heq. split; reflexivity.
+      - intros [[HR | [HL | Hxy]] | [Hq Hp]].
+        + left. exact HR.
+        + right. left. exact HL.
+        + right. right. left. exact Hxy.
+        + subst u v. right. right. right. left. reflexivity. }
+    change (aug_step S' x' y' L' ((p, q) :: nil)) with step4 in Hab, Hba.
+    (* DECOMPOSITION: every clos_trans step4 path u→v either avoids the
+       new edge (in which case it's a pure clos_trans step3 u→v) OR uses
+       it: then there exist intermediate points where the path goes
+       through q→p, splitting as step3* u q, then q→p, then step3* p v.
+       Using clos_refl_trans:  exists clos_refl_trans step3 u q AND
+       clos_refl_trans step3 p v.
+
+       Below we directly prove the disjunction:
+         clos_trans step4 u v ->
+         clos_trans step3 u v
+         \/ (clos_refl_trans step3 u q /\ clos_refl_trans step3 p v).
+     *)
+    assert (Hdecomp : forall u v, clos_trans A step4 u v ->
+              clos_trans A step3 u v
+              \/ (clos_refl_trans A step3 u q
+                  /\ clos_refl_trans A step3 p v)).
+    { intros u v Hct.
+      induction Hct as [u v Huv | u w v Huw IHuw Hwv IHwv].
+      - apply Hbridge in Huv. destruct Huv as [Hs3 | [Hu Hv]].
+        + left. apply t_step. exact Hs3.
+        + subst u v. right. split; apply rt_refl.
+      - destruct IHuw as [Huw3 | [Huq Hpw]];
+        destruct IHwv as [Hwv3 | [Hwq Hpv]].
+        + left. eapply t_trans; eauto.
+        + right. split.
+          * apply rt_trans with (y := w); [| exact Hwq].
+            apply clos_trans_in_rt. exact Huw3.
+          * exact Hpv.
+        + right. split.
+          * exact Huq.
+          * apply rt_trans with (y := w); [exact Hpw |].
+            apply clos_trans_in_rt. exact Hwv3.
+        + right. split.
+          * exact Huq.
+          * exact Hpv. }
+    (* Apply Hdecomp to both Hab and Hba. *)
+    specialize (Hdecomp a b Hab) as Hab_dec.
+    specialize (fun X => X) as _.
+    assert (Hba_dec :
+              clos_trans A step3 b a
+              \/ (clos_refl_trans A step3 b q
+                  /\ clos_refl_trans A step3 p a)).
+    { clear Hab_dec.
+      induction Hba as [u v Huv | u w v Huw IHuw Hwv IHwv].
+      - apply Hbridge in Huv. destruct Huv as [Hs3 | [Hu Hv]].
+        + left. apply t_step. exact Hs3.
+        + subst u v. right. split; apply rt_refl.
+      - destruct IHuw as [Huw3 | [Huq Hpw]];
+        destruct IHwv as [Hwv3 | [Hwq Hpv]].
+        + left. eapply t_trans; eauto.
+        + right. split.
+          * apply rt_trans with (y := w); [| exact Hwq].
+            apply clos_trans_in_rt. exact Huw3.
+          * exact Hpv.
+        + right. split.
+          * exact Huq.
+          * apply rt_trans with (y := w); [exact Hpw |].
+            apply clos_trans_in_rt. exact Hwv3.
+        + right. split.
+          * exact Huq.
+          * exact Hpv. }
+    (* Convert clos_trans to clos_refl_trans helpers. *)
+    pose proof (poset_antisym (R := clos_trans A step3)) as Hanti.
+    (* Case-split.  In each case derive clos_refl_trans step3 p q. *)
+    destruct Hab_dec as [Hab3 | [Haq Hpb]];
+    destruct Hba_dec as [Hba3 | [Hbq Hpa]].
+    - (* Pure step3 in both directions: contradicts acyclicity. *)
+      exfalso. apply Hneq.
+      exact (Hanti a b Hab3 Hba3).
+    - (* a step3+ b, and b →* q, p →* a.  So p →* a →+ b →* q gives p →* q. *)
+      apply rt_trans with (y := a); [exact Hpa |].
+      apply rt_trans with (y := b); [| exact Hbq].
+      apply clos_trans_in_rt. exact Hab3.
+    - (* a →* q, p →* b, and b step3+ a.  p →* b →+ a →* q gives p →* q. *)
+      apply rt_trans with (y := b); [exact Hpb |].
+      apply rt_trans with (y := a); [| exact Haq].
+      apply clos_trans_in_rt. exact Hba3.
+    - (* Both directions use the new edge.  Both pairs of refl_trans
+         segments are available.  We have p →* a →* q (via Hpa then Haq)
+         giving the desired path. *)
+      apply rt_trans with (y := a); [exact Hpa | exact Haq].
+  Qed.
+
+
+  (** ===================================================================
       Focused coverage sub-admit (Trotter Ch.6, EXTREMALITY-based).
       ===================================================================
 
