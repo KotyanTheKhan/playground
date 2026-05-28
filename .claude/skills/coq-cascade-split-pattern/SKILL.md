@@ -5,7 +5,7 @@ description: Use when a single Coq Lemma has a giant case-cascade (deeply nested
 
 # Coq Cascade Split Pattern
 
-When one `Qed` contains many parallel cases (e.g., 18 isomorphism class branches), split each branch into its own Lemma in its own .v file. The top-level Lemma becomes a thin dispatcher.
+When one `Qed` contains many parallel cases (e.g., a dispatcher across many shapes / classes / configurations), split each branch into its own Lemma in its own .v file. The top-level Lemma becomes a thin dispatcher.
 
 ## When to apply
 
@@ -24,17 +24,15 @@ In the source Lemma, find each `destruct (classic (P_i)) as [Hi | HnotI].` Each 
 
 Create `<ParentName>_<branchID>.v` with:
 ```coq
+(* Imports — mirror what the parent file uses *)
 From Stdlib Require Import List Classical Arith Lia.
 From Stdlib Require Import ClassicalDescription.
-From Posets Require Import PosetClasses.
-(* import whatever the parent imports *)
-From Dimension Require Import ... .
+(* ... project-specific imports ... *)
 
 Lemma <parent_name>_<branchID> :
-  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+  forall <type/instance parameters>
     (* ALL hypotheses the branch's proof body uses *)
-    (Hcard : cardinal B (Full_set B) N)
-    (...) (* full hypothesis bundle *)
+    (<hypothesis bundle>)
     (HX : <branch's positive hypothesis>),
   <same conclusion as parent>.
 Proof.
@@ -44,9 +42,9 @@ Qed.
 ```
 
 Hypothesis bundle gotchas:
-- Include ALL upstream `Hn<class>` negation hypotheses the body uses.
-- Include `Hcov5` (or analog) if body destructs over the carrier.
-- Include `Hnot_pq` (or analog) flag exclusions if relevant.
+- Include ALL upstream negation hypotheses the body references (cases the outer dispatcher already ruled out).
+- Include carrier-cover / membership hypotheses if the body destructs over a fixed set of elements.
+- Include any flag-exclusion hypotheses (`H : ~ (x = p /\ y = q)` style) that the body uses.
 
 ### Step 3: Replace the parent's branch with `apply`
 
@@ -61,15 +59,17 @@ destruct (classic (P_i)) as [Hi | HnotI].
 with:
 ```coq
 destruct (classic (P_i)) as [Hi | HnotI].
-- apply (@<parent_name>_<branchID> B R2 HR2 Hcard ... Hi).
+- apply (@<parent_name>_<branchID> <explicit parameters> <hypothesis args> Hi).
 - (* next branch *)
 ```
+
+Use the explicit `@` form so Coq doesn't try to infer arguments via typeclass resolution — that can pick up the wrong instance and produce confusing errors.
 
 ### Step 4: Verify and commit per extraction
 
 After each extraction:
 ```bash
-mise exec -- dune build posets/dimension/<file>.vo  # timeout 300s
+mise exec -- dune build <path/to/file>.vo  # timeout 300s
 ```
 
 If it compiles, commit immediately. Don't batch multiple extractions before commit — easier to bisect failures.
@@ -80,7 +80,7 @@ If you extract Lemmas but leave them all in the parent file, the speedup is smal
 
 For real parallelism, each extracted Lemma needs its own .v file. Then `dune` compiles them concurrently across CPU cores.
 
-**Observed:** parent file with 19 Lemmas in one file → 4+ hour compile. Same 19 Lemmas in 19 files → ~15 min parallel.
+**Rule of thumb:** the per-file compile time of the slowest Lemma sets the wall-clock floor. Splitting one giant file with N Lemmas into N files of one Lemma each turns a sequential sum into a parallel max.
 
 ## Sub-pattern: nested cascades
 
@@ -89,24 +89,24 @@ For deeply nested cascades (case → sub-case → sub-sub-case):
 - If extracted file is still slow (>5 min), recursively apply: split it at its outermost level.
 - Stop when each file compiles in <5 min.
 
-## awk relabel script for mechanical adaptation
+## awk/sed relabel for mechanical adaptation
 
-When extracting a similar branch from a "mirror" structure (e.g., `(r, s)` case → `(s, r)` case via r↔s swap):
+When extracting a branch that's the mirror of an already-extracted branch (e.g., one identifier swap distinguishes them), use `awk`/`sed` with a 3-step swap pattern to avoid clobbering identifiers mid-replace:
 
 ```awk
-# /tmp/relabel_rs.awk — swaps r and s in token contexts
+# Example: swap identifier tokens `x` and `y` throughout a body
 {
-  gsub(/\<Hrs_neq\>/, "TMP_SWAP_HRS");
-  gsub(/\<Hsr_neq\>/, "Hrs_neq");
-  gsub(/TMP_SWAP_HRS/, "Hsr_neq");
-  # repeat for other r/s tokens (HRrs, HRsr, etc.)
+  gsub(/\<token_x\>/, "TMP_SWAP_PLACEHOLDER");
+  gsub(/\<token_y\>/, "token_x");
+  gsub(/TMP_SWAP_PLACEHOLDER/, "token_y");
   print
 }
 ```
 
 Pitfalls:
-- Don't normalize `_eq` names alphabetically (different types).
-- Watch for `symmetry;` pattern flipping: `intro Hxy_eq; apply Hxy_neq; symmetry; exact Hxy_eq` may need to become `intro Hxy_eq; apply Hxy_neq; exact Hxy_eq` (no `symmetry`) after swap if the swap reverses alphabetical ordering of identifiers.
+- Don't normalize compound names alphabetically (different identifiers may have different types).
+- Watch for direction-sensitive tactic patterns flipping under the swap: `intro Hxy_eq; apply Hxy_neq; symmetry; exact Hxy_eq` may need the `symmetry;` removed (or added) after the swap depending on alphabetical ordering of identifiers.
+- After any awk pass, re-run the compile to catch type/direction errors. Fix manually.
 
 ## Verification anti-pattern
 
@@ -114,13 +114,12 @@ Do NOT use `mise run build <file>.v` to verify — it silently no-ops on the .v 
 
 Use `mise exec -- dune build <file>.vo` instead, with explicit timeout.
 
-## Worked example
+## Worked-example shape
 
-Source: `N5Dispatcher.v` at 19,245 lines, one Qed, 4+ hour compile.
+A dispatcher Lemma covering N parallel shape classes, each with M sub-cases:
 
-Result after applying this pattern:
-- 19 sibling files (`N5Dispatcher_i.v` through `N5Dispatcher_xix.v`) each 900-2000 lines.
-- Top-level dispatcher now 2,111 lines.
-- Full `mise build` (parallel): completes successfully.
+1. Top-level extraction: lift each of the N shape branches into its own file. The parent file shrinks to a thin dispatcher.
+2. If any extracted file is still slow (>5 min compile): apply the pattern recursively, splitting on the M sub-cases.
+3. Stop when every file compiles in <5 min.
 
-Then secondary split on the largest sub-files (3-way split at 3rd-edge case boundaries) brought individual files to <500 lines each.
+The number of recursion levels depends on the cascade's depth, but typically 2 levels suffice for dispatcher Lemmas with up to ~300 leaves.

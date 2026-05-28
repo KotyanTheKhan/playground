@@ -1,11 +1,11 @@
 ---
 name: long-running-formalization
-description: Use when starting or continuing multi-session, research-level proof work (Hiraguchi-style, Trotter Ch.6, etc.) — codifies decomposition-first protocol, admit-soundness audits, status-doc discipline, progressive refinement, and when-to-stop heuristics. Triggers: opening a research-grade formalization track, introducing a new Admitted, refactoring an Admitted, switching strategies after 3+ failed attempts, planning multi-session work, session-end checkpoints.
+description: Use when starting or continuing multi-session, research-level proof work — codifies decomposition-first protocol, admit-soundness audits, status-doc discipline, progressive refinement, and when-to-stop heuristics. Triggers: opening a research-grade formalization track, introducing a new Admitted, refactoring an Admitted, switching strategies after 3+ failed attempts, planning multi-session work, session-end checkpoints.
 ---
 
 # Long-Running Formalization
 
-Research-level Coq proofs (>1 week of work) have distinct failure modes from regular coding. This skill codifies the meta-discipline that survived contact with Track B (Trotter Ch.6) and Track N (n=5 exhaustiveness).
+Research-level Coq proofs (>1 week of work) have distinct failure modes from regular coding. This skill codifies the meta-discipline for surviving multi-session formalization.
 
 ## When this skill applies
 
@@ -32,12 +32,12 @@ Write each as a named Lemma/Admitted with a precise statement. The plan document
 
 **Why:** This forces you to identify the smallest unprovable nugget upfront. If category 3 is empty, the proof is mechanical. If category 3 is huge, you may need a different approach.
 
-**Worked example (Track B):**
-- Mechanical: `IsBoundaryReversalSet` predicate, helper lemmas, dune wiring.
-- Iterable: `lift_and_force_with_boundary_is_poset` (one variant per shape).
-- Deep: `trotter_per_L_acyclic_covering_family` (genuine Trotter Ch.6 content).
+**Worked-example shape:** For a research-level theorem with a paper-proof you understand:
+- Mechanical: helper predicates, dune wiring, plumbing lemmas.
+- Iterable: per-case Lemmas with a clear template (one shape variant each).
+- Deep: the irreducible mathematical content (1-3 statements at most).
 
-The Trotter track succeeded because we factored before committing code. Subsequent phases progressively shrank category 3.
+Tracks succeed when factoring happens before code. Subsequent refactor phases progressively shrink category 3.
 
 ### Discipline 2: Admit-introduction checklist
 
@@ -49,9 +49,9 @@ The Trotter track succeeded because we factored before committing code. Subseque
 - [ ] **Statement is minimal.** Could the admit be split into a smaller admit + Qed wrapper? If yes, split.
 - [ ] **The admit's role is documented.** Comment block above the `Admitted` explains: what claim, what it gives downstream, why it's deep.
 
-**Why:** We introduced a false admit in Phase B4 (`trotter_constant_boundary_acyclic` — counter-example found in Phase B5). The chain `trotter_boundary_coverage → trotter_boundary_existence → trotter_constant_boundary_acyclic` was Qed-via-false-premise, making the whole top-level Hiraguchi chain unsound until B6 fixed it.
+**Why:** False admits propagate silently. A Qed chain that bottoms out at a false `Admitted` is unsound — every Qed lemma derived from it is suspect. The cost of catching this 1-2 sessions late is much higher than the 5-minute counter-example search at admit-introduction time.
 
-Catch this BEFORE commit, not 2 sessions later.
+Catch unsoundness BEFORE commit, not later.
 
 ### Discipline 3: Status-doc discipline
 
@@ -67,7 +67,7 @@ Contents:
 - **Risk register**: known gaps and contingency plans.
 - **Useful files**: paths to plan, scripts, references.
 
-**Why:** Multi-session work loses context. The status doc is the handoff artifact. We wrote `2026-05-25-current-state.md` and `2026-05-28-status.md` mid-track because we needed them; treat this as the default, not the emergency action.
+**Why:** Multi-session work loses context. The status doc is the handoff artifact — the next session starts with a clear picture of where things stand, what was last attempted, and what to do next. Treat it as the default, not the emergency action.
 
 ### Discipline 4: Progressive refinement, not perfect proofs
 
@@ -77,10 +77,10 @@ When a deep admit blocks progress:
 1. **Don't try to Qed it directly** — that's the multi-week ambush.
 2. **Refactor it.** Each refactor should:
    - Replace the broad admit with a more focused one + Qed wrapper.
-   - Narrow the hypothesis space (e.g., require `IsExtremalCP` instead of `IsCriticalPair`).
+   - Narrow the hypothesis space (e.g., add a stronger hypothesis that captures structural assumptions from the paper proof).
    - Make the remaining admit MORE attackable than before.
 
-Track B's phases B1-B6 are the pattern: each phase narrowed the admit until B7 reduced it to a single coverage claim (`trotter_coverage_via_extremality`). The deep math content didn't change, but the surface area shrank dramatically.
+The pattern: a sequence of refactors, each tightening the admit's statement. Earlier admits remain semantically equivalent to their successors plus a Qed wrapper, but the surface area shrinks each step. After several iterations, the residual admit is much smaller and more attackable than the original.
 
 **Anti-pattern:** trying to prove the original monolithic admit in one heroic push. This burns sessions without measurable progress.
 
@@ -100,7 +100,7 @@ When you hit these signals:
 - **Re-plan**: is there a fundamentally different approach? (e.g., abandon cascade enumeration for tactic automation, or for a paper-proof-based decomposition).
 - **Accept and document**: if the gap is genuinely irreducible, document it precisely and ship the rest.
 
-We saw this with n=5 cascade exhaustiveness: rounds of agent dispatching kept adding micro-cases but the residual admit's call-site count grew (267 → 280) instead of shrinking. Time to stop.
+A typical failure mode: rounds of agent dispatching keep adding per-case lemmas, but the residual admit's call-site count grows rather than shrinks. That's a signal to stop the current loop and re-plan.
 
 ## Track-management for parallel work
 
@@ -111,25 +111,23 @@ If you have >1 independent admits, run them as separate tracks:
 - **Commit per track**: don't interleave commits from different tracks if avoidable.
 - **Use worktrees if conflict risk is high**: see [[superpowers:using-git-worktrees]].
 
-For our session, Track B (Trotter) and Track N (n=5) were genuinely independent — we ran them serially but could have parallelized in separate worktrees.
+When two tracks are genuinely independent (touch disjoint files), they parallelize well in separate worktrees. Even running them serially in one worktree is fine if conflict risk is low.
 
 ## Cross-track dependency check
 
 Before commit, verify the Qed chain is sound:
 
 ```bash
-grep -rn "Admitted\.$" posets/dimension/
+grep -rn "Admitted\.$" <theory-dir>/
 ```
 
 For each admit, trace its callers:
 
 ```bash
-grep -rn "<lemma_name>" posets/dimension/ --include='*.v'
+grep -rn "<lemma_name>" <theory-dir>/ --include='*.v'
 ```
 
-If admit A is used by Qed B, and B is used (transitively) by admit A's proof — circular, unsound.
-
-We tripped this with Phase D ("use Hiraguchi directly to close n5_residual"): `hiraguchi_bound → ... → n5_residual_classes_two_realizer`, so the closure was circular.
+If admit A is used by Qed B, and B is used (transitively) by admit A's proof — circular, unsound. Be especially wary when "using a top-level Qed result to close a deeper admit" — it's often a hidden circularity if that Qed result itself depends on the admit transitively.
 
 ## Session opening protocol
 
@@ -163,7 +161,7 @@ When wrapping up a session:
 | Skipping status doc updates | Context loss; next session re-derives state. | Status-doc discipline. |
 | Trusting build success without checking .vo timestamps | False positives mask broken commits. | See [[coq-build-doctor]]. |
 | Introducing admits without soundness audit | Sound chain becomes unsound silently. | Admit-introduction checklist. |
-| One huge plan doc | Hard to navigate, no per-session boundaries. | Session-by-session breakdown (like `2026-05-28-close-final-admits.md`). |
+| One huge plan doc | Hard to navigate, no per-session boundaries. | Session-by-session breakdown with per-session deliverables and commit hashes. |
 
 ## Quick triggers
 
@@ -181,5 +179,6 @@ When wrapping up a session:
 - Pre-formalization search: [[searching-existing-formalizations]]
 - Build hygiene: [[coq-fast-compile]], [[coq-build-doctor]]
 - Cascade structures: [[coq-cascade-split-pattern]]
+- Adversarial review: invoke the `proof-skeptic` agent at admit-introduction or session-close.
 - Plan writing: [[superpowers:writing-plans]]
 - Branch isolation: [[superpowers:using-git-worktrees]]

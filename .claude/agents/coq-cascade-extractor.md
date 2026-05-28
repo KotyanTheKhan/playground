@@ -12,10 +12,10 @@ You extract ONE branch from a Coq cascade into a new sibling file. The work is m
 ## Inputs you will receive
 
 The caller will tell you:
-- **Source file path** (e.g., `posets/dimension/N5Dispatcher.v`).
-- **Branch identifier** (e.g., `microcase_xi` or "the case where `R2 r q` is the second strict edge").
-- **Source line range** where the branch lives.
-- **Target file path** (e.g., `posets/dimension/N5Dispatcher_xi.v`).
+- **Source file path** (the parent cascade Lemma's .v file).
+- **Branch identifier** (a short name distinguishing this branch from siblings).
+- **Source line range** where the branch lives in the parent.
+- **Target file path** (where the new Lemma will live).
 - **Hypothesis bundle** — the list of hypotheses the branch's proof body uses.
 - **Conclusion** — typically same as parent's.
 
@@ -35,23 +35,17 @@ If any of these are missing, ask the caller before starting.
 Create the target file with this structure:
 
 ```coq
-(* Imports — copy from parent, adapt as needed *)
-From Stdlib Require Import List Classical Arith Lia.
-From Stdlib Require Import ClassicalDescription.
-From Posets Require Import PosetClasses.
-From Dimension Require Import DimDefs CriticalPairs Szpilrajn Theorems.
-From Dimension Require Import <relevant project modules>.
-From ZornsLemma Require Import EnsemblesExplicit.
-From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts.
+(* Imports — copy from parent, adapt as needed. *)
+(* Standard Coq library imports, then project imports. *)
 
 (** Brief comment explaining what branch this handles. *)
 
 Lemma <branch_lemma_name> :
-  forall {B : Type} (R2 : B -> B -> Prop) `{HR2 : IsPoset B R2}
+  forall <type/instance parameters>
     <hypothesis bundle from caller>,
   <conclusion>.
 Proof.
-  intros B R2 HR2 <intro pattern matching bundle>.
+  intros <intro pattern matching bundle>.
   <verbatim copy of the branch's proof body>.
 Qed.
 ```
@@ -68,7 +62,7 @@ Verify the rest of the parent's cascade is unchanged.
 
 Run:
 ```bash
-mise exec -- dune build posets/dimension/<target_file>.vo
+mise exec -- dune build <target_file>.vo
 ```
 
 **Set a 300-second timeout** via the Bash tool's `timeout` parameter.
@@ -82,7 +76,7 @@ mise exec -- dune build posets/dimension/<target_file>.vo
 
 If compile succeeds:
 ```bash
-git add posets/dimension/<target_file>.v posets/dimension/<source_file>.v
+git add <target_file>.v <source_file>.v
 git commit -m "refactor(<file>): extract <branchID> into separate Lemma"
 ```
 
@@ -96,9 +90,9 @@ The branch's proof body may use hypotheses that exist in the parent's `intros` b
 
 If you miss a hypothesis: the new file will fail to compile with "Variable X not found." On that error: re-read the parent's intros + outer destructs, add the missing hypothesis.
 
-### Pitfall 2: Disequality direction
+### Pitfall 2: Disequality direction in mirror extractions
 
-Many proofs have `apply Hxy_neq; symmetry; exact Hyx_eq` patterns. If you copy a body that's the mirror of another (e.g., `r↔s` swap), the directional handedness changes. Watch for:
+Many proofs have `apply Hxy_neq; symmetry; exact Hyx_eq` patterns. If you copy a body that's the mirror of another (e.g., one obtained by an identifier swap), the directional handedness can flip. Watch for:
 - `apply Hxy_neq; exact Heq` ↔ `apply Hxy_neq; symmetry; exact Heq`
 
 When in doubt: copy verbatim first, fix on compile error.
@@ -111,7 +105,7 @@ Use `mise exec -- dune build <file>.vo` exclusively.
 
 ### Pitfall 4: Implicit args via `apply`
 
-`apply <name>` without `@` lets Coq infer implicit arguments. Sometimes the inference is wrong (typeclass picks up the wrong instance). Always use `apply (@<name> B R2 HR2 ...)` with explicit arguments.
+`apply <name>` without `@` lets Coq infer implicit arguments. Sometimes the inference is wrong (typeclass picks up the wrong instance). Always use `apply (@<name> <explicit args>...)` so the call site is unambiguous.
 
 ## Report format
 

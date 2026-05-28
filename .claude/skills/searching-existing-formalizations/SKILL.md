@@ -10,7 +10,7 @@ Before reinventing a proof, check if it (or a close variant) already exists. A 5
 ## When to invoke
 
 Trigger this skill when about to:
-- **Start a new formalization track** (e.g., before "Track B: Trotter Ch.6").
+- **Start a new formalization track** (before committing to multi-day work on a theorem).
 - **Admit a complex lemma** — first verify nobody has formalized it.
 - **Write a multi-page Qed** — there may be a library tactic.
 - **Implement a structural recursion** — likely covered by existing infrastructure.
@@ -61,7 +61,7 @@ Search in priority order:
 When you decide to search:
 
 1. **Identify the precise statement** you'd be proving. The more specific, the better the search.
-2. **Extract keywords**: `poset dimension`, `Hiraguchi bound`, `Trotter removable pair`, etc.
+2. **Extract keywords**: the theorem name, key concepts, related notions (e.g., a dimension result might also be searched under "width", "antichain", "linear extension").
 3. **Run 2-3 targeted searches** across Tier 1 sources first. Use `WebFetch` to read promising pages.
 4. **If Tier 1 misses**, escalate to Tier 2 for intuition; Tier 3 for community wisdom.
 5. **Document what you found** (or didn't) in a comment near the lemma you're about to write or admit. Future agents will thank you.
@@ -80,7 +80,7 @@ When you decide to search:
 ### Found only literature references (no formal proof)
 - Read the paper(s) to understand the standard proof technique.
 - Decompose into smaller lemmas as the paper does.
-- This is where Trotter Ch.6 fell for us: clear paper proof, no formalization, so we built it ourselves.
+- This is the genuine frontier case: the paper proof exists but no formal version, so you build it.
 
 ### Found nothing
 - Document the search itself in a comment.
@@ -104,14 +104,14 @@ When you decide to search:
 | Implement a fixed-point combinator | Stdlib `Wf` or MathComp `recurrence` patterns |
 | Prove dimension/cardinality bounds | OEIS sequence + paper references |
 
-## Worked example: what we should have done for Trotter
+## Worked-example flow
 
-Before starting Track B (~15 hours of work), we should have:
+Before starting a multi-hour formalization track:
 
-1. Searched coq-community for "trotter" / "dimension" / "poset" → likely no direct hit.
-2. Searched MathComp's `order` module → see if dimension is defined.
-3. Searched Lean's Mathlib for `Order.Dimension` → would have shown the formal approach (if any).
-4. Searched Google Scholar for "Coq formalization order dimension" → may have found related work.
-5. Read Trotter's Ch.6 directly to identify exact intermediate lemmas needed.
+1. Search coq-community for keywords matching the theorem and underlying structure.
+2. Browse the most relevant library's modules (e.g., MathComp's `order` for order theory) for related definitions and lemmas.
+3. Check Lean's Mathlib for the equivalent formalization — useful for intuition even though direct import isn't possible.
+4. Google Scholar for "Coq formalization <theorem name>" or "formal proof <theorem name>" to surface related work.
+5. Read the paper proof directly to identify the exact intermediate lemmas you'd need.
 
-If we had found nothing (likely the case for n ≥ 6), we'd still benefit from steps 1-4 by knowing the formalization is genuinely novel. The 30-minute search would have been a good investment.
+If the searches turn up nothing, you've at least confirmed the work is genuinely novel — the 30-minute search is a good investment either way.

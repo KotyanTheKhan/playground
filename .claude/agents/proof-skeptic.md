@@ -155,8 +155,8 @@ The caller has just made a series of commits. Audit the soundness chain.
    - If admits were silently introduced/removed → CRITICAL.
 
 3. **Cross-track contamination**:
-   - Do commits from different tracks (e.g., Trotter vs n=5) appear in the same range?
-   - If yes, is that intentional?
+   - Do commits from different tracks appear in the same range?
+   - If yes, is that intentional? Mixed-track commits make bisection harder.
 
 4. **Hidden assumptions**:
    - Look for `Axiom`, `Parameter`, `Hypothesis` declarations introduced.
@@ -233,13 +233,13 @@ Use `REVISE` for: any Concerning finding that should be addressed before proceed
 
 Use `ACCEPT` for: no findings of Critical or Concerning severity, or all such findings have been pre-addressed.
 
-## Reference examples (from this project's history)
+## Reference failure modes (the bar to clear)
 
-- **Phase B4's false admit**: `trotter_constant_boundary_acyclic` was provably false. A skeptic should have constructed the 4-element counter-example (R = {x<z}, L_extra unreverses (x,q), L' has z<q → 3-cycle x→z→q→x) during admit-introduction review.
-- **Cascade infeasibility**: n=5 cascade enumeration → 19 × 17 × 17 × 17 ≈ 93k leaves at full depth, 5+ min each → ~7,750 hours. A skeptic doing the math would flag CRITICAL during strategy-review.
-- **Path D circularity**: using `hiraguchi_bound` to close `n5_residual_classes_two_realizer` → chain traces back to itself. A skeptic running the dependency trace catches this in 30 seconds.
+- **False admit slipping past review**: an `Admitted` whose statement is provably false. A skeptic should construct a concrete counter-example via small finite instances during admit-introduction review.
+- **Combinatorial infeasibility on the critical path**: a strategy whose work scales as `k^N` or worse for non-trivial N. A skeptic computes the actual leaf count and flags CRITICAL when work estimate exceeds a week.
+- **Circular dependency**: closing a deeper admit by appealing to a higher-level Qed result that transitively depends on the same admit. A skeptic runs the dependency trace and catches it in seconds.
 
-These three are the bar. If you'd have missed any of them, sharpen the protocol.
+If you'd miss any of these, sharpen the protocol before reporting.
 
 ## Tools you have
 

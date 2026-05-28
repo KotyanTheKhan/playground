@@ -58,7 +58,7 @@ Then either fix the slow file (use `coq-cascade-split-pattern`) or commit and pr
 `mise run build <file>.v` returns success without doing anything because dune sees the .v target as "not a build target."
 
 **Diagnose:**
-- After running `mise run build`, check `_build/default/posets/dimension/<file>.vo` timestamp.
+- After running `mise run build`, check `_build/default/<path>/<file>.vo` timestamp.
 - If unchanged from before the run, the build didn't happen.
 
 **Fix:** Use `mise exec -- dune build <file>.vo` instead. This is the correct invocation.
@@ -73,7 +73,7 @@ Then either fix the slow file (use `coq-cascade-split-pattern`) or commit and pr
 
 **Fix:** 
 ```bash
-touch posets/dimension/<file>.v  # force re-compile
+touch <path>/<file>.v  # force re-compile
 mise build
 ```
 
@@ -131,7 +131,7 @@ for commit in <suspect commits>; do
 done
 
 # Restore
-git checkout dimension_finish
+git checkout <working-branch>
 git stash pop
 ```
 
