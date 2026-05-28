@@ -1,15 +1,50 @@
-(** N5Reflect_Exhaustive.v — vm_compute Qed for the 4-edge exhaustiveness.
+(** N5Reflect_Exhaustive.v — combiner for 4-edge exhaustiveness.
 
-    Isolated from N5Reflect.v so the slow vm_compute reduction is
-    cached separately and does not block iteration on the definitions
-    in the parent file. *)
+    Composes the 5 parallel-compiled chunk lemmas (chunk_1 .. chunk_5)
+    into the full [exhaustive_4edge_decidable] and derives
+    [exhaustive_4edge].  Each chunk file does its own [native_cast]
+    over ~2530 sublists; dune compiles them in parallel, dropping
+    wall-clock from ~150s monolithic to ~30-60s. *)
 From Stdlib Require Import Bool List Arith Lia FunctionalExtensionality.
 Import ListNotations.
-From Dimension.N5Exhaustive Require Import N5Reflect.
+From Dimension.N5Exhaustive Require Import
+  N5Reflect
+  N5Reflect_Exhaustive_1 N5Reflect_Exhaustive_2 N5Reflect_Exhaustive_3
+  N5Reflect_Exhaustive_4 N5Reflect_Exhaustive_5.
 
-(** The decidable enumeration: every 4-edge poset matches one of the
-    10 patterns.  Proved by [vm_cast_no_check] over the 12650 size-4
-    sublists of all 25 ordered pairs of [Fin.t 5]. *)
+(** [sublists 4 all_pairs] splits into the 5 chunks in order.
+
+    Symbolic proof using only [firstn_skipn] and [skipn_skipn].
+    No [vm_compute] over the 12650-item list. *)
+Lemma sublists_chunks_eq :
+  sublists 4 all_pairs =
+    exhaustive_4edge_chunk_1 ++ exhaustive_4edge_chunk_2 ++
+    exhaustive_4edge_chunk_3 ++ exhaustive_4edge_chunk_4 ++
+    exhaustive_4edge_chunk_5.
+Proof.
+  unfold exhaustive_4edge_chunk_1, exhaustive_4edge_chunk_2,
+         exhaustive_4edge_chunk_3, exhaustive_4edge_chunk_4,
+         exhaustive_4edge_chunk_5.
+  (* Fold up from the right: at each level, replace skipn (m+n) with
+     skipn n (skipn m), pairing with the preceding firstn to make
+     [firstn n (skipn m) ++ skipn n (skipn m) = skipn m] via firstn_skipn. *)
+  replace (skipn 10120 (sublists 4 all_pairs))
+    with (skipn 2530 (skipn 7590 (sublists 4 all_pairs)))
+    by (rewrite skipn_skipn; f_equal).
+  rewrite (firstn_skipn 2530 (skipn 7590 (sublists 4 all_pairs))).
+  replace (skipn 7590 (sublists 4 all_pairs))
+    with (skipn 2530 (skipn 5060 (sublists 4 all_pairs)))
+    by (rewrite skipn_skipn; f_equal).
+  rewrite (firstn_skipn 2530 (skipn 5060 (sublists 4 all_pairs))).
+  replace (skipn 5060 (sublists 4 all_pairs))
+    with (skipn 2530 (skipn 2530 (sublists 4 all_pairs)))
+    by (rewrite skipn_skipn; f_equal).
+  rewrite (firstn_skipn 2530 (skipn 2530 (sublists 4 all_pairs))).
+  rewrite (firstn_skipn 2530 (sublists 4 all_pairs)).
+  reflexivity.
+Qed.
+
+(** Combine the 5 chunk Qed's into the full forallb. *)
 Lemma exhaustive_4edge_decidable :
   forallb (fun es =>
     let M := from_edges es in
@@ -17,7 +52,14 @@ Lemma exhaustive_4edge_decidable :
           (any_pattern_b M))
     (sublists 4 all_pairs) = true.
 Proof.
-  native_cast_no_check (eq_refl true).
+  rewrite sublists_chunks_eq.
+  rewrite !forallb_app.
+  rewrite exhaustive_4edge_chunk_1_holds.
+  rewrite exhaustive_4edge_chunk_2_holds.
+  rewrite exhaustive_4edge_chunk_3_holds.
+  rewrite exhaustive_4edge_chunk_4_holds.
+  rewrite exhaustive_4edge_chunk_5_holds.
+  reflexivity.
 Qed.
 
 (** Filtered sublists are in [sublists (length filtered) original]. *)
