@@ -75,7 +75,7 @@ Section EdgeCount4_chain3_above.
     assert (Hsi_bg : strict_indicator R2 beta gamma = 1)
       by (apply strict_indicator_eq_1; assumption).
     assert (Hsi_dg : strict_indicator R2 delta gamma = 1)
-      by (apply strict_indicator_eq_1; assumption).
+      by (apply strict_indicator_eq_1; [assumption | intro Heq; apply Hgd_n; symmetry; exact Heq]).
     assert (Hsi_ag : strict_indicator R2 alpha gamma = 1)
       by (apply strict_indicator_eq_1; assumption).
     assert (Hsi_xy : strict_indicator R2 x y = 1)
