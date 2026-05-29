@@ -221,10 +221,24 @@ x,y with every other element comparable to both => equal down-count rank.
     alpha,beta. Sub-cases on where u sits relative to alpha,beta in the chain.
     This is the genuinely new construction (~150-200 lines).
 
-Setup needed first: extract EXACTLY the 2 incomparable pairs from
-`edge_count_5 = 8` and decide disjoint vs shared. `incomp_carrier_exists` +
-`two_incomp_le_8` bound things; a clean "exactly-two-incomparable-pairs"
-extractor is the missing plumbing.
+Setup: extract two incomparable pairs and decide disjoint vs shared.
+DONE (EdgeCountIncomp, all Qed): `incomp_carrier_exists` (first pair),
+`second_incomp_of_8` (a distinct second pair), `two_incomp_le_8`,
+`twin_rk_eq_gen` (matching-case equal-rank), `rk_strict_mono`, `dle`/`rk`.
+
+STILL TODO for `EdgeCount8.v`:
+  1. a `three_incomp_le_7` bound (3 incomparable pairs => edge_count <= 7), so
+     that with `edge_count = 8` exactly two pairs exist => every off-pair
+     element is comparable to both members of an incomparable pair (needed to
+     invoke `twin_rk_eq_gen`).
+  2. classification: do the two extracted pairs share a vertex?
+  3. DISJOINT construction: both pairs are twins => "incomparable => equal rk"
+     holds for the whole poset => the count-9 rk1/rk2 discharge works verbatim
+     (reuse the `EdgeCount9.v` proof body with `twin_rk_eq_gen`).
+  4. SHARED construction {u,v},{u,w}: u not a twin; explicit two extensions
+     placing u below the v/w block in one and above in the other, consistent
+     with the two all-comparable elements (sub-cases on their chain position).
+     ~150 lines; this is the genuinely new part.
 
 Counts 7,6,5: no matching exists at all; the per-configuration shapes multiply.
 These will likely each need several explicit constructions; revisit whether the
