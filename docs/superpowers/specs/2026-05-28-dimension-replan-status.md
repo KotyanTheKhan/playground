@@ -155,6 +155,32 @@ case (counts 9 / 8-disjoint) is the down-count ranking ported to Fin.t 5; the
 non-matching case needs a transitive orientation of the incomparability graph,
 now a finite/decidable check over f0..f4.
 
+## Session 1 of dimension-finish plan (2026-05-29): probe results
+
+Plan: `docs/superpowers/plans/2026-05-29-dimension-finish.md`.
+
+Task A1 probe (3^10 orientation enumeration on Fin.t 5):
+- enumeration `length (enum_assignments 10) = 59049` in 2.5s (clean) — fine.
+- `filter is_poset_b` over the 59049 (via `from_edges`): exceeds 120s, so
+  `is_poset_b` is ~2 ms/item. A realizer SEARCH (120x120 perms per poset) on top
+  is 14400x more work => the uniform reflection-with-search is INFEASIBLE.
+- **A1 decision: NO uniform-with-search.**
+
+Tooling: discovered a stale-`dune`-RPC-server confound — the watchdog killed
+`rocqworker`/`coqc` but left a `dune` server that forwarded/queued later builds
+behind a stuck compile. Fixed: `timed-build.sh` cleanup now reaps `dune` too.
+Always `pkill -9 -f dune` before a fresh reflection build.
+
+Refined options for the n=5 base (counts 5–8), pending next session:
+  (A4) per-count explicit constructions on Fin.t 5 (destruct R2_matrix pair
+       entries, provide literal `rho1,rho2`, verify via the bridge by
+       vm_compute). No 59049 enumeration; feasible per-shape but voluminous.
+  (A5) deterministic-orientation reflection: a CHEAP orient algorithm (no
+       search) + reflect over 59049 that it realizes every n=5 poset (chunked
+       native_compute, ~25 chunks). Feasible only if a correct n=5
+       transitive-orientation algorithm is implemented; per-item ~is_poset_b +
+       verify (~3-4 ms) => ~200s vm / less native, chunked.
+
 ## Admit count: 5 (was 6)
 
 - `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, the
