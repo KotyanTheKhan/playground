@@ -199,6 +199,38 @@ down-count constructions. Either
 EdgeCountIncomp's `two_incomp_le_8` / down-count machinery still helps bound the
 configurations, but is not sufficient alone for counts 5-7.
 
+## Count-8 decomposition (per-configuration; chosen direction 2026-05-29)
+
+`twin_rk_eq_gen` (in EdgeCountIncomp, Qed) is the reusable tool: incomparable
+x,y with every other element comparable to both => equal down-count rank.
+
+`n5_edge_count_8_two_realizer` (2 incomparable pairs) splits on configuration:
+
+  - **Disjoint** {p,q},{r,s} (5th element comparable to all): BOTH pairs are
+    twins (each off-pair element is comparable to both — it is in the other
+    pair or is the 5th, never incomparable to p/q/r/s except its own partner).
+    So "incomparable => equal rk" holds for the whole poset, and the EXACT
+    count-9 construction (rk1=6*rk+lab, rk2=6*rk+(4-lab) via
+    `n5_two_realizer_framework`) works unchanged. Proof obligation per pair:
+    feed `twin_rk_eq_gen` the thirds-comparable facts (from "only these 2 pairs
+    are incomparable").
+  - **Shared** {u,v},{u,w} (u incomparable to v,w; {v,w,alpha,beta} a 4-chain;
+    u comparable to alpha,beta): u is NOT a twin (rk u != rk v in general), so
+    the down-count construction fails. Need an explicit pair of extensions
+    placing u above the v/w block in L1 and below in L2, consistent with
+    alpha,beta. Sub-cases on where u sits relative to alpha,beta in the chain.
+    This is the genuinely new construction (~150-200 lines).
+
+Setup needed first: extract EXACTLY the 2 incomparable pairs from
+`edge_count_5 = 8` and decide disjoint vs shared. `incomp_carrier_exists` +
+`two_incomp_le_8` bound things; a clean "exactly-two-incomparable-pairs"
+extractor is the missing plumbing.
+
+Counts 7,6,5: no matching exists at all; the per-configuration shapes multiply.
+These will likely each need several explicit constructions; revisit whether the
+uniform Dushnik-Miller route (option A) becomes cheaper once a few shared-case
+constructions are in hand.
+
 ## Risk register
 
 - R1: reflection won't scale to K>=6 (HIGH, established). Mitigation: S2 spike
