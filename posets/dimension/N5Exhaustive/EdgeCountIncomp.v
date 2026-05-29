@@ -109,4 +109,118 @@ Section EdgeCountIncomp.
     lia.
   Qed.
 
+  (** Down-count rank: [dle z x] is 1 iff [z <= x], and [rk] sums it over the
+      five carrier elements (= number of elements at or below [x]). *)
+  Definition dle (z x : B) : nat :=
+    if excluded_middle_informative (R2 z x) then 1 else 0.
+
+  Definition rk (a b c d e x : B) : nat :=
+    dle a x + dle b x + dle c x + dle d x + dle e x.
+
+  Lemma dle_mono : forall z x y, R2 x y -> dle z x <= dle z y.
+  Proof.
+    intros z x y HR. unfold dle.
+    destruct (excluded_middle_informative (R2 z x)) as [Hzx|]; [|lia].
+    destruct (excluded_middle_informative (R2 z y)) as [|Hnzy]; [lia|].
+    exfalso. apply Hnzy. exact (poset_trans z x y Hzx HR).
+  Qed.
+
+  Lemma dle_self : forall x, dle x x = 1.
+  Proof.
+    intro x. unfold dle.
+    destruct (excluded_middle_informative (R2 x x)) as [|N];
+      [reflexivity | exfalso; apply N; apply poset_refl].
+  Qed.
+
+  Lemma dle_zero_of_not : forall z x, ~ R2 z x -> dle z x = 0.
+  Proof.
+    intros z x H. unfold dle.
+    destruct (excluded_middle_informative (R2 z x)); [contradiction | reflexivity].
+  Qed.
+
+  (** [rk] is strictly monotone along strict edges. *)
+  Lemma rk_strict_mono :
+    forall a b c d e,
+      (forall w : B, w = a \/ w = b \/ w = c \/ w = d \/ w = e) ->
+      forall x y, R2 x y -> x <> y -> rk a b c d e x < rk a b c d e y.
+  Proof.
+    intros a b c d e Hcov x y HR Hxy.
+    pose proof (dle_mono a x y HR).
+    pose proof (dle_mono b x y HR).
+    pose proof (dle_mono c x y HR).
+    pose proof (dle_mono d x y HR).
+    pose proof (dle_mono e x y HR).
+    assert (Hyx0 : dle y x = 0).
+    { apply dle_zero_of_not. intro Hyx. apply Hxy. exact (poset_antisym x y HR Hyx). }
+    assert (Hyy1 : dle y y = 1) by (apply dle_self).
+    unfold rk.
+    destruct (Hcov y) as [Ey|[Ey|[Ey|[Ey|Ey]]]]; subst y; lia.
+  Qed.
+
+  (** Twin lemma: when the edge count is 9 (unique incomparable pair), any two
+      incomparable elements have equal down-count rank.  Off-pair elements are
+      comparable to both (else a second incomparable pair, contradicting
+      [two_incomp_le_8]) and sit on the same side; the two elements themselves
+      swap their (1,0)/(0,1) contributions. *)
+  Lemma twin_rk_eq :
+    forall a b c d e,
+      a <> b -> a <> c -> a <> d -> a <> e ->
+      b <> c -> b <> d -> b <> e ->
+      c <> d -> c <> e -> d <> e ->
+      (forall w : B, w = a \/ w = b \/ w = c \/ w = d \/ w = e) ->
+      edge_count_5 R2 a b c d e = 9 ->
+      forall x y, @Incomparable B R2 x y ->
+        rk a b c d e x = rk a b c d e y.
+  Proof.
+    intros a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde Hcov Hec x y Hxy.
+    assert (Hxy_ne : x <> y) by (intro E; subst; apply Hxy; left; apply poset_refl).
+    assert (Hcx : forall z, z <> x -> z <> y -> R2 z x \/ R2 x z).
+    { intros z Hzx Hzy. apply NNPP. intro Hnc.
+      assert (Hxz : @Incomparable B R2 x z)
+        by (intros [H|H]; apply Hnc; [right|left]; exact H).
+      pose proof (two_incomp_le_8 a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde
+                    Hcov x y z Hxy Hxz (fun E => Hzy (eq_sym E))) as H8. lia. }
+    assert (Hcy : forall z, z <> x -> z <> y -> R2 z y \/ R2 y z).
+    { intros z Hzx Hzy. apply NNPP. intro Hnc.
+      assert (Hyx : @Incomparable B R2 y x)
+        by (intros [H|H]; apply Hxy; [right|left]; exact H).
+      assert (Hyz : @Incomparable B R2 y z)
+        by (intros [H|H]; apply Hnc; [right|left]; exact H).
+      pose proof (two_incomp_le_8 a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde
+                    Hcov y x z Hyx Hyz (fun E => Hzx (eq_sym E))) as H8. lia. }
+    assert (Hdz : forall z, z <> x -> z <> y -> dle z x = dle z y).
+    { intros z Hzx Hzy.
+      destruct (Hcx z Hzx Hzy) as [A|A]; destruct (Hcy z Hzx Hzy) as [Bb|Bb].
+      - unfold dle.
+        destruct (excluded_middle_informative (R2 z x)) as [|N];
+          [|exfalso; apply N; exact A].
+        destruct (excluded_middle_informative (R2 z y)) as [|N];
+          [reflexivity|exfalso; apply N; exact Bb].
+      - exfalso. apply Hxy. right. exact (poset_trans y z x Bb A).
+      - exfalso. apply Hxy. left. exact (poset_trans x z y A Bb).
+      - unfold dle.
+        destruct (excluded_middle_informative (R2 z x)) as [Rzx|];
+          [exfalso; apply Hzx; exact (poset_antisym z x Rzx A)|].
+        destruct (excluded_middle_informative (R2 z y)) as [Rzy|];
+          [exfalso; apply Hzy; exact (poset_antisym z y Rzy Bb)|reflexivity]. }
+    assert (Hxx1 : dle x x = 1) by (apply dle_self).
+    assert (Hyy1 : dle y y = 1) by (apply dle_self).
+    assert (Hxy0 : dle x y = 0)
+      by (apply dle_zero_of_not; intro H; apply Hxy; left; exact H).
+    assert (Hyx0 : dle y x = 0)
+      by (apply dle_zero_of_not; intro H; apply Hxy; right; exact H).
+    unfold rk.
+    destruct (Hcov x) as [Ex|[Ex|[Ex|[Ex|Ex]]]];
+    destruct (Hcov y) as [Ey|[Ey|[Ey|[Ey|Ey]]]];
+    subst x y;
+    try (exfalso; apply Hxy_ne; reflexivity);
+    try (rewrite (Hdz a) by congruence);
+    try (rewrite (Hdz b) by congruence);
+    try (rewrite (Hdz c) by congruence);
+    try (rewrite (Hdz d) by congruence);
+    try (rewrite (Hdz e) by congruence);
+    rewrite ?Hxx1, ?Hyy1, ?Hxy0, ?Hyx0;
+    lia.
+  Qed.
+
 End EdgeCountIncomp.
