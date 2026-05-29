@@ -16,7 +16,8 @@ From Dimension.N5Exhaustive Require Import
   EdgeCount4_bowtie EdgeCount4_disjoint
   EdgeCount4_chain3_below EdgeCount4_chain3_above
   EdgeCount4_M_shape EdgeCount4_K32mm
-  EdgeCount4_3claw_up_xp EdgeCount4_3claw_down_xl.
+  EdgeCount4_3claw_up_xp EdgeCount4_3claw_down_xl
+  N5Reflect N5Reflect_Exhaustive N5Transport N5Iff.
 From ZornsLemma Require Import EnsemblesExplicit.
 From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts.
 
@@ -55,7 +56,7 @@ Section EdgeCount4.
         [Hrl1 [Hrl2 [Hrl3 [Hrl4
         [Hl12 [Hl13 [Hl14
         [Hl23 [Hl24 [Hl34
-        [HR1 [HR2' [HR3 HR4]]]]]]]]]]]]]]]]].
+        [HR1 [HR2' [HR3 HR4]]]]]]]]]]]]]]]]]].
       apply (n5_edge_count_4_4claw_up R2 Hcard a b c d e
                Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde Hcov Hec
                r l1 l2 l3 l4 Hrl1 Hrl2 Hrl3 Hrl4
@@ -74,7 +75,7 @@ Section EdgeCount4.
         [Hrl1 [Hrl2 [Hrl3 [Hrl4
         [Hl12 [Hl13 [Hl14
         [Hl23 [Hl24 [Hl34
-        [HR1 [HR2' [HR3 HR4]]]]]]]]]]]]]]]]].
+        [HR1 [HR2' [HR3 HR4]]]]]]]]]]]]]]]]]].
       apply (n5_edge_count_4_4claw_down R2 Hcard a b c d e
                Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde Hcov Hec
                r l1 l2 l3 l4 Hrl1 Hrl2 Hrl3 Hrl4
@@ -123,7 +124,7 @@ Section EdgeCount4.
     { destruct H12 as
         [alpha [beta [gamma [delta
         [H1 [H2 [H3 [H4 [H5 [H6
-        [HR1 [HR2' [HR3 HR4]]]]]]]]]]]].
+        [HR1 [HR2' [HR3 HR4]]]]]]]]]]]]].
       apply (n5_edge_count_4_chain3_below R2 Hcard a b c d e
                Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde Hcov Hec
                alpha beta gamma delta H1 H2 H3 H4 H5 H6 HR1 HR2' HR3 HR4). }
@@ -138,7 +139,7 @@ Section EdgeCount4.
     { destruct H14 as
         [alpha [beta [gamma [delta
         [H1 [H2 [H3 [H4 [H5 [H6
-        [HR1 [HR2' [HR3 HR4]]]]]]]]]]]].
+        [HR1 [HR2' [HR3 HR4]]]]]]]]]]]]].
       apply (n5_edge_count_4_chain3_above R2 Hcard a b c d e
                Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde Hcov Hec
                alpha beta gamma delta H1 H2 H3 H4 H5 H6 HR1 HR2' HR3 HR4). }
@@ -211,13 +212,47 @@ Section EdgeCount4.
                alpha beta gamma delta eps H1 H2 H3 H4 H5 H6 H7 H8 H9 H10
                HR1 HR2' HR3 HR4). }
 
-    (* No class matches: the 4 extracted edges' structural pattern
-       does not fit any of the 10 enumerated classes (11..20).  By
-       iso-class enumeration, every 4-edge poset on 5 elements
-       belongs to exactly one of these 10 classes, so this branch
-       is unreachable.  The exhaustiveness reduction is a structural
-       case analysis we leave as the remaining gap for this session. *)
-    admit.
-  Admitted.
+    (* Reflection: build the boolean matrix, invoke exhaustive_4edge to
+       get one of 10 boolean patterns true, lift via the iff lemma to
+       the abstract exists shape, contradiction with the corresponding
+       Hn11..Hn20 hypothesis. *)
+    pose proof (R2_matrix_is_poset R2 a b c d e
+                  Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde) as Hp_b.
+    pose proof (R2_matrix_edge_count_eq R2 a b c d e
+                  Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde) as Hec_b.
+    rewrite Hec in Hec_b.
+    destruct (exhaustive_4edge _ Hp_b Hec_b) as
+      [Hb | [Hb | [Hb | [Hb | [Hb | [Hb | [Hb | [Hb | [Hb | Hb]]]]]]]]];
+    [ apply (is_4claw_up_b_to_exists R2 a b c d e
+              Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde) in Hb;
+      contradiction (Hn11 Hb)
+    | apply (is_4claw_down_b_to_exists R2 a b c d e
+              Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde) in Hb;
+      contradiction (Hn20 Hb)
+    | apply (is_bowtie_b_to_exists R2 a b c d e
+              Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde) in Hb;
+      contradiction (Hn16 Hb)
+    | apply (is_disjoint_b_to_exists R2 a b c d e
+              Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde) in Hb;
+      contradiction (Hn15 Hb)
+    | apply (is_chain3_below_b_to_exists R2 a b c d e
+              Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde) in Hb;
+      contradiction (Hn12 Hb)
+    | apply (is_chain3_above_b_to_exists R2 a b c d e
+              Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde) in Hb;
+      contradiction (Hn14 Hb)
+    | apply (is_M_shape_b_to_exists R2 a b c d e
+              Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde) in Hb;
+      contradiction (Hn17 Hb)
+    | apply (is_K32mm_b_to_exists R2 a b c d e
+              Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde) in Hb;
+      contradiction (Hn19 Hb)
+    | apply (is_3claw_up_xp_b_to_exists R2 a b c d e
+              Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde) in Hb;
+      contradiction (Hn13 Hb)
+    | apply (is_3claw_down_xl_b_to_exists R2 a b c d e
+              Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde) in Hb;
+      contradiction (Hn18 Hb) ].
+  Qed.
 
 End EdgeCount4.
