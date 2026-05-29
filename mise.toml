@@ -103,7 +103,15 @@ run = '''
 set -e
 eval $(opam env --switch=. --set-switch)
 target="${1:-@all}"
-dune build "$target"
+# Cap parallelism to avoid OOM on memory-heavy proofs. Large cartesian
+# destruct cascades can each consume several GB; dune's default -j = ncpu
+# (10 here) launches one such worker per core and exhausts RAM. Set DUNE_JOBS
+# to bound it; unset/empty keeps dune's default for light, fast builds.
+if [ -n "${DUNE_JOBS:-}" ]; then
+  dune build -j "${DUNE_JOBS}" "$target"
+else
+  dune build "$target"
+fi
 echo "✅ Build successful: $target"
 '''
 
