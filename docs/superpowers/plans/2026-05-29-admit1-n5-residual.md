@@ -149,10 +149,21 @@ Estimated ~200-250 lines, ~6 small lemmas, fast compile (no native_compute).
 separate file to avoid invalidating the EdgeCount4 cascade cache) provides:
   - `comparable_indicator_sum`: distinct comparable pair contributes 1.
   - `incomp_carrier_exists`: `edge_count_5 <= 9 -> exists incomparable pair`.
-These are reused by all of counts 5-9. STILL TODO for count-9: the uniqueness
-lemma (`edge_count_5 = 9 -> at most one incomparable pair`, i.e. two distinct
-incomparable pairs force `edge_count <= 8`), the twin equal-rk lemma, and the
-`n5_two_realizer_framework` discharge with the rk1/rk2 above.
+  - `two_incomp_le_8`: two incomparable pairs sharing a vertex force
+    `edge_count_5 <= 8` (= uniqueness of the incomparable pair when count = 9).
+These are reused by all of counts 5-9.
+
+STILL TODO for count-9 (in `EdgeCount9.v`, replacing its admit):
+  - thirds-comparable: from `two_incomp_le_8` + count=9, every z notin {u,v} is
+    comparable to both u and v (else a second incomparable pair).
+  - rk strict-mono (`R2 x y -> x<>y -> rk x < rk y`): termwise indicator
+    monotonicity + the y-term strict; 5-case on Hcov y.
+  - twin equal-rk (`Incomparable x y -> rk x = rk y`): off-{x,y} terms equal
+    (thirds-comparable + transitivity), x/y terms swap (1,0)<->(0,1);
+    25-case on Hcov x,y.
+  - `lab` (0..4 via Hcov), `rk1 = 6*rk+lab`, `rk2 = 6*rk+(4-lab)`, then
+    discharge `n5_two_realizer_framework` (rk1/rk2 inj from lab-inj; mono from
+    rk strict-mono; intersection + distinguishing from twin equal-rk).
 
 ## Risk register
 
