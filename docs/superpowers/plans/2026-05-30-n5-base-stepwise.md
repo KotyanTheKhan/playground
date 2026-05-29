@@ -43,6 +43,24 @@ For each NEW pattern from 0.3 (none if all covered):
 
 - [ ] **1.k** Create `EdgeCount{K}_<pattern>.v` mirroring an existing `EdgeCount4_<pattern>.v`: a `Lemma n5_edge_count_{K}_<pattern>` that, given the pattern witnesses, builds the 2-realizer by calling the matching `N5Realizers` handler (or `n5_two_realizer_framework` with explicit ranks). Build via `timed-build.sh 600 <file>.vo 1`; commit per file. (These are linear, ~120 lines each, fast to compile — like the EdgeCount4 helpers.)
 
+## Phase 1.5 — COUNT-8 special case: structural dispatch, NO reflection (do first)
+
+Count-8 has EXACTLY two incomparable pairs (provable: `incomp_carrier_exists`
+gives one, `second_incomp_of_8` a distinct second, `two_incomp_le_8` forbids a
+third — all Qed in `EdgeCountIncomp.v`). So EdgeCount8 needs NO `exhaustive_8edge`
+reflection; it dispatches structurally:
+  - [ ] extract incomparable pairs {p,q},{r,s} (the two extractors);
+  - [ ] `destruct (classic (shares a vertex))`: disjoint ({p,q},{r,s} all 4
+        distinct, 5th comparable to all) vs shared ({u,v},{u,w});
+  - [ ] in each config the 8 comparabilities' orientation is constrained; case
+        on the remaining structure and route to the matching `N5Realizers`
+        handler (candidates: K_3_2_minus_matching / diamond_pendant_* /
+        3_layer_diamond / bowtie_*_cap for disjoint; the inv/_minus_two_edges
+        variants for shared). Provide the handler its witnesses.
+This is the cleanest count to close first (reuses Qed extractors; fast compile).
+Counts 7,6,5 (>=3 incomparable pairs, no clean extraction) fall back to Phase 2
+reflection (constrained enum).
+
 ## Phase 2 — Exhaustiveness for each count K (the crux)
 
 The residual "no pattern matched -> contradiction" needs: every is_poset matrix
