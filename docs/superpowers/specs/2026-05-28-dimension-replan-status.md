@@ -233,6 +233,32 @@ consistent orientation, rank extraction) — the S3 deliverable.
 Bridge `two_realizer_from_fin_ranks` (Qed) remains the foundation: once
 `compute_realizer` produces verified ranks, the bridge closes counts 5-8.
 
+## Session 3: greedy-tc orient is the right algorithm; blocker is REPRESENTATION
+
+Implemented the cheap, no-search, correct candidate:
+  `orient M` = greedily orient each still-incomparable pair i->j in index order,
+  transitively close after each (the closure performs Golumbic forcing);
+  `orient2` = the conjugate (reverse relative to orient's choices); ranks =
+  down-counts in the two resulting total orders; `realizes_pair` checks the
+  bridge conditions. Single deterministic attempt (NO search) => cheap in ops.
+
+But validation (firstn 6000) was killed at 150s: the matrix is represented as a
+FUNCTION closure `Fin.t 5 -> Fin.t 5 -> bool`, and `tc` composes 5 `tstep`
+closures per `add_edge` (~20 add_edges/item) => deeply nested closures that
+vm_compute re-traverses on every lookup. The OPS are few; the closure
+representation is the killer (same lesson as the earlier `mat_of` closure vs
+`from_edges`).
+
+**Fix (next step):** represent the working matrix as concrete DATA, not a
+closure — an edge-LIST (transitively close the list) or a 25-bit packed nat,
+converting to `M5` only at the end. Then `orient`/`tc` are fast; the reflection
+over 59049 should be dominated by the is_poset_b floor (~native chunked,
+feasible). The algorithm (greedy-tc) is believed correct (Golumbic forcing for
+comparability graphs); the reflection will verify it.
+
+This is a genuine efficient-representation engineering task. Counts 5-8 are NOT
+closed; the path is clear but needs careful, deliberate implementation.
+
 ## Admit count: 5 (was 6)
 
 - `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, the
