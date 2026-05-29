@@ -79,6 +79,31 @@ by chunked native_cast over count8_assigns, the `is_*_b -> exists` iff lemmas
 handlers. (Phase 1.5 structural route hits abstract-element casework explosion
 for >=4 elements; the constrained-reflection route here is the feasible one.)
 
+## Phase 2a count-8 PROGRESS (2026-05-30): apparatus confirmed feasible piece-by-piece
+
+- 6 iso-class patterns extracted + defined: `N5Reflect8.v` (committed, Qed).
+- Constrained enum: use DIRECT generator `enum_k_none 10 2` (length-10 lists with
+  exactly 2 Nones = 11520) — NOT `filter (...) (enum_assignments 10)` (the 59049
+  detour blows up native compile). Confirmed.
+- Chunked native_cast WORKS: `forallb chk (firstn 2304 count8_assigns) = true`
+  built via `native_cast_no_check (eq_refl true)` in < 200 s (chk = is_poset =>
+  any_pattern_8_b). A single native over all 11520 was too slow/heavy => CHUNK
+  into ~5 (exactly the N5Reflect_Exhaustive 5-chunk pattern). pkill dune first.
+
+REMAINING count-8 (mechanical, all confirmed feasible):
+  1. `N5Reflect8_Exhaustive.v` + 5 chunk files: 5x `cov_ck : forallb chk
+     (firstn 2304 (skipn (k*2304) count8_assigns)) = true` (native_cast), then
+     combine to `coverage_8 : forallb chk count8_assigns = true` via the
+     firstn/skipn split (sublists_chunks_eq style).
+  2. `exhaustive_8edge : forall M, is_poset_b M = true -> edge_count_b M = 8 ->
+     any_pattern_8_b M = true` — bridge: M = mat_of a for the orientation-
+     assignment a of M (a in count8_assigns by enum_k_none completeness;
+     mat_of a = M by from_edges_spec); apply coverage_8.
+  3. iff lemmas `is_c8_k_b -> exists abstract shape` (N5Iff template, 6 of them).
+  4. `EdgeCount8.v`: classic dispatch each of 6 patterns -> N5Realizers handler;
+     residual via exhaustive_8edge.
+Then counts 5/6/7 identically (enum_k_none 10 {5,4,3}; extract their iso-classes).
+
 ## Phase 2 — Exhaustiveness for each count K (the crux)
 
 The residual "no pattern matched -> contradiction" needs: every is_poset matrix
