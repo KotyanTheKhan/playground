@@ -36,7 +36,11 @@ MARKER="$(mktemp -t timed-build.XXXXXX)"
 
 cleanup_children() {
   pkill -9 -P "$BP" 2>/dev/null
-  pkill -9 -f "rocqworker|coqc" 2>/dev/null
+  # Also reap detached dune RPC servers + Coq workers: the watchdog's kill -9
+  # of the build leaves a dune server running, which then forwards/poisons the
+  # next build ("forwarded to a running Dune instance").
+  pkill -9 -f "rocqworker|coqc|dune build|dune-build|_build/.dune" 2>/dev/null
+  pkill -9 -x dune 2>/dev/null
   rm -f _build/.lock
 }
 
