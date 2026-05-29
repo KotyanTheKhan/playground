@@ -139,6 +139,22 @@ Spike S2 succeeded AND landed the proof. `N5Exhaustive/EdgeCountIncomp.v`
 from `rk1 = 6*rk + lab`, `rk2 = 6*rk + (4-lab)` via `n5_two_realizer_framework`.
 This is the template for counts 5-8 (reflection enumeration was infeasible).
 
+## Uniform Fin.t 5 route — Piece 1 landed (2026-05-29)
+
+Per-config hit a casework wall ("at most 2 incomparable pairs" needs ~5^6
+abstract Hcov cases). Switched to the uniform Fin.t 5 route.
+
+`N5Exhaustive/N5RealizerTransport.v` (Qed): `two_realizer_from_fin_ranks`
+reduces "abstract R2 has a 2-realizer" to "rho1,rho2 : Fin.t 5 -> nat realize
+R2_matrix" (injective + monotone + intersection + distinguishing on Fin.t 5),
+discharging `n5_two_realizer_framework` via the bijection. So counts 5-8 now
+reduce to CONCRETE rank constructions on f0..f4.
+
+Remaining (Piece 2): build rho1,rho2 per edge count on Fin.t 5. The matching
+case (counts 9 / 8-disjoint) is the down-count ranking ported to Fin.t 5; the
+non-matching case needs a transitive orientation of the incomparability graph,
+now a finite/decidable check over f0..f4.
+
 ## Admit count: 5 (was 6)
 
 - `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, the
