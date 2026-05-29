@@ -61,6 +61,24 @@ This is the cleanest count to close first (reuses Qed extractors; fast compile).
 Counts 7,6,5 (>=3 incomparable pairs, no clean extraction) fall back to Phase 2
 reflection (constrained enum).
 
+## Phase 2a CONFIRMED FEASIBLE for count-8 (2026-05-30 probe)
+
+Constrained generator `count8_assigns := filter (num_none = 2) (enum_assignments 10)`:
+  - `length = 11520` generated in 0.16 s (instant);
+  - is_poset_b filter => **450 labeled count-8 posets**, in 20.7 s vm.
+So `exhaustive_8edge` over 11520 (is_poset + any_pattern_8_b) is EdgeCount4-scale
+(12650, built chunked ~120 s). The 3-session "infeasible" was the WRONG enum
+(C(25,8)=1.08M); the constrained enum (11520) is feasible. Path confirmed; same
+applies per count (K=5/6/7/8: 8064/13440/15360/11520).
+
+Remaining count-8 build (mechanical, EdgeCount4 template): identify the count-8
+iso-class edge-shapes (450 labeled -> few unlabeled), define `is_<shape>_b` via
+`has_edges_of_shape` (8-edge shapes), `any_pattern_8_b`, prove `exhaustive_8edge`
+by chunked native_cast over count8_assigns, the `is_*_b -> exists` iff lemmas
+(N5Iff template), and `EdgeCount8.v` classic dispatch to the N5Realizers count-8
+handlers. (Phase 1.5 structural route hits abstract-element casework explosion
+for >=4 elements; the constrained-reflection route here is the feasible one.)
+
 ## Phase 2 — Exhaustiveness for each count K (the crux)
 
 The residual "no pattern matched -> contradiction" needs: every is_poset matrix
