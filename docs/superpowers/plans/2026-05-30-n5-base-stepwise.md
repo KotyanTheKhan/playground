@@ -21,6 +21,22 @@ fallbacks.
 - [ ] **0.3** For each K in {8,7,6,5}: enumerate (on paper / OEIS) the iso-classes of 5-element posets with K comparabilities (the patterns). Cross-reference against the 105 handlers (0.1) to list, PER K, which patterns already have a handler and which need a new one. Output: a per-K table {pattern -> handler-name | NEW}.
 - [ ] **0.4** Decide per K whether exhaustiveness can avoid reflection (Phase 2) or needs it. Record the gap precisely in the status doc; commit.
 
+## Phase 0 FINDINGS (2026-05-30)
+
+`N5Realizers.v` has **105** `n5_*_two_realizer` handlers spanning essentially
+every 5-element iso-class (claws, chains, fences, diamonds, bowties, K_2_3 +
+minus-edge/matching variants, kite, pentagon, X/T/N/inv_N/V/inv_V/Y shapes,
+class31/38/40, ...). So **realizer construction is DONE**; Phase 1 is likely
+empty or tiny.
+
+=> The realizer-compute / orientation / bridge detour (Sessions S1-S3) was
+unnecessary. The ONLY gap for 5-8 is EXHAUSTIVENESS + classic dispatch, exactly
+like `EdgeCount4.v`. Crucially, the EdgeCount4 reflection checks is_poset_b +
+PATTERN booleans (`any_pattern_b`), NOT a realizer search — cheap per item.
+The earlier "infeasible" was `sublists K all_pairs` = C(25,K)=1.08M for K=8;
+the CONSTRAINED enumeration (Phase 2a) is ~8-15k = EdgeCount4 scale (12650,
+which compiled in ~120 s / 5 chunks). So Phase 2a is the primary, feasible path.
+
 ## Phase 1 — Per-class handlers (mechanical, FAST compile, no reflection)
 
 For each NEW pattern from 0.3 (none if all covered):
