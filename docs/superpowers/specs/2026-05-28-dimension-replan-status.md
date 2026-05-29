@@ -291,6 +291,42 @@ deep Trotter `trotter_coverage_via_extremality` (#2).
 This is substantial, EdgeCount4-scale x4 + Trotter; the bridge + algorithm +
 correct scale are now in hand.
 
+## Counts 5-8: comprehensive negative — reflection hits a DUAL wall (2026-05-29/30)
+
+Tried ~6 implementations (M5-closure, from_edges, materialize-per-step,
+try-all-L1 search, greedy-tc closure, bit-packed N). Two independent walls:
+
+1. **Correctness:** a correct transitive ORIENTATION of the incomparability
+   graph must CHOOSE each pair's direction (Golumbic forcing / backtracking).
+   The cheap deterministic candidates I implemented all orient by a FIXED rule
+   (i->j by index) — incorrect (validation returns false; reversing all
+   incomparabilities can cycle). Correct = either a 120-perm SEARCH per poset
+   (slow) or an intricate forcing algorithm (unwritten).
+
+2. **Performance:** per-item cost is ~10-15 ms ACROSS ALL representations
+   (incl. bit-packed N — the greedy-tc does ~750k ops/item from full transitive
+   closure after each of ~10-20 edge additions). At the enumeration sizes
+   (uniform 59049, or per-count ~8-15k) this is too slow for vm_compute
+   (timeouts at 6-8k items / 120-150s) and borderline+compile-overhead for
+   native_compute (uniform killed at 240s).
+
+So a reflection proof of counts 5-8 needs BOTH a correct forcing-orientation
+AND serious performance tuning (cheaper-than-full-tc orientation + careful
+native chunking). This is substantial performance/algorithm engineering, not
+landed despite extensive effort.
+
+**Non-reflective alternative (recommended to evaluate next): removable-point
+reduction n=5 -> n=4.** n=4 base is already Qed. Hiraguchi removable-point
+lemmas: dim(P) = dim(P - x) when x is a max or min (x goes last/first in both
+extensions), or when x is comparable to <=1 element, etc. If every n=5
+non-chain poset has such a removable point reducing to a dim<=2 4-element
+subposet, counts 5-8 close WITHOUT reflection (no performance wall). Needs
+formalizing the removable-point lemma(s) + showing coverage for n=5. This
+sidesteps the dual wall entirely and is likely the better path.
+
+The bridge `two_realizer_from_fin_ranks` (Qed) remains available if a cheap
+correct orientation is ever found.
+
 ## Admit count: 5 (was 6)
 
 - `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, the
