@@ -241,4 +241,47 @@ Section EdgeCountIncomp.
                     Hcov y x z Hyx Hyz (fun E => Hzx (eq_sym E))) as H8. lia.
   Qed.
 
+  (** When the edge count is 8 there is a SECOND incomparable pair, distinct
+      (as an unordered pair) from any given one [{u,v}].  If [{u,v}] were the
+      only incomparable pair, the other nine pairs would each contribute 1,
+      forcing the count to 9. *)
+  Lemma second_incomp_of_8 :
+    forall a b c d e,
+      a <> b -> a <> c -> a <> d -> a <> e ->
+      b <> c -> b <> d -> b <> e ->
+      c <> d -> c <> e -> d <> e ->
+      (forall w : B, w = a \/ w = b \/ w = c \/ w = d \/ w = e) ->
+      edge_count_5 R2 a b c d e = 8 ->
+      forall u v, @Incomparable B R2 u v ->
+        exists x y, @Incomparable B R2 x y
+                    /\ ~ (x = u /\ y = v) /\ ~ (x = v /\ y = u).
+  Proof.
+    intros a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde Hcov Hec u v Huv.
+    apply NNPP. intro Hno.
+    assert (Hcomp : forall p q, ~ (p = u /\ q = v) -> ~ (p = v /\ q = u) ->
+                    R2 p q \/ R2 q p).
+    { intros p q H1 H2. apply NNPP. intro Hnc.
+      apply Hno. exists p, q. split; [exact Hnc | split; [exact H1 | exact H2]]. }
+    assert (Huv0a : strict_indicator R2 u v = 0)
+      by (apply strict_indicator_eq_0; intros [HR _]; apply Huv; left; exact HR).
+    assert (Huv0b : strict_indicator R2 v u = 0)
+      by (apply strict_indicator_eq_0; intros [HR _]; apply Huv; right; exact HR).
+    destruct (Hcov u) as [Eu|[Eu|[Eu|[Eu|Eu]]]];
+    destruct (Hcov v) as [Ev|[Ev|[Ev|[Ev|Ev]]]];
+    subst u v;
+    first
+      [ apply Huv; left; apply poset_refl
+      | ( try pose proof (comparable_indicator_sum a b Hab (Hcomp a b ltac:(intros [E1 E2]; congruence) ltac:(intros [E1 E2]; congruence)));
+          try pose proof (comparable_indicator_sum a c Hac (Hcomp a c ltac:(intros [E1 E2]; congruence) ltac:(intros [E1 E2]; congruence)));
+          try pose proof (comparable_indicator_sum a d Had (Hcomp a d ltac:(intros [E1 E2]; congruence) ltac:(intros [E1 E2]; congruence)));
+          try pose proof (comparable_indicator_sum a e Hae (Hcomp a e ltac:(intros [E1 E2]; congruence) ltac:(intros [E1 E2]; congruence)));
+          try pose proof (comparable_indicator_sum b c Hbc (Hcomp b c ltac:(intros [E1 E2]; congruence) ltac:(intros [E1 E2]; congruence)));
+          try pose proof (comparable_indicator_sum b d Hbd (Hcomp b d ltac:(intros [E1 E2]; congruence) ltac:(intros [E1 E2]; congruence)));
+          try pose proof (comparable_indicator_sum b e Hbe (Hcomp b e ltac:(intros [E1 E2]; congruence) ltac:(intros [E1 E2]; congruence)));
+          try pose proof (comparable_indicator_sum c d Hcd (Hcomp c d ltac:(intros [E1 E2]; congruence) ltac:(intros [E1 E2]; congruence)));
+          try pose proof (comparable_indicator_sum c e Hce (Hcomp c e ltac:(intros [E1 E2]; congruence) ltac:(intros [E1 E2]; congruence)));
+          try pose proof (comparable_indicator_sum d e Hde (Hcomp d e ltac:(intros [E1 E2]; congruence) ltac:(intros [E1 E2]; congruence)));
+          unfold edge_count_5 in Hec; lia ) ].
+  Qed.
+
 End EdgeCountIncomp.
