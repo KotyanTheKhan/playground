@@ -45,7 +45,33 @@ Time Eval vm_compute in probe_posets.
 - [ ] **Step 3: Probe the realizer search cost.** Add `Definition probe_realizable : bool := forallb (fun o => negb (is_poset_b (mat_of o)) || is_total_b (mat_of o) || has_realizer_b (mat_of o)) orientations.` and `Time Eval vm_compute in probe_realizable.` Rebuild (same wrapper). Expected: `true` in tractable time (target < 120 s; if killed → infeasible).
 - [ ] **Step 4: Decide.** If Step 3 is green and tractable → proceed to A2 (uniform). If killed/slow → delete A2/A3, jump to A4 (per-count). Record the decision in the status doc and commit it. Delete `ZZProbe.v`.
 
-### Task A2: `has_realizer_b` + `is_total_b` + reflection lemma (uniform path)
+### A1 OUTCOME (Session 1, 2026-05-29): uniform-with-SEARCH is infeasible.
+
+`is_poset_b` is ~2 ms/item under vm_compute → the poset filter alone over the
+59049 assignments exceeds 120 s; a 120×120 realizer SEARCH per poset is
+hopeless. Decision: do NOT search. Two live options for S2 (A5 recommended):
+
+- **A5 (recommended): candidate realizer-compute + chunked reflection verify.**
+  Define a CHEAP, deterministic `compute_realizer (M:M5) : (rank * rank)` —
+  candidate: `L1 := toposort M` (index tie-break); `L2 := toposort` of M with
+  every incomparable pair forced OPPOSITE to its L1 order (i.e. M ∪ {(j,i) :
+  i <_L1 j, incomparable}); if that augmentation is acyclic, `{L1,L2}` realizes
+  M. Then `realizes_b M (compute_realizer M)` is a cheap check. Prove
+  `forall o, is_poset_b (mat_of o) = true -> is_total_b (mat_of o) = false ->
+  realizes_b (mat_of o) (compute_realizer (mat_of o)) = true` by native_compute,
+  CHUNKED (~25 chunks of ~2360, mirroring EdgeCount4's 5-chunk pattern; build
+  each `-j1`, pre-`pkill dune`). The reflection VERIFIES the candidate algorithm
+  is correct on all n=5 posets. If a chunk returns false, refine
+  `compute_realizer`. Then reflect to the bridge `two_realizer_from_fin_ranks`
+  and close counts 5–8 uniformly (delete EdgeCount5–9).
+- **A4 (fallback): per-count explicit.** Risky — naive destruct of R2_matrix's
+  ~20 entries is 2^20 proof branches; needs heavy pruning. Prefer A5.
+
+Tooling note for S2: ALWAYS `pkill -9 -f dune` before a fresh reflection build
+(stale dune servers forward/queue builds and confounded the A1 probe; the
+wrapper now reaps dune on kill but pre-killing is still safest).
+
+### Task A2 (was uniform-with-search; SUPERSEDED by A5 above)
 
 **Files:** Create `N5Exhaustive/N5Orient.v`.
 
