@@ -165,6 +165,40 @@ STILL TODO for count-9 (in `EdgeCount9.v`, replacing its admit):
     discharge `n5_two_realizer_framework` (rk1/rk2 inj from lab-inj; mono from
     rk strict-mono; intersection + distinguishing from twin equal-rk).
 
+## Count-9 CLOSED + structural limit of the technique (2026-05-29)
+
+`EdgeCount9.v` is Qed (twin-rank via `n5_two_realizer_framework`). But the
+down-count/twin technique has a hard structural limit:
+
+The technique needs `incomparable x y -> rk x = rk y`, which holds IFF the two
+elements are TWINS, which (for the whole poset) holds IFF the **incomparability
+graph is a matching** (disjoint incomparable pairs). Counting incomparable
+edges = `10 - edge_count`:
+  - count 9 -> 1 incomp edge  -> always a matching        => technique works.
+  - count 8 -> 2 incomp edges -> matching IFF disjoint; a shared vertex (path)
+    breaks the twin property (the shared vertex is not a twin of either other).
+  - count 7,6,5 -> 3,4,5 incomp edges -> max matching on 5 vertices is 2, so
+    these ALWAYS contain a shared-vertex incomparability => technique CANNOT
+    work as-is.
+
+So the count-9 proof is NOT a template that simply scales to 5-8. Counts 5-7
+(and the shared sub-case of 8) need a genuine dim<=2 construction: a transitive
+orientation of the incomparability graph (Dushnik-Miller conjugate order),
+`L1 = lin-ext(R2 ∪ Rc)`, `L2 = lin-ext(R2 ∪ Rc^op)`. That is the real
+mathematical content of "every 5-element poset has dim <= 2".
+
+**Recommended pivot for the remaining EdgeCount5-8:** do NOT continue per-count
+down-count constructions. Either
+  (A) prove a single uniform lemma "5-element non-chain poset has a transitive
+      orientation of its incomparability graph" + feed two Szpilrajn extensions
+      (closes counts 5-8 at once, but is the deep part), or
+  (B) per-configuration explicit rank constructions (case analysis on the
+      incomparability-graph shape; many cases, mechanical but voluminous), or
+  (C) accept the 4 remaining count admits and move to admit #2 (Trotter).
+
+EdgeCountIncomp's `two_incomp_le_8` / down-count machinery still helps bound the
+configurations, but is not sufficient alone for counts 5-7.
+
 ## Risk register
 
 - R1: reflection won't scale to K>=6 (HIGH, established). Mitigation: S2 spike
