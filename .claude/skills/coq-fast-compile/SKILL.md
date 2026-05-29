@@ -11,19 +11,21 @@ Keep Coq proofs compiling fast by structural choices made BEFORE writing the pro
 
 1. **Each `.v` file ≤ 500 lines.** If it grows past 300, plan a split.
 2. **Each `Qed` body ≤ 100 lines.** If it grows past 50, factor into helper Lemmas.
-3. **Each individual file compile ≤ 5 min.** Use `mise exec -- dune build <file>.vo` with timeout to measure.
+3. **Each individual file compile ≤ 5 min.** Measure via the timed wrapper: `bash .claude/scripts/timed-build.sh 300 <file>.vo 2` (exit 124 = over budget → split).
 4. **Per-case cascades go in SEPARATE FILES, not separate Lemmas in one file.** Dune compiles files in parallel; Lemmas in one file compile sequentially.
 5. **Avoid Ltac combinators that produce large proof terms.** Anti-pattern: tactics that construct existential witnesses or do structured case-splits via a single macro. They produce huge proof terms even on small goals (100x slowdown observed). Use explicit `destruct (classic ...)` + `assumption` chains instead.
 6. **Never combine unbounded `eauto` with a cartesian `try`-chain.** `eauto using <transitive_lemma>` does depth-first search with no fuel; multiplied across N×M case combinations inside a nested `destruct ... ; destruct ...`, it can exhaust RAM in EACH parallel `coqc` worker (`dune -j` defaults to NCPU). One bad file can crash the laptop. See "OOM anti-pattern" below.
 
 ## Verification protocol
 
-After writing each Qed:
+After writing each Qed, build through the timed wrapper (never bare
+`dune`/`mise build` — they have no timeout or memory cap):
 ```bash
-mise exec -- dune build <path/to/file>.vo
+bash .claude/scripts/timed-build.sh 300 <path/to/file>.vo 2
 ```
 
-**ALWAYS set a timeout** (300 seconds / 5 min). On timeout:
+The wrapper **enforces** the 300s timeout and a memory cap for you. On exit
+124 (timeout) or 137 (memory-limit kill):
 - DO NOT retry the same compile.
 - Split the file: extract the largest Lemma into a sibling file.
 - Re-verify.
@@ -37,7 +39,7 @@ mise exec -- dune build <path/to/file>.vo
 | Ltac that builds witnesses | 10+ min Qed on small file | Inline the witness construction with explicit `exists` |
 | `k^N` destruct nesting (large N) | Memory exhaustion / multi-hour Qed | Use per-structural-case helpers; keep each destruct tree under ~3000 leaves |
 | Cartesian `try ... eauto using L` chain | Laptop OOM during `mise build` | See "OOM anti-pattern" — bound search or restructure |
-| Single-file `mise run build <file>.v` | Silently no-ops | Use `mise exec -- dune build <file>.vo` instead |
+| Single-file `mise run build <file>.v` | Silently no-ops | Target the `.vo` via the wrapper: `bash .claude/scripts/timed-build.sh 300 <file>.vo 2` |
 
 ## OOM anti-pattern: untamed `eauto` in cartesian case chains
 
@@ -74,13 +76,16 @@ Result: laptop OOMs, `coqc` workers get OOM-killed silently, `dune` reports cryp
 
 ### Bound concurrency when you must compile a suspect file
 
-If you're forced to run a build that may include a memory-heavy file, cap dune parallelism:
+The wrapper already caps parallelism (default `-j 2`) and runs a memory
+watchdog that kills the build if total worker RSS exceeds the limit. For a
+memory-heavy cascade file, drop to `-j 1` so only one worker exists at a time:
 
 ```bash
-mise exec -- dune build -j 2 <path>
+bash .claude/scripts/timed-build.sh 600 <path>.vo 1
 ```
 
-This trades wall-clock for survival.
+This trades wall-clock for survival. Never build the full heavy dependency
+tree at default `ncpu` parallelism — that is the OOM you are avoiding.
 
 ## Anti-pattern detection in code review
 
@@ -93,6 +98,8 @@ When reviewing or writing Coq, flag these for refactor:
 
 ## Quick reference
 
-- **vos build** (`mise run check-all` or `mise exec -- dune build @check`): fast, type-checks only, skips Qed. Use for structure validation.
-- **vo build** (`mise exec -- dune build <file>.vo`): full, verifies Qed. Use for correctness validation. Set timeout.
-- **Full project**: `mise build`. Use sparingly; only after structural changes settle.
+All builds go through `bash .claude/scripts/timed-build.sh <secs> <target> [jobs] [mem_mb]`:
+
+- **vos build** (`… @check 4`): fast, type-checks only, skips Qed. Use for structure validation.
+- **vo build** (`… <file>.vo 2`): full, verifies Qed. Use for correctness validation. The wrapper sets the timeout + memory cap.
+- **Full project** (`… @all 4`): use sparingly; only after structural changes settle.

@@ -61,7 +61,7 @@ Then either fix the slow file (use `coq-cascade-split-pattern`) or commit and pr
 - After running `mise run build`, check `_build/default/<path>/<file>.vo` timestamp.
 - If unchanged from before the run, the build didn't happen.
 
-**Fix:** Use `mise exec -- dune build <file>.vo` instead. This is the correct invocation.
+**Fix:** Target the `.vo` through the wrapper: `bash .claude/scripts/timed-build.sh 300 <file>.vo 2`. This is the correct invocation.
 
 ### Mode 3: Stale cache claims success
 
@@ -74,13 +74,13 @@ Then either fix the slow file (use `coq-cascade-split-pattern`) or commit and pr
 **Fix:** 
 ```bash
 touch <path>/<file>.v  # force re-compile
-mise build
+bash .claude/scripts/timed-build.sh 1800 @all 4
 ```
 
 Or for a hard reset:
 ```bash
 mise run clean
-mise build  # full rebuild
+bash .claude/scripts/timed-build.sh 1800 @all 4  # full rebuild
 ```
 
 ### Mode 4: Lock file held by dead process
@@ -126,7 +126,7 @@ git log --oneline | head -20
 # Test each:
 for commit in <suspect commits>; do
   git checkout $commit
-  mise exec -- dune build @check  # FAST vos build (no Qed verification)
+  bash .claude/scripts/timed-build.sh 600 @check 4  # FAST vos build (no Qed verification)
   echo "Commit $commit: exit $?"
 done
 
@@ -141,10 +141,12 @@ git stash pop
 
 After ANY commit that should preserve a green build:
 
-1. `mise build` (or `mise run check-all` for fast version).
-2. Wait for completion (set timeout — 1 hour max for full project).
-3. Check exit code AND verify .vo files were actually produced/refreshed.
-4. If any concern, examine `_build/log` for warnings/errors.
+1. `bash .claude/scripts/timed-build.sh 1800 @all 4` (or `… @check 4` for the
+   fast vos version). The wrapper enforces the timeout + memory cap — never run
+   bare `mise build`/`dune` (no limits → OOM risk).
+2. Check exit code (0 ok, 124 timeout, 137 memory-kill) AND verify .vo files
+   were actually produced/refreshed.
+3. If any concern, examine `_build/log` for warnings/errors.
 
 ## When to give up and revert
 
@@ -152,19 +154,22 @@ If 3 consecutive recovery attempts fail:
 1. `git stash`.
 2. `git reset --hard <last-known-green-commit>`.
 3. `mise run clean`.
-4. `mise build` to confirm restoration.
+4. `bash .claude/scripts/timed-build.sh 1800 @all 4` to confirm restoration.
 5. Replan the change.
 
 Better to lose recent work than to push broken code forward.
 
 ## Useful commands cheatsheet
 
+All builds go through `TB` = `bash .claude/scripts/timed-build.sh <secs> <target> [jobs] [mem_mb]`
+(enforces timeout + memory cap; exit 124 = timeout, 137 = memory-kill):
+
 | Command | Purpose |
 |---------|---------|
-| `mise build` | Full project Qed-verified build |
-| `mise run check-all` | Fast vos build (type-check only) |
-| `mise run clean` | Clear `_build/` cache |
-| `mise exec -- dune build <file>.vo` | Single-file Qed-verified build |
-| `mise exec -- dune build @check` | Fast vos for all files |
+| `TB 1800 @all 4` | Full project Qed-verified build |
+| `TB 1800 @check 4` | Fast vos build (type-check only) |
+| `TB 300 <file>.vo 2` | Single-file Qed-verified build |
+| `TB 600 <heavy>.vo 1` | Memory-heavy cascade file (single worker) |
+| `mise run clean` | Clear `_build/` cache (no compile) |
 | `rm -f _build/.lock` | Clear stuck lock |
 | `ps -ef | grep rocqworker` | Find Coq workers |

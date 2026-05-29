@@ -147,7 +147,7 @@ This is overhead but it's the difference between "8 productive days" and "8 days
 When wrapping up a session:
 
 - [ ] All work committed.
-- [ ] Build green (`mise build` or `mise run check-all`).
+- [ ] Build green via the timed wrapper (`bash .claude/scripts/timed-build.sh 1800 @all 4`, or `… @check 4` for the fast vos check) — never bare `mise build`.
 - [ ] Status doc updated (this session's commit hashes recorded).
 - [ ] Next session's intended starting point documented.
 - [ ] Any new admits introduced have passed the [[Admit-introduction checklist]].

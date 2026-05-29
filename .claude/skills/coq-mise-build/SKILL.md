@@ -20,25 +20,54 @@ will be unreproducible for the next session.
 mise.toml ──► [env]/[tools] pins ──► mise run install-deps ──► ./_opam (local switch) ──► dune build
 ```
 
+**Second iron rule — every COMPILATION goes through the timed wrapper.**
+A bare `mise build` / `mise run build …` has no wall-clock cap and no memory
+cap, and dune's default `-j = ncpu` runs one rocqworker per core. Across
+memory-heavy proofs that fan-out has OOM-crashed the machine more than once.
+So any command that actually compiles `.v` files must run as:
+
+```
+bash .claude/scripts/timed-build.sh <seconds> <target> [jobs] [mem_mb]
+```
+
+- `<seconds>` hard timeout (build killed if exceeded; exit 124),
+- `<target>` a `path/File.vo`, a submodule dir, or `@all`,
+- `[jobs]` dune `-j` (default 2; `1` for memory-heavy cascades),
+- `[mem_mb]` kill if worker RSS exceeds this (default 20000 ≈ 20 GB; exit 137).
+
+Non-compiling tasks (`setup`, `install-deps`, `versions`, `reinstall`,
+`nuke-switch`, `env`, `coqtop`, `clean`) have no memory/timeout risk and may be
+run directly as `mise run <task>`.
+
 ## Quick reference
+
+Builds (anything that compiles `.v`) go through the wrapper; let `TB` stand for
+`bash .claude/scripts/timed-build.sh`:
 
 | Goal | Command |
 |------|---------|
-| Fresh clone, first build | `mise run setup && mise build` |
-| Build everything | `mise build` |
-| Build one library | `mise run build-posets` / `build-list` / `build-tree` / `build-happenedbefore` / `build-eventualconsistency` / `build-standard-example` / `build-abhishek` / `build-chipala-book` / `build-zornslemma` |
-| Build an arbitrary path | `mise run build posets/dimension` |
-| Quick check (proofs only) | `mise run check-all` |
-| Watch mode | `mise run watch` |
-| Clean build artifacts | `mise run clean` |
-| Confirm pinned versions | `mise run versions` |
-| Re-install pinned deps | `mise run reinstall` |
+| Fresh clone, first build | `mise run setup && TB 1800 @all 4` |
+| Build everything | `TB 1800 @all 4` |
+| Build one library | `TB 600 posets 4` (or `list` / `tree` / `happenedBefore` / `eventualConsistency` / `standard_example` / `abhishek` / `chipala_book` / `vendor/ZornsLemma`) |
+| Build an arbitrary path | `TB 300 posets/dimension 2` |
+| Build a single file | `TB 120 posets/dimension/.../File.vo 2` |
+| Build a memory-heavy cascade file | `TB 600 posets/dimension/.../Heavy.vo 1` |
+| Quick check (proofs only) | `TB 1800 @check 4` |
+| Clean build artifacts | `mise run clean` (no compile) |
+| Confirm pinned versions | `mise run versions` (no compile) |
+| Re-install pinned deps | `mise run reinstall` (no compile) |
 | Nuke + rebuild the switch | `mise run nuke-switch` (slow, ~10–20 min) |
 | Print opam env | `mise run env` |
 | Coq REPL in pinned switch | `mise run coqtop` |
 
-If the user asks "build the project" or "rebuild X", reach for the table
-above — do not improvise.
+Pick `<seconds>` from the expected cost (single light file ~120s, heavy
+cascade ~600s, whole project ~1800s) and `[jobs]` from memory weight (2 by
+default, 1 for cascade-heavy files, up to ~4 for many small light files —
+never the full ncpu across heavy files). If the user asks "build the project"
+or "rebuild X", reach for this table — do not improvise a bare `mise build`.
+
+Watch mode (`mise run watch`) is unsupported under the wrapper (it never
+exits); avoid it for agent-driven builds.
 
 ## Tool / version model
 
@@ -128,7 +157,10 @@ shim still works; not a build failure.
 
 ## Anti-patterns
 
-* `dune build foo` — bypasses the pinned switch. Use `mise run build foo`.
+* `mise build` / `mise run build foo` **without the wrapper** — no timeout, no
+  memory cap, default `-j = ncpu`. Has OOM-crashed the machine. Always go
+  through `bash .claude/scripts/timed-build.sh <secs> <target> [jobs] [mem_mb]`.
+* `dune build foo` — bypasses the pinned switch *and* the wrapper. Use the wrapper.
 * `opam install bar` — invisible to fresh clones. Add to `mise.toml`.
 * `coqc -R …` for ad-hoc checks — won't see project's `_CoqProject`
   mappings, dune wrappers, or theory deps. Use `mise run coqtop` or
@@ -145,7 +177,8 @@ shim still works; not a build failure.
 Before committing any `mise.toml` / `dune-project` / `_CoqProject` change:
 
 1. `mise run nuke-switch` (proves the switch can be built from scratch),
-2. `mise build` (proves all `.v` files compile end-to-end),
+2. `bash .claude/scripts/timed-build.sh 1800 @all 4` (proves all `.v` files
+   compile end-to-end, under the timeout + memory cap),
 3. `mise run versions` (sanity-check that the pins resolved to what you intended).
 
 If step 1 fails, the env is not actually reproducible no matter what step 2 says.

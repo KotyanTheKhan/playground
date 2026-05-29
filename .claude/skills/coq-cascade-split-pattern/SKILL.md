@@ -67,9 +67,9 @@ Use the explicit `@` form so Coq doesn't try to infer arguments via typeclass re
 
 ### Step 4: Verify and commit per extraction
 
-After each extraction:
+After each extraction (always via the timed wrapper — never bare dune):
 ```bash
-mise exec -- dune build <path/to/file>.vo  # timeout 300s
+bash .claude/scripts/timed-build.sh 300 <path/to/file>.vo 2
 ```
 
 If it compiles, commit immediately. Don't batch multiple extractions before commit — easier to bisect failures.
@@ -112,7 +112,9 @@ Pitfalls:
 
 Do NOT use `mise run build <file>.v` to verify — it silently no-ops on the .v target.
 
-Use `mise exec -- dune build <file>.vo` instead, with explicit timeout.
+Use the timed wrapper targeting the `.vo`:
+`bash .claude/scripts/timed-build.sh 300 <file>.vo 2`. It enforces the timeout
+and a memory cap; never call bare `dune`/`mise build` (no limits → OOM risk).
 
 ## Worked-example shape
 
