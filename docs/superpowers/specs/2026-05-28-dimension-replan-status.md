@@ -181,6 +181,33 @@ Refined options for the n=5 base (counts 5–8), pending next session:
        transitive-orientation algorithm is implemented; per-item ~is_poset_b +
        verify (~3-4 ms) => ~200s vm / less native, chunked.
 
+## Session 2 (2026-05-29): A5 candidate FAILED; corrected algo is heavy
+
+Implemented + validated the A5 candidate `compute_realizer`:
+  L1 = toposort(M); L2 = toposort(M with ALL incomparable pairs reversed
+  relative to L1). Sample check `forallb check (firstn 8000 orientations)`
+  returned **false** in 97s (vm_compute, ~12 ms/item).
+
+Why false: reversing ALL of L1's incomparabilities at once can create a cycle
+(the M2 augmentation is not always acyclic) — exactly the Dushnik-Miller
+subtlety. So a single fixed L1 is not enough.
+
+**Correction:** a 2-realizer's L2 is DETERMINED by L1 (comparabilities by M,
+incomparabilities reversed); so `compute_realizer` must TRY EACH linear
+extension L1 (perm extending M, <=120) and return the first whose full reversal
+M2 is acyclic. Correct, but ~120x the per-item cost.
+
+**Cost reality:** the candidate was already ~12 ms/item (vm). The corrected
+(try-all-L1) is ~100-200 ms/item native => 59049 items ~ 1.6-3.3 h total,
+i.e. ~25-50 native chunks of multi-minute each. POSSIBLE but a heavy
+multi-session build; not landable in one session.
+
+So every cheap path is exhausted: numeric ranks impossible; reflection-search
+infeasible; reflection-cheap-candidate incorrect; per-count destruct explodes
+(2^20). The only mechanization left for counts 5-8 is the corrected A5
+(try-all-L1 compute_realizer + heavy native chunked reflection + bridge), or a
+genuinely cheaper correct transitive-orientation (Gamma-forcing) algorithm.
+
 ## Admit count: 5 (was 6)
 
 - `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, the
