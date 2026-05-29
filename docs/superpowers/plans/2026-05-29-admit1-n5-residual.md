@@ -86,6 +86,30 @@ is distributed across the per-count iso-class realizer constructions.
   technique for 5-9. This de-risks before committing to 5 more builds.
 - **S3-S6:** close K=8,7,6,5 with the chosen technique.
 
+## S2 spike result (2026-05-29) — technique validated
+
+**Do NOT use reflection for counts 5-9.** The vehicle is
+`n5_two_realizer_framework` (N5Realizers.v:285), the same lemma all 30+
+per-class handlers use. It takes two rank functions `rk1 rk2 : B -> nat` and
+discharges all realizer machinery from:
+  - pairwise-distinct ranks (2 x 10 goals),
+  - R2-monotone: `R2 x y -> rk_i x <= rk_i y` (2 goals),
+  - intersection: `rk1 x<=rk1 y -> rk2 x<=rk2 y -> R2 x y` (1 goal),
+  - a distinguishing pair `exists x y, rk1 x<=rk1 y /\ rk2 y<rk2 x` (1 goal).
+
+So each count K=5..9 is an explicit rank construction, NOT enumeration.
+
+Count-9 structure: edge_count=9 => exactly one incomparable pair {u,v}; by
+transitivity u,v are TWINS (identical order relations to the other three
+elements, which are totally ordered). `rk1`/`rk2` = the down-count ranking with
+the u/v tie broken oppositely. Estimated ~1 session (~120-300 lines, cf.
+`n5_one_edge_two_realizer`); identify the pair, ~4 structural sub-cases for
+where the twin block sits, discharge the framework goals by `lia`.
+
+Counts 8,7,6,5 have 2,3,4,5 incomparable pairs respectively (harder rank
+constructions; count-5 needs the incomparability graph to be 2-colorable into
+the two extensions, which holds for n=5 but is the most involved).
+
 ## Risk register
 
 - R1: reflection won't scale to K>=6 (HIGH, established). Mitigation: S2 spike
