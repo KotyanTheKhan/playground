@@ -157,37 +157,25 @@ Section EdgeCountIncomp.
     destruct (Hcov y) as [Ey|[Ey|[Ey|[Ey|Ey]]]]; subst y; lia.
   Qed.
 
-  (** Twin lemma: when the edge count is 9 (unique incomparable pair), any two
-      incomparable elements have equal down-count rank.  Off-pair elements are
-      comparable to both (else a second incomparable pair, contradicting
-      [two_incomp_le_8]) and sit on the same side; the two elements themselves
-      swap their (1,0)/(0,1) contributions. *)
-  Lemma twin_rk_eq :
+  (** General twin lemma: if [x], [y] are incomparable and every other carrier
+      element is comparable to BOTH, then they have equal down-count rank.
+      Off-pair elements sit on the same side of [x] and [y] (else transitivity
+      makes [x],[y] comparable); [x] and [y] swap their (1,0)/(0,1)
+      contributions.  This is the matching-incomparability case, independent of
+      the exact edge count. *)
+  Lemma twin_rk_eq_gen :
     forall a b c d e,
       a <> b -> a <> c -> a <> d -> a <> e ->
       b <> c -> b <> d -> b <> e ->
       c <> d -> c <> e -> d <> e ->
       (forall w : B, w = a \/ w = b \/ w = c \/ w = d \/ w = e) ->
-      edge_count_5 R2 a b c d e = 9 ->
       forall x y, @Incomparable B R2 x y ->
+        (forall z, z <> x -> z <> y -> R2 z x \/ R2 x z) ->
+        (forall z, z <> x -> z <> y -> R2 z y \/ R2 y z) ->
         rk a b c d e x = rk a b c d e y.
   Proof.
-    intros a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde Hcov Hec x y Hxy.
+    intros a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde Hcov x y Hxy Hcx Hcy.
     assert (Hxy_ne : x <> y) by (intro E; subst; apply Hxy; left; apply poset_refl).
-    assert (Hcx : forall z, z <> x -> z <> y -> R2 z x \/ R2 x z).
-    { intros z Hzx Hzy. apply NNPP. intro Hnc.
-      assert (Hxz : @Incomparable B R2 x z)
-        by (intros [H|H]; apply Hnc; [right|left]; exact H).
-      pose proof (two_incomp_le_8 a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde
-                    Hcov x y z Hxy Hxz (fun E => Hzy (eq_sym E))) as H8. lia. }
-    assert (Hcy : forall z, z <> x -> z <> y -> R2 z y \/ R2 y z).
-    { intros z Hzx Hzy. apply NNPP. intro Hnc.
-      assert (Hyx : @Incomparable B R2 y x)
-        by (intros [H|H]; apply Hxy; [right|left]; exact H).
-      assert (Hyz : @Incomparable B R2 y z)
-        by (intros [H|H]; apply Hnc; [right|left]; exact H).
-      pose proof (two_incomp_le_8 a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde
-                    Hcov y x z Hyx Hyz (fun E => Hzx (eq_sym E))) as H8. lia. }
     assert (Hdz : forall z, z <> x -> z <> y -> dle z x = dle z y).
     { intros z Hzx Hzy.
       destruct (Hcx z Hzx Hzy) as [A|A]; destruct (Hcy z Hzx Hzy) as [Bb|Bb].
@@ -221,6 +209,36 @@ Section EdgeCountIncomp.
     try (rewrite (Hdz e) by congruence);
     rewrite ?Hxx1, ?Hyy1, ?Hxy0, ?Hyx0;
     lia.
+  Qed.
+
+  (** Twin lemma for the unique-incomparable-pair case (edge count 9): every
+      other element is comparable to both (else a second incomparable pair,
+      contradicting [two_incomp_le_8]), so [twin_rk_eq_gen] applies. *)
+  Lemma twin_rk_eq :
+    forall a b c d e,
+      a <> b -> a <> c -> a <> d -> a <> e ->
+      b <> c -> b <> d -> b <> e ->
+      c <> d -> c <> e -> d <> e ->
+      (forall w : B, w = a \/ w = b \/ w = c \/ w = d \/ w = e) ->
+      edge_count_5 R2 a b c d e = 9 ->
+      forall x y, @Incomparable B R2 x y ->
+        rk a b c d e x = rk a b c d e y.
+  Proof.
+    intros a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde Hcov Hec x y Hxy.
+    apply (twin_rk_eq_gen a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde
+             Hcov x y Hxy).
+    - intros z Hzx Hzy. apply NNPP. intro Hnc.
+      assert (Hxz : @Incomparable B R2 x z)
+        by (intros [H|H]; apply Hnc; [right|left]; exact H).
+      pose proof (two_incomp_le_8 a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde
+                    Hcov x y z Hxy Hxz (fun E => Hzy (eq_sym E))) as H8. lia.
+    - intros z Hzx Hzy. apply NNPP. intro Hnc.
+      assert (Hyx : @Incomparable B R2 y x)
+        by (intros [H|H]; apply Hxy; [right|left]; exact H).
+      assert (Hyz : @Incomparable B R2 y z)
+        by (intros [H|H]; apply Hnc; [right|left]; exact H).
+      pose proof (two_incomp_le_8 a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde
+                    Hcov y x z Hyx Hyz (fun E => Hzx (eq_sym E))) as H8. lia.
   Qed.
 
 End EdgeCountIncomp.
