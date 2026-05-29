@@ -259,6 +259,38 @@ comparability graphs); the reflection will verify it.
 This is a genuine efficient-representation engineering task. Counts 5-8 are NOT
 closed; the path is clear but needs careful, deliberate implementation.
 
+## Session 3 corrected scale insight: PER-COUNT, not uniform (2026-05-29)
+
+The repeated reflection timeouts were a SCALE error: the uniform enumeration is
+3^10 = 59049 assignments, and the per-item cost (is_poset_b ~2 ms on the M5
+function-closure representation, + orient) makes 59049 items take many minutes —
+too slow regardless of algorithm/representation (4 representations tried;
+materialize-via-from_edges still killed at 6000).
+
+**Fix: reflect PER EDGE COUNT** (the EdgeCount4-feasible granularity):
+  count K enumerates ~ C(10, 10-K) * 2^K assignments:
+    K=5: 252*32  = 8064;  K=6: 210*64 = 13440;
+    K=7: 120*128 = 15360; K=8: 45*256 = 11520.
+  Each ~ EdgeCount4's feasible 12650 (which built in ~120 s native, 5 chunks).
+So counts 5-8 = FOUR per-count reflections, each EdgeCount4-scale, chunked
+native — feasible, not the infeasible 59049 uniform.
+
+**Algorithm (believed correct, UNVERIFIED — validation kept timing out at the
+uniform scale):** greedy transitive-closure orientation `orient M` (orient each
+still-incomparable pair i->j in index order, transitively close = Golumbic
+forcing); conjugate `orient2`; ranks = down-counts of the two total orders;
+`realizes_pair` checks the bridge conditions. NO search (cheap per item).
+
+**Remaining engineering for counts 5-8 (S4+):** (1) per-count assignment
+generator; (2) an EFFICIENT matrix representation (the M5 function-closure is
+the per-item-cost culprit — consider a bit-packed nat or list-of-rows so
+is_poset_b/orient are fast); (3) validate greedy-tc correctness on one
+per-count sample; (4) 4 chunked native reflections + bridge wiring. Plus the
+deep Trotter `trotter_coverage_via_extremality` (#2).
+
+This is substantial, EdgeCount4-scale x4 + Trotter; the bridge + algorithm +
+correct scale are now in hand.
+
 ## Admit count: 5 (was 6)
 
 - `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, the
