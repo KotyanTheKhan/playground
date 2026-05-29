@@ -145,6 +145,15 @@ Invoke `n5_two_realizer_framework R2 a b c d e ... rk1 rk2`. Supporting lemmas
 
 Estimated ~200-250 lines, ~6 small lemmas, fast compile (no native_compute).
 
+**Foundations landed (2026-05-29):** `N5Exhaustive/EdgeCountIncomp.v` (Qed,
+separate file to avoid invalidating the EdgeCount4 cascade cache) provides:
+  - `comparable_indicator_sum`: distinct comparable pair contributes 1.
+  - `incomp_carrier_exists`: `edge_count_5 <= 9 -> exists incomparable pair`.
+These are reused by all of counts 5-9. STILL TODO for count-9: the uniqueness
+lemma (`edge_count_5 = 9 -> at most one incomparable pair`, i.e. two distinct
+incomparable pairs force `edge_count <= 8`), the twin equal-rk lemma, and the
+`n5_two_realizer_framework` discharge with the rk1/rk2 above.
+
 ## Risk register
 
 - R1: reflection won't scale to K>=6 (HIGH, established). Mitigation: S2 spike
