@@ -245,6 +245,47 @@ These will likely each need several explicit constructions; revisit whether the
 uniform Dushnik-Miller route (option A) becomes cheaper once a few shared-case
 constructions are in hand.
 
+## Uniform Fin.t 5 redesign (chosen 2026-05-29; supersedes per-config for 5-8)
+
+Per-config hit a casework wall (no clean "at most 2 incomparable pairs" over
+abstract elements). Switch to a concrete-`Fin.t 5` route where the 10 pairs are
+literal (f0..f4) and comparability is decidable, so the structural reasoning is
+finite/decidable instead of 5^k abstract Hcov casework.
+
+`N5Transport` provides: `from_fin`/`to_fin` bijection, `R2_matrix : M5`,
+`R2_matrix_true_iff` (`R2_matrix i j = true <-> R2 (from_fin i)(from_fin j)`),
+`R2_matrix_is_poset`, `R2_matrix_edge_count_eq`. It has NO realizer transport.
+
+### Piece 1 (bridge plumbing, ~100 lines, no admit closed): `two_realizer_from_fin_ranks`
+```
+forall a b c d e, <10 distinct> -> Hcov ->
+forall rho1 rho2 : Fin.t 5 -> nat,
+  (forall i j, rho1 i = rho1 j -> i = j) ->          (* rho injective *)
+  (forall i j, rho2 i = rho2 j -> i = j) ->
+  (forall i j, R2_matrix .. i j = true -> rho1 i <= rho1 j) ->   (* monotone *)
+  (forall i j, R2_matrix .. i j = true -> rho2 i <= rho2 j) ->
+  (forall i j, rho1 i<=rho1 j -> rho2 i<=rho2 j -> R2_matrix .. i j = true) ->
+  (exists i j, rho1 i<=rho1 j /\ rho2 j<rho2 i) ->
+  exists r, IsRealizer R2 r /\ cardinal r 2.
+```
+Proof: set `rk1 := fun x => rho1 (to_fin x)`, `rk2 := fun x => rho2 (to_fin x)`,
+apply `n5_two_realizer_framework`. Discharge each goal via `to_fin a = f0` ...
+`to_fin e = f4` (from `from_fin_fK` + `to_from_fin`) and `R2_matrix_true_iff`
+(turn `R2 x y` <-> `R2_matrix (to_fin x)(to_fin y)` using `from_to_fin`).
+This REDUCES every count to "construct rho1, rho2 on Fin.t 5 realizing
+R2_matrix" — concrete, decidable, no abstract casework.
+
+### Piece 2 (the real content): rho1, rho2 on Fin.t 5 per edge count
+On `Fin.t 5` the incomparability set is a concrete subset of the 10 pairs;
+"transitive orientation of the incomparability graph" (Dushnik-Miller) is a
+finite check. Options: (a) one orientation formula proven transitive by
+`decide`/finite case analysis over f0..f4; (b) per-count rho built from a
+down-count + an orientation tie-break. The deep part stays "the incomparability
+graph of a 5-element poset is transitively orientable" but is now decidable
+over f0..f4 rather than abstract.
+
+This is a fresh-session redesign; Piece 1 is the first buildable step.
+
 ## Risk register
 
 - R1: reflection won't scale to K>=6 (HIGH, established). Mitigation: S2 spike
