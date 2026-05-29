@@ -110,6 +110,41 @@ Counts 8,7,6,5 have 2,3,4,5 incomparable pairs respectively (harder rank
 constructions; count-5 needs the incomparability graph to be 2-colorable into
 the two extensions, which holds for n=5 but is the most involved).
 
+## Count-9 concrete construction (designed 2026-05-29) — NO case-split
+
+Define on the carrier {a,b,c,d,e} (B arbitrary, use `excluded_middle_informative`):
+- `lab x` := 0/1/2/3/4 by which of a..e x is (injective on carrier by Hcov + distinctness).
+- `rk x`  := down-count = sum over z in {a,b,c,d,e} of `[R2 z x]` (reflexive-inclusive).
+- `rk1 x := 6 * rk x + lab x`,  `rk2 x := 6 * rk x + (4 - lab x)`.
+
+Invoke `n5_two_realizer_framework R2 a b c d e ... rk1 rk2`. Supporting lemmas
+(all GENERIC — no enumeration, no structural sub-cases):
+1. `lab` injective on carrier (casework on Hcov x, Hcov y + the 10 distinctness hyps).
+2. `rk` monotone: `R2 x y -> rk x <= rk y` (down-set inclusion via transitivity).
+3. `rk` strict:   `R2 x y -> x<>y -> rk x < rk y` (y is in down(y)\down(x)).
+   => rk1, rk2 monotone (R2 x y gives x=y or rk x < rk y; the +lab/+(4-lab)
+   slack is < 6 <= 6*(rk y - rk x), so lia closes).
+4. rk1, rk2 injective: `6*rk x + lab x = 6*rk y + lab y` with lab in [0,4] forces
+   rk x = rk y and lab x = lab y => x = y. Gives all 20 pairwise-distinct goals.
+5. Extract THE incomparable pair: `edge_count_5 = 9` => exactly one pair has
+   indicator-sum 0 => incomparable; all others comparable. (10 classic splits;
+   the all-comparable branch forces edge_count = 10 via "distinct comparable
+   pair has indicator-sum 1", contradiction with = 9.) Yields u,v incomparable
+   and "every other carrier element is comparable to both u and v".
+6. Twin/equal-rk: incomparable u,v with all z comparable to both => for each z,
+   R2 z u <-> R2 z u and (by transitivity) z is on the same side of u and v, so
+   down(u) and down(v) have the same common part; with u not in down(v) and v
+   not in down(u), rk u = rk v.
+   INTERSECTION (`rk1 x<=rk1 y -> rk2 x<=rk2 y -> R2 x y`): adding the two gives
+   rk x <= rk y; if rk x = rk y then x = y (rk1 inj-style) and R2 x x; if
+   rk x < rk y then x,y are NOT the (equal-rk) incomparable pair, so comparable,
+   and R2 y x would give rk y < rk x — so R2 x y. (Uses lemma 6: the only
+   incomparable pair has equal rk, so rk x < rk y rules out incomparable.)
+   DISTINGUISHING pair: take the extracted u,v; WLOG lab u < lab v (else swap),
+   rk u = rk v, so rk1 u <= rk1 v and rk2 v < rk2 u.
+
+Estimated ~200-250 lines, ~6 small lemmas, fast compile (no native_compute).
+
 ## Risk register
 
 - R1: reflection won't scale to K>=6 (HIGH, established). Mitigation: S2 spike
