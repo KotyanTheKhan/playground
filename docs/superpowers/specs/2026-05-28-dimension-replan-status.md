@@ -208,6 +208,31 @@ infeasible; reflection-cheap-candidate incorrect; per-count destruct explodes
 (try-all-L1 compute_realizer + heavy native chunked reflection + bridge), or a
 genuinely cheaper correct transitive-orientation (Gamma-forcing) algorithm.
 
+## Session 2 conclusion: search-based reflection ruled out; need cheap orient
+
+Validated the CORRECTED try-all-L1 `compute_realizer` (search each of the 120
+perms as L1; L2 is then forced): even `native_compute` over just 3000
+orientations exceeds 150s. So ANY per-item realizer SEARCH over the 59049-item
+enumeration is too slow — regardless of correctness.
+
+**Full solution-space map for counts 5-8 (all empirically tested):**
+- numeric down-count ranks — impossible (can't resolve unequal-rank incomp);
+- reflection + realizer SEARCH (per item) — too slow (this session);
+- reflection + cheap candidate (reverse-L1) — INCORRECT (returns false);
+- per-count destruct of R2_matrix entries — 2^20 branch explosion.
+
+**Only feasible mechanization remaining:** reflection with a CHEAP, no-search,
+CORRECT transitive-orientation (Gamma-forcing) `compute_realizer` — per item
+~is_poset_b + O(small), so the 59049 reflection is dominated by the is_poset_b
+floor (~12-25s native, chunked ~5-8). The blocker is implementing the
+Gamma-forcing orientation algorithm CORRECTLY (its correctness is then verified
+by the reflection itself). This is a genuine algorithm-implementation task
+(~50-100 lines of Coq functions: incomparability graph, forcing classes,
+consistent orientation, rank extraction) — the S3 deliverable.
+
+Bridge `two_realizer_from_fin_ranks` (Qed) remains the foundation: once
+`compute_realizer` produces verified ranks, the bridge closes counts 5-8.
+
 ## Admit count: 5 (was 6)
 
 - `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, the
