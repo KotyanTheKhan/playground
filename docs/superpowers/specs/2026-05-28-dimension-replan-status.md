@@ -103,10 +103,37 @@ default `dune -j = ncpu`, not logic errors.
 `hiraguchi_bound` (RemovablePairs.v:2886) is a real theorem modulo the 2
 remaining admits.
 
-## Admit count: 2 (was 3)
+## Admit #1 refined via master edge-count dispatch (2026-05-29)
 
-Remaining honest admits, both large research-grade efforts:
-- `N5DispatcherShapes.v:38` — `n5_residual_classes_two_realizer` (n=5 residual
-  catch-all; edge counts ~5-9 not yet classified; ~60 dispatcher files route
-  here).
-- `RemovablePairs.v:1834` — `trotter_coverage_via_extremality`.
+Plan: `docs/superpowers/plans/2026-05-29-admit1-n5-residual.md`. Did step S1.
+
+Scoping found `n5_edge_count_{1,2,3,4}_two_realizer` were all Qed but ORPHANED
+(no dispatcher routed to them), and the reflection-enumeration template does
+not scale past count 4 (C(25,k) blows up).
+
+S1 (master dispatch) — DONE:
+- New focused-admit files `N5Exhaustive/EdgeCount{5,6,7,8,9}.v`, each
+  `n5_edge_count_K_two_realizer` (same signature as 2/3/4), Admitted.
+- `N5DispatcherShapes.v`: proved `n5_residual_classes_two_realizer` (was
+  Admitted) by dispatching on `edge_count_5 R2 p q r s t`:
+    - `carrier_5_destructure` completes the chosen edge to 5 carrier elements;
+    - `non_antichain_iff_edge_count_pos` gives k >= 1;
+    - new helper `edge_count_5_le_9_of_incomp` gives k <= 9 (incomparable pair
+      contributes 0; 25-case `lia` over `strict_indicator_antisym`);
+    - 11-way case routes k=1..4 to the Qed handlers, k=5..9 to the new admits,
+      k=0 and k>=10 closed by `lia` against the bounds.
+- Counts 1-4 of the n=5 base case are now genuinely closed.
+
+This is progressive refinement (D4): one broad admit -> five focused
+per-edge-count admits, with the surrounding plumbing all Qed.
+
+## Admit count: 6 (was 2 after R3)
+
+- `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, the
+  general-n Trotter coverage keystone).
+- `N5Exhaustive/EdgeCount{5,6,7,8,9}.v:36` — per-edge-count n=5 obligations
+  (refined remnant of admit #1).
+
+**Next (plan S2):** spike `EdgeCount9` (k=9, <=1 incomparable pair, fewest iso
+classes) to validate a technique that scales to counts 5-9, since the
+`EdgeCount4` reflection template does not.
