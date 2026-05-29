@@ -286,6 +286,28 @@ over f0..f4 rather than abstract.
 
 This is a fresh-session redesign; Piece 1 is the first buildable step.
 
+## Feasibility probe: reflection over count-8 is INFEASIBLE (2026-05-29)
+
+Probed `sublists 8 all_pairs`:
+  - `length` (generation only) = 1081575 in 10.3s vm_compute (OK).
+  - `filter is_poset_b ...` over those: KILLED by the watchdog (memory/time) at
+    the 120s / 20GB cap. Materializing 1.08M size-8 sublists + matrices is the
+    OOM class. (EdgeCount4 handled C(25,4)=12650; count-8 is 85x that, before
+    even adding a realizer search.)
+
+So ALL mechanized shortcuts for counts 5-8 are now ruled out:
+  - uniform numeric rank: impossible (down-count-dominated; can't resolve
+    incomparable pairs of unequal down-count);
+  - reflection enumeration: infeasible (probe killed);
+  - => the ONLY remaining path is an EXPLICIT transitive-orientation /
+    realizer construction, done by finite case analysis over the concrete
+    f0..f4 on `Fin.t 5` (decidable, no OOM, but voluminous — ~2^10 matrix-entry
+    cases) feeding `two_realizer_from_fin_ranks`. This is the genuine
+    Dushnik-Miller content for n=5; multi-session.
+
+The bridge (`two_realizer_from_fin_ranks`, Qed) remains the right foundation
+for that construction.
+
 ## Risk register
 
 - R1: reflection won't scale to K>=6 (HIGH, established). Mitigation: S2 spike
