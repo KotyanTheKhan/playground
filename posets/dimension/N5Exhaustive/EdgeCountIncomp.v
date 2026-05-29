@@ -65,4 +65,48 @@ Section EdgeCountIncomp.
     unfold edge_count_5 in Hle. lia.
   Qed.
 
+  (** Two incomparable pairs sharing the vertex [u] (so [{u,v}] and [{u,w}]
+      with [v <> w]) force the edge count down to at most 8: both pairs
+      contribute 0, and the remaining eight pairs contribute at most 1 each. *)
+  Lemma two_incomp_le_8 :
+    forall a b c d e,
+      a <> b -> a <> c -> a <> d -> a <> e ->
+      b <> c -> b <> d -> b <> e ->
+      c <> d -> c <> e -> d <> e ->
+      (forall x : B, x = a \/ x = b \/ x = c \/ x = d \/ x = e) ->
+      forall u v w : B,
+        @Incomparable B R2 u v -> @Incomparable B R2 u w -> v <> w ->
+        edge_count_5 R2 a b c d e <= 8.
+  Proof.
+    intros a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde Hcov
+           u v w Huv Huw Hvw.
+    assert (Zuv : strict_indicator R2 u v = 0)
+      by (apply strict_indicator_eq_0; intros [HR _]; apply Huv; left; exact HR).
+    assert (Zvu : strict_indicator R2 v u = 0)
+      by (apply strict_indicator_eq_0; intros [HR _]; apply Huv; right; exact HR).
+    assert (Zuw : strict_indicator R2 u w = 0)
+      by (apply strict_indicator_eq_0; intros [HR _]; apply Huw; left; exact HR).
+    assert (Zwu : strict_indicator R2 w u = 0)
+      by (apply strict_indicator_eq_0; intros [HR _]; apply Huw; right; exact HR).
+    pose proof (strict_indicator_antisym R2 a b Hab).
+    pose proof (strict_indicator_antisym R2 a c Hac).
+    pose proof (strict_indicator_antisym R2 a d Had).
+    pose proof (strict_indicator_antisym R2 a e Hae).
+    pose proof (strict_indicator_antisym R2 b c Hbc).
+    pose proof (strict_indicator_antisym R2 b d Hbd).
+    pose proof (strict_indicator_antisym R2 b e Hbe).
+    pose proof (strict_indicator_antisym R2 c d Hcd).
+    pose proof (strict_indicator_antisym R2 c e Hce).
+    pose proof (strict_indicator_antisym R2 d e Hde).
+    unfold edge_count_5.
+    destruct (Hcov u) as [Hu|[Hu|[Hu|[Hu|Hu]]]];
+    destruct (Hcov v) as [Hv|[Hv|[Hv|[Hv|Hv]]]];
+    destruct (Hcov w) as [Hw|[Hw|[Hw|[Hw|Hw]]]];
+    subst;
+    try (exfalso; apply Hvw; reflexivity);
+    try (exfalso; apply Huv; left; apply poset_refl);
+    try (exfalso; apply Huw; left; apply poset_refl);
+    lia.
+  Qed.
+
 End EdgeCountIncomp.
