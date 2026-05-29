@@ -127,12 +127,26 @@ S1 (master dispatch) — DONE:
 This is progressive refinement (D4): one broad admit -> five focused
 per-edge-count admits, with the surrounding plumbing all Qed.
 
-## Admit count: 6 (was 2 after R3)
+## Count-9 closed; twin-rank technique validated (2026-05-29)
+
+Spike S2 succeeded AND landed the proof. `N5Exhaustive/EdgeCountIncomp.v`
+(all Qed) now provides the reusable machinery:
+  - `comparable_indicator_sum`, `incomp_carrier_exists`, `two_incomp_le_8`
+    (uniqueness of the incomparable pair when count = 9),
+  - `dle`/`rk` down-count rank, `dle_mono`, `rk_strict_mono`,
+  - `twin_rk_eq` (incomparable elements have equal rank when count = 9).
+`EdgeCount9.v` is now Qed: `n5_edge_count_9_two_realizer` builds the 2-realizer
+from `rk1 = 6*rk + lab`, `rk2 = 6*rk + (4-lab)` via `n5_two_realizer_framework`.
+This is the template for counts 5-8 (reflection enumeration was infeasible).
+
+## Admit count: 5 (was 6)
 
 - `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, the
   general-n Trotter coverage keystone).
-- `N5Exhaustive/EdgeCount{5,6,7,8,9}.v:36` — per-edge-count n=5 obligations
-  (refined remnant of admit #1).
+- `N5Exhaustive/EdgeCount{5,6,7,8}.v:36` — per-edge-count n=5 obligations
+  (refined remnant of admit #1; counts 5/6/7/8 have 5/4/3/2 incomparable pairs,
+  so the single-twin argument must generalize to several incomparable pairs —
+  the incomparability graph must be 2-coloured into the two extensions).
 
 **Next (plan S2):** spike `EdgeCount9` (k=9, <=1 incomparable pair, fewest iso
 classes) to validate a technique that scales to counts 5-9, since the
