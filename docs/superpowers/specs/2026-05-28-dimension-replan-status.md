@@ -72,4 +72,41 @@ C. **Skip R3 for now, ship R0-R2.**  Phase R partially landed: reflection infras
 
 **Decision pending from user.**
 
-## Admit count: 3 (unchanged)
+## R3 DONE + dimension build restored (2026-05-29)
+
+Chose **Option A**.  All 6 heavy `EdgeCount4_*.v` cascade helpers turned out to
+be slow-but-VALID (no polarity bugs in the 5 untested ones — a prior pass had
+already added explicit symmetry handling).  They compile in ~3 GB / ~5-8 min
+each; the original "crashes" were OOM from building them in parallel at the
+default `dune -j = ncpu`, not logic errors.
+
+- **Build infra hardened** (commit `91107be`): every build now routes through
+  `.claude/scripts/timed-build.sh <secs> <target> [jobs] [mem_mb]`, which adds a
+  memory watchdog (default 20 GB cap, exit 137) on top of the timeout (exit
+  124) and bounded `-j` (default 2).  CLAUDE.md + 5 skills updated.  Root cause
+  of the repeated laptop OOM: a single heavy worker peaks ~3 GB, so `-j 10`
+  reached 30+ GB on the 32 GB machine.
+- **Admit #3 closed** (commit for `EdgeCount4.v`): `n5_edge_count_4_two_realizer`
+  is Qed.  The reflection wire-in had two defect classes — four off-by-one
+  bracket counts in the Class 11/20/12/14 destruct intro patterns, and a
+  spurious `Hcov` arg on all 12 reflection-lemma applications (none of
+  `R2_matrix_is_poset` / `_edge_count_eq` / the 10 `is_*_b_to_exists` take
+  `Hcov`).
+- **RemovablePairs.v build restored** (commit for `RemovablePairs.v`): the file
+  had not compiled since `4836bcf` (committed under a "(Qed)" message but never
+  built).  `aug_cycle_implies_step3_path` had 3 defects: undefined
+  `clos_trans_in_rt` (added as top-level helper), a no-op
+  `specialize (fun X => X) as _.` junk line, and `Hba_dec` re-inducting on
+  fixed endpoints `b a` (replaced with `specialize (Hdecomp b a Hba)`).
+
+**Full `posets/dimension` now builds green** (`-j2`, ~verified 2026-05-29).
+`hiraguchi_bound` (RemovablePairs.v:2886) is a real theorem modulo the 2
+remaining admits.
+
+## Admit count: 2 (was 3)
+
+Remaining honest admits, both large research-grade efforts:
+- `N5DispatcherShapes.v:38` — `n5_residual_classes_two_realizer` (n=5 residual
+  catch-all; edge counts ~5-9 not yet classified; ~60 dispatcher files route
+  here).
+- `RemovablePairs.v:1834` — `trotter_coverage_via_extremality`.
