@@ -12,6 +12,18 @@ From Dimension Require Import N4Realizers N5Realizers N5Dispatcher.
 From ZornsLemma Require Import FiniteTypes EnsemblesExplicit.
 From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts.
 
+(** Transitive closure is contained in the reflexive-transitive closure.
+    Stdlib's [Operators_Properties] is not imported here, so we prove this
+    one-liner locally.  Stated at top level to avoid clashing with the
+    [RemovablePairs] section variables. *)
+Lemma clos_trans_in_rt {T : Type} (Rel : T -> T -> Prop) (x y : T) :
+  clos_trans T Rel x y -> clos_refl_trans T Rel x y.
+Proof.
+  induction 1 as [x y Hxy | x y z _ IHxy _ IHyz].
+  - apply rt_step. exact Hxy.
+  - eapply rt_trans; eassumption.
+Qed.
+
 Section RemovablePairs.
   Context {A : Type}.
   Context (R : A -> A -> Prop) `{IsPoset A R}.
@@ -1739,30 +1751,10 @@ Section RemovablePairs.
           * exact Hpv. }
     (* Apply Hdecomp to both Hab and Hba. *)
     specialize (Hdecomp a b Hab) as Hab_dec.
-    specialize (fun X => X) as _.
-    assert (Hba_dec :
-              clos_trans A step3 b a
-              \/ (clos_refl_trans A step3 b q
-                  /\ clos_refl_trans A step3 p a)).
-    { clear Hab_dec.
-      induction Hba as [u v Huv | u w v Huw IHuw Hwv IHwv].
-      - apply Hbridge in Huv. destruct Huv as [Hs3 | [Hu Hv]].
-        + left. apply t_step. exact Hs3.
-        + subst u v. right. split; apply rt_refl.
-      - destruct IHuw as [Huw3 | [Huq Hpw]];
-        destruct IHwv as [Hwv3 | [Hwq Hpv]].
-        + left. eapply t_trans; eauto.
-        + right. split.
-          * apply rt_trans with (y := w); [| exact Hwq].
-            apply clos_trans_in_rt. exact Huw3.
-          * exact Hpv.
-        + right. split.
-          * exact Huq.
-          * apply rt_trans with (y := w); [exact Hpw |].
-            apply clos_trans_in_rt. exact Hwv3.
-        + right. split.
-          * exact Huq.
-          * exact Hpv. }
+    (* Hba_dec is just Hdecomp specialized to the reverse direction b -> a;
+       no need to re-induct (the previous in-place induction on the fixed
+       endpoints [b a] produced malformed induction hypotheses). *)
+    specialize (Hdecomp b a Hba) as Hba_dec.
     (* Convert clos_trans to clos_refl_trans helpers. *)
     pose proof (poset_antisym (R := clos_trans A step3)) as Hanti.
     (* Case-split.  In each case derive clos_refl_trans step3 p q. *)
