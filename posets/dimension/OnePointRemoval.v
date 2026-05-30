@@ -16,7 +16,7 @@
 From Stdlib Require Import Ensembles Finite_sets Arith Lia.
 From Stdlib Require Import Classical ClassicalDescription ProofIrrelevance.
 From Posets Require Import PosetClasses.
-From Dimension Require Import DimDefs.
+From Dimension Require Import DimDefs Szpilrajn.
 
 Section OnePointRemoval.
   Context {B : Type}.
@@ -345,6 +345,140 @@ Section OnePointRemoval.
 
     Lemma lift_high_is_linext : IsLinearExtension R lift_high.
     Proof. constructor; [exact lift_high_total_order | exact lift_high_extends]. Qed.
+
+    (** ---- [lift_keep]: a linear extension of R restricting to [Llift L] on
+        X − p (p inserted WITHOUT reordering S).  Obtained from Szpilrajn applied
+        to the partial order [Qkeep], which already contains R and [Llift L]. ---- *)
+    Definition Qkeep (a b : B) : Prop :=
+      (a = p /\ b = p)
+      \/ (a = p /\ b <> p /\ (exists u, u <> p /\ R p u /\ Llift L u b))
+      \/ (a <> p /\ b = p /\ (exists d, d <> p /\ R d p /\ Llift L a d))
+      \/ (a <> p /\ b <> p /\ Llift L a b).
+
+    Lemma Qkeep_refl : forall a, Qkeep a a.
+    Proof.
+      intro a. unfold Qkeep. destruct (classic (a = p)) as [-> | Ha].
+      - left; split; reflexivity.
+      - right; right; right. split; [exact Ha | split; [exact Ha | apply Llift_refl; exact Ha]].
+    Qed.
+
+    (** Collapse lemma: a strict down-element and a strict up-element of p are
+        L-ordered  d ≤_L u  (since R d p, R p u ⟹ R d u). *)
+    Lemma Qkeep_collapse :
+      forall d u, d <> p -> u <> p -> R d p -> R p u -> Llift L d u.
+    Proof.
+      intros d u Hd Hu Hdp Hpu.
+      apply Llift_extends; [ exact (poset_trans _ _ _ Hdp Hpu) | exact Hd | exact Hu ].
+    Qed.
+
+    Lemma Qkeep_refl' : forall a, Qkeep a a. Proof. exact Qkeep_refl. Qed.
+
+    Lemma Qkeep_antisym : forall a b, Qkeep a b -> Qkeep b a -> a = b.
+    Proof.
+      intros a b Hab Hba. unfold Qkeep in Hab, Hba.
+      destruct Hab as [[Ha Hb] | [[Ha [Hb [u [Hu [Hpu Hub]]]]] | [[Ha [Hb [d [Hd [Hdp Had]]]]] | [Ha [Hb Hl]]]]].
+      - subst; reflexivity.
+      - (* a=p, b<>p; Hba must be the (b<>p,a=p) i.e. C-branch with witness d *)
+        destruct Hba as [[Hb1 Ha1] | [[Hb1 [Ha1 _]] | [[Hb1 [Ha1 [d [Hd [Hdp Hbd]]]]] | [Hb1 [Ha1 _]]]]];
+          try (exfalso; congruence).
+        exfalso.
+        assert (Hud : Llift L u d) by exact (Llift_trans u b d Hub Hbd).
+        assert (Hdu : Llift L d u) by exact (Qkeep_collapse d u Hd Hu Hdp Hpu).
+        assert (Hdeq : d = u) by exact (Llift_antisym d u Hdu Hud).
+        subst u. apply Hd. exact (poset_antisym _ _ Hdp Hpu).
+      - (* a<>p, b=p; Hba must be B-branch with witness u *)
+        destruct Hba as [[Hb1 Ha1] | [[Hb1 [Ha1 [u [Hu [Hpu Hua]]]]] | [[Hb1 [Ha1 _]] | [Hb1 [Ha1 _]]]]];
+          try (exfalso; congruence).
+        exfalso.
+        assert (Hud : Llift L u d) by exact (Llift_trans u a d Hua Had).
+        assert (Hdu : Llift L d u) by exact (Qkeep_collapse d u Hd Hu Hdp Hpu).
+        assert (Hdeq : d = u) by exact (Llift_antisym d u Hdu Hud).
+        subst u. apply Hd. exact (poset_antisym _ _ Hdp Hpu).
+      - (* both <>p *)
+        destruct Hba as [[Hb1 Ha1] | [[Hb1 [Ha1 _]] | [[Hb1 [Ha1 _]] | [Hb1 [Ha1 Hl']]]]];
+          try (exfalso; congruence).
+        exact (Llift_antisym a b Hl Hl').
+    Qed.
+
+    Lemma Qkeep_trans : forall a b c, Qkeep a b -> Qkeep b c -> Qkeep a c.
+    Proof.
+      intros a b c Hab Hbc.
+      destruct (classic (a = p)) as [Ha | Ha];
+      destruct (classic (b = p)) as [Hb | Hb];
+      destruct (classic (c = p)) as [Hc | Hc];
+      unfold Qkeep in *.
+      - left; split; assumption.
+      - (* a=p,b=p,c<>p *)
+        destruct Hbc as [[E1 E2]|[[E1 [E2 Hex]]|[[E1 [E2 _]]|[E1 [E2 _]]]]]; try (exfalso; congruence).
+        right; left; split; [assumption | split; assumption].
+      - left; split; assumption.
+      - (* a=p,b<>p,c<>p *)
+        destruct Hab as [[E1 E2]|[[E1 [E2 [u [Hu [Hpu Hub]]]]]|[[E1 [E2 _]]|[E1 [E2 _]]]]]; try (exfalso; congruence).
+        destruct Hbc as [[F1 F2]|[[F1 [F2 _]]|[[F1 [F2 _]]|[F1 [F2 Hbc']]]]]; try (exfalso; congruence).
+        right; left; split; [assumption | split; [assumption |]].
+        exists u; split; [assumption | split; [assumption | exact (Llift_trans u b c Hub Hbc')]].
+      - (* a<>p,b=p,c=p *)
+        destruct Hab as [[E1 E2]|[[E1 [E2 _]]|[[E1 [E2 [d [Hd [Hdp Had]]]]]|[E1 [E2 _]]]]]; try (exfalso; congruence).
+        right; right; left; split; [assumption | split; [assumption |]].
+        exists d; split; [assumption | split; assumption].
+      - (* a<>p,b=p,c<>p *)
+        destruct Hab as [[E1 E2]|[[E1 [E2 _]]|[[E1 [E2 [d [Hd [Hdp Had]]]]]|[E1 [E2 _]]]]]; try (exfalso; congruence).
+        destruct Hbc as [[F1 F2]|[[F1 [F2 [u [Hu [Hpu Hub]]]]]|[[F1 [F2 _]]|[F1 [F2 _]]]]]; try (exfalso; congruence).
+        right; right; right; split; [assumption | split; [assumption |]].
+        apply (Llift_trans a d c Had).
+        exact (Llift_trans d u c (Qkeep_collapse d u Hd Hu Hdp Hpu) Hub).
+      - (* a<>p,b<>p,c=p *)
+        destruct Hab as [[E1 E2]|[[E1 [E2 _]]|[[E1 [E2 _]]|[E1 [E2 Hab']]]]]; try (exfalso; congruence).
+        destruct Hbc as [[F1 F2]|[[F1 [F2 _]]|[[F1 [F2 [d [Hd [Hdp Hbd]]]]]|[F1 [F2 _]]]]]; try (exfalso; congruence).
+        right; right; left; split; [assumption | split; [assumption |]].
+        exists d; split; [assumption | split; [assumption | exact (Llift_trans a b d Hab' Hbd)]].
+      - (* a<>p,b<>p,c<>p *)
+        destruct Hab as [[E1 E2]|[[E1 [E2 _]]|[[E1 [E2 _]]|[E1 [E2 Hab']]]]]; try (exfalso; congruence).
+        destruct Hbc as [[F1 F2]|[[F1 [F2 _]]|[[F1 [F2 _]]|[F1 [F2 Hbc']]]]]; try (exfalso; congruence).
+        right; right; right; split; [assumption | split; [assumption | exact (Llift_trans a b c Hab' Hbc')]].
+    Qed.
+
+    #[local] Instance Qkeep_poset : IsPoset B Qkeep :=
+      {| poset_refl := Qkeep_refl; poset_antisym := Qkeep_antisym; poset_trans := Qkeep_trans |}.
+
+    (** [Qkeep] contains R and [Llift L]. *)
+    Lemma Qkeep_R : forall a b, R a b -> Qkeep a b.
+    Proof.
+      intros a b Hab. unfold Qkeep.
+      destruct (classic (a = p)) as [-> | Ha]; destruct (classic (b = p)) as [-> | Hb].
+      - left; split; reflexivity.
+      - right; left. split; [reflexivity | split; [exact Hb |]].
+        exists b; split; [exact Hb | split; [exact Hab | apply Llift_refl; exact Hb]].
+      - right; right; left. split; [exact Ha | split; [reflexivity |]].
+        exists a; split; [exact Ha | split; [exact Hab | apply Llift_refl; exact Ha]].
+      - right; right; right. split; [exact Ha | split; [exact Hb | apply Llift_extends; assumption]].
+    Qed.
+
+    Lemma Qkeep_Llift : forall a b, a <> p -> b <> p -> Llift L a b -> Qkeep a b.
+    Proof. intros a b Ha Hb Hl. right; right; right. repeat split; assumption. Qed.
+
+    (** [lift_keep] exists: a linear extension of R that agrees with [Llift L]
+        on all non-p pairs. *)
+    Lemma lift_keep_exists :
+      exists M : B -> B -> Prop,
+        IsLinearExtension R M /\
+        (forall a b, a <> p -> b <> p -> (M a b <-> Llift L a b)).
+    Proof.
+      destruct (szpilrajn_theorem B Qkeep) as [M [HMpos [HMtot HMext]]].
+      assert (HMlin : IsLinearExtension R M).
+      { constructor.
+        - constructor; [ exact HMpos | exact HMtot ].
+        - intros a b Hab. apply HMext. apply Qkeep_R. exact Hab. }
+      exists M. split; [ exact HMlin |].
+      intros a b Ha Hb. split.
+      - intro HMab.
+        destruct (Llift_total a b Ha Hb) as [Hl | Hl]; [ exact Hl |].
+        (* if Llift b a then M b a; with M a b and antisym, a=b, so Llift a b by refl *)
+        assert (HMba : M b a) by (apply HMext; apply Qkeep_Llift; assumption).
+        assert (Hab_eq : a = b) by exact (poset_antisym (R := M) _ _ HMab HMba).
+        subst b. apply Llift_refl; exact Ha.
+      - intro Hl. apply HMext. apply Qkeep_Llift; assumption.
+    Qed.
 
   End WithL.
 End OnePointRemoval.
