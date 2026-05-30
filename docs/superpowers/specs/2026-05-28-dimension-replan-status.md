@@ -698,3 +698,25 @@ STEP 3 (remaining): rewire `hiraguchi_bound` = `dimension_le_width` (needs Width
 existence for finite posets) + `antichain_complement_dim_bound` (on a maximum
 antichain, |P−A| = n−w) + `hiraguchi_combine`; drop `removable_pair_exists`.
 Then Print Assumptions.
+
+## subtype_remove_data PROVEN (2026-05-30, cont.)
+
+Commit 83b0019. `AntichainComplement.v` now has exactly ONE admit:
+`small_complement_le_2` (base case m<=2 ⟹ dim<=2, Trotter Lemma 3).
+subtype_remove_data proven via subtype_is_poset + cardinal_subtype_full +
+cardinal_subtract_sn + cardinal_Im_injective (proj1) + Extensionality.
+
+DIRECT HIRAGUCHI PROOF — remaining gaps (down to 2 items):
+1. `small_complement_le_2` (TRUE) — antichain + <=2 points has dim<=2. NOTE:
+   cannot use one_point_removal here (it adds 1: m=1->dim<=3); needs a direct
+   2-realizer construction / Trotter's finite Figure-1 analysis. The genuine
+   last "math" admit.
+2. Step 3 rewire: needs Width existence (NOT in repo — every finite poset has a
+   maximum antichain ⟹ Width R Full w). Then hiraguchi_bound via
+   dimension_le_width + antichain_complement_dim_bound + hiraguchi_combine,
+   dropping removable_pair_exists. Then Print Assumptions.
+
+Proven this session (all Qed, no admits in their own logic): hiraguchi_combine,
+one_point_removal (+ lift_low/high/keep, coverage facts), cardinal_setminus,
+dim_ge_1_of_two, card_inhabited, card_ge_2_distinct,
+antichain_complement_dim_bound (induction), subtype_remove_data.
