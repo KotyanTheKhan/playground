@@ -2055,6 +2055,38 @@ Section RemovablePairs.
     exact (Hacyc u v Hneq Hct_uv Hct_vu).
   Qed.
 
+  (** Step 1 (structural).  Two critical pairs sharing their TOP element [y']
+      have incomparable bottom elements: from [(x',y')] and [(z,y')] CPs, [z]
+      and [x'] are incomparable.  (A boundary CP touching [y'] therefore has its
+      other endpoint incomparable to [x'].)  Pure [critical_down]. *)
+  Lemma two_cp_share_top_incomp :
+    forall x' y' z : A,
+    IsCriticalPair R x' y' -> IsCriticalPair R z y' -> z <> x' ->
+    Incomparable R z x'.
+  Proof.
+    intros x' y' z Hxy Hzy Hne [Hzx | Hxz].
+    - assert (Hs : Strict R z x') by (split; [ exact Hzx | exact Hne ]).
+      apply (critical_incomparable Hzy). left. exact (critical_down Hxy z Hs).
+    - assert (Hs : Strict R x' z)
+        by (split; [ exact Hxz | intro E; apply Hne; symmetry; exact E ]).
+      apply (critical_incomparable Hxy). left. exact (critical_down Hzy x' Hs).
+  Qed.
+
+  (** Dual: two critical pairs sharing their BOTTOM element [x'] have
+      incomparable top elements.  Pure [critical_up]. *)
+  Lemma two_cp_share_bottom_incomp :
+    forall x' y' w : A,
+    IsCriticalPair R x' y' -> IsCriticalPair R x' w -> w <> y' ->
+    Incomparable R w y'.
+  Proof.
+    intros x' y' w Hxy Hxw Hne [Hwy | Hyw].
+    - assert (Hs : Strict R w y') by (split; [ exact Hwy | exact Hne ]).
+      apply (critical_incomparable Hxy). left. exact (critical_up Hxw y' Hs).
+    - assert (Hs : Strict R y' w)
+        by (split; [ exact Hyw | intro E; apply Hne; symmetry; exact E ]).
+      apply (critical_incomparable Hxw). left. exact (critical_up Hxy w Hs).
+  Qed.
+
 
   (** ===================================================================
       Focused coverage sub-admit (Trotter Ch.6, EXTREMALITY-based).
