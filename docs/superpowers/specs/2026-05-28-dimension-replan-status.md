@@ -411,7 +411,32 @@ is green (`@check`). The full abstract wiring landed this session:
   residual closed by `exhaustive_8edge` on `R2_matrix` (count transported via
   `R2_matrix_edge_count_eq`) + the iff lemmas contradicting the refutations.
 
-## Remaining admits: 4
+## ADMIT #1 FULLY CLOSED — all edge counts 1–9 done (2026-05-30)
+
+`n5_residual_classes_two_realizer` (N5DispatcherShapes.v) is admit-free —
+`Print Assumptions` shows only `classic`, `functional_extensionality_dep`,
+`constructive_definite_description`, `Extensionality_Ensembles` (standard
+classical axioms); NO `Admitted`, no `n5_edge_count_*`, no Trotter.
+
+Counts 5/6/7 were closed exactly like count-8, fully mechanized via a Python
+generator + a Coq extractor `N5Extract{5,6,7}.v` (lexmin iso-class canonical
+shapes + machine-found L1/L2 2-realizer rank vectors). Per count:
+- count-7: 9 iso-classes → `EdgeCount7_c1..c9` + `N5Reflect7` (8-chunk
+  `coverage_7`/`exhaustive_7edge`) + 9 N5Iff lemmas + `EdgeCount7` dispatcher.
+- count-6: 12 iso-classes → analogous (`EdgeCount6_c1..c12`, ...).
+- count-5: 10 iso-classes → analogous (`EdgeCount5_c1..c10`, ...).
+All handler closures are the light 25-case argument (a (K+1)-th distinct strict
+indicator would exceed `edge_count = K`); reusable helpers `five_distinct_cover`
+and `edge_count_5_cover_invariant` shared across all counts. Whole project green
+(`@check`); dispatcher Qed-verified.
+
+## Remaining admits: 1 (was 4)
+
+- `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, the
+  general-n Trotter coverage keystone; the only remaining gap for an admit-free
+  `hiraguchi_bound`).
+
+## (historical) Remaining admits: 4
 
 - `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, deep).
 - `N5Exhaustive/EdgeCount{5,6,7}.v:36` — counts 5/6/7 of the n=5 base (admit #1).
