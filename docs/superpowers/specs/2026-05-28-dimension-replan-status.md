@@ -547,3 +547,47 @@ coverage; (2) `exhaustive_{5,6,7}edge` via the SAME `M_assign`/
 apparatus (all reusable); (3) per-pattern handlers (explicit ranks); (4) iff
 lemmas; (5) dispatcher. The reusable helpers (`five_distinct_cover`,
 `edge_count_5_cover_invariant`, the count/bridge lemmas) already exist.
+
+## FALSE ADMIT FOUND + FIXED — hiraguchi_bound now sound (2026-05-30)
+
+**Discovery.** The last Trotter admit `trotter_path_family_impossible` (the
+boundary-CP coverage core) was FALSE as stated, not merely hard. It claimed
+that for an ARBITRARY d'-realizer `r'` of the residual, every boundary critical
+pair is covered (rejected from the augmented closure for some `L' ∈ r'`).
+
+**Counterexample (5 elements, `posets/dimension/TrotterCounterexample.v`, Qed):**
+model `Rel a b := a=b \/ (a=eX /\ (b∈{eD1,eD2}))` — i.e. `eX < eD1, eX < eD2`,
+with `eY, eQ` otherwise isolated.
+- `(eX,eY)` is an extremal critical pair; residual `S' = {eD1,eD2,eQ}` is a
+  3-antichain, realized by `r' = {La, Lb}` (`La: d1<q<d2`, `Lb: d2<q<d1`).
+- Boundary CP `(eX,eQ)`: under EVERY `L' ∈ r'` there is an augmenting path
+  `eX → eD_i → eQ` (R-edge then L'-lift), so the forced cycle `eX → S' → eQ → eX`
+  makes `(eX,eQ)` coverable by NO `L'`. All premises of the admit hold; its
+  conclusion (`False`) is absurd.
+
+**Why it was wrong.** Coverage holds only for a *coordinated* (removable-pair,
+realizer) choice — the genuine Trotter content — not for an arbitrary extremal
+CP + arbitrary realizer. The lift-construction proof over-generalized.
+
+**Fix (commit b6d9069).**
+- Deleted the unsound chain: `trotter_path_family_impossible`,
+  `trotter_coverage_via_extremality`, `trotter_per_L_acyclic_covering_family`,
+  `trotter_boundary_existence`, `trotter_boundary_coverage`.
+- Rerouted `non_antichain_removable_pair_exists` to an honest `Admitted` of the
+  TRUE classical Hiraguchi/Trotter removable-pair theorem. Note that
+  `IsRemovablePair x y  ⟺  x≠y ∧ dim R ≤ dim(R−{x,y})+1`; the *statements* of
+  `non_antichain_removable_pair_exists`, `removable_pair_exists`, and
+  `hiraguchi_bound` are all true — only the prior PROOF was unsound.
+
+**Verification.** Whole-project build green (`@all`, -j4). `Print Assumptions
+hiraguchi_bound` lists exactly ONE non-standard assumption,
+`non_antichain_removable_pair_exists`, plus the development's standard classical
+axioms (classic, prop/functional ext, proof_irrelevance, choice,
+Extensionality_Ensembles). No false step remains.
+
+## Remaining admits: 1 (honest, true)
+
+- `RemovablePairs.v` — `non_antichain_removable_pair_exists`: the non-antichain
+  case of Hiraguchi's removable-pair theorem (classical, true; deep). This is
+  now the SOLE dimension admit. Admit #1 (the entire n=5 base, counts 1–9) is
+  closed and admit-free.
