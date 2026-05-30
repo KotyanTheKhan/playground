@@ -2124,6 +2124,28 @@ Section RemovablePairs.
     - right; right; exact HIn.
   Qed.
 
+  (** An [R]-only path collapses: [R] (a poset) equals its reflexive-transitive
+      closure. *)
+  Lemma rt_R_collapse : forall u v, clos_refl_trans A R u v -> R u v.
+  Proof.
+    intros u v Hrt. induction Hrt as [u v Huv | u | u w v Huw IHuw Hwv IHwv].
+    - exact Huv.
+    - apply poset_refl.
+    - eapply poset_trans; eassumption.
+  Qed.
+
+  (** Consequence (counterexample insight): the endpoints of a critical pair
+      are NOT joined by an [R]-only path.  Hence any obstruction path between
+      them must use a non-[R] augmenting edge (an [L']-edge, the forced
+      [x'→y'], or a reversed boundary edge) — the entry point for the realizer
+      / extremality analysis. *)
+  Lemma cp_no_R_path : forall p q, IsCriticalPair R p q ->
+    ~ clos_refl_trans A R p q.
+  Proof.
+    intros p q Hcp Hpath.
+    apply (critical_incomparable Hcp). left. exact (rt_R_collapse p q Hpath).
+  Qed.
+
 
   (** ===================================================================
       Focused coverage sub-admit (Trotter Ch.6, EXTREMALITY-based).
