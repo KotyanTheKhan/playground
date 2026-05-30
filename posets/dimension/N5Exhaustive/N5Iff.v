@@ -4,7 +4,7 @@ From Stdlib Require Import Sorting.Permutation.
 Import ListNotations.
 From Posets Require Import PosetClasses.
 From Dimension Require Import DimDefs.
-From Dimension.N5Exhaustive Require Import EdgeCount N5Reflect N5Reflect8 N5Reflect7 N5Reflect6 N5Transport.
+From Dimension.N5Exhaustive Require Import EdgeCount N5Reflect N5Reflect8 N5Reflect7 N5Reflect6 N5Reflect5 N5Transport.
 
 Section Iff.
   Context {B : Type}.
@@ -675,5 +675,106 @@ Section Iff.
       r <> s /\ r <> t /\ s <> t /\
       R2 p q /\ R2 p r /\ R2 q r /\ R2 s q /\ R2 s r /\ R2 t r.
   Proof. unfold is_c6_12_b, has_edges_of_shape. intro Hex. c6_finish Hex. Qed.
+
+
+  (** ---- count-5 iso-class patterns (5 edges each) ---- *)
+  Ltac c5_finish Hex :=
+    apply existsb_exists in Hex;
+    destruct Hex as [pi [Hpi_in Hpi_forall]];
+    destruct pi as [|v1 [|v2 [|v3 [|v4 [|v5 [|? ?]]]]]]; try discriminate;
+    simpl in Hpi_forall; rewrite !andb_true_iff in Hpi_forall;
+    destruct Hpi_forall as [H1 [H2 [H3 [H4 [H5 _]]]]];
+    apply strict_b_R2_matrix_iff in H1, H2, H3, H4, H5;
+    only 1: (
+      destruct H1 as [HR1 _]; destruct H2 as [HR2x _]; destruct H3 as [HR3 _];
+      destruct H4 as [HR4 _]; destruct H5 as [HR5 _];
+      pose proof (perm_in_all_perms5_nodup _ Hpi_in) as Hnd;
+      pose proof (NoDup_from_fin (B:=B) a b c d e Hab Hac Had Hae Hbc Hbd Hbe Hcd Hce Hde
+                    v1 v2 v3 v4 v5 Hnd) as HndB;
+      pose proof (NoDup5_pairwise _ _ _ _ _ HndB) as Hpairwise;
+      destruct Hpairwise as [N12 [N13 [N14 [N15 [N23 [N24 [N25 [N34 [N35 N45]]]]]]]]];
+      exists (ff v1); exists (ff v2); exists (ff v3); exists (ff v4); exists (ff v5);
+      repeat split; try assumption);
+    assumption.
+
+  Lemma is_c5_1_b_to_exists :
+    is_c5_1_b M = true ->
+    exists p q r s t : B,
+      p <> q /\ p <> r /\ p <> s /\ p <> t /\ q <> r /\ q <> s /\ q <> t /\
+      r <> s /\ r <> t /\ s <> t /\
+      R2 p q /\ R2 p r /\ R2 p s /\ R2 t q /\ R2 t r.
+  Proof. unfold is_c5_1_b, has_edges_of_shape. intro Hex. c5_finish Hex. Qed.
+
+  Lemma is_c5_2_b_to_exists :
+    is_c5_2_b M = true ->
+    exists p q r s t : B,
+      p <> q /\ p <> r /\ p <> s /\ p <> t /\ q <> r /\ q <> s /\ q <> t /\
+      r <> s /\ r <> t /\ s <> t /\
+      R2 p q /\ R2 p r /\ R2 p s /\ R2 q r /\ R2 t s.
+  Proof. unfold is_c5_2_b, has_edges_of_shape. intro Hex. c5_finish Hex. Qed.
+
+  Lemma is_c5_3_b_to_exists :
+    is_c5_3_b M = true ->
+    exists p q r s t : B,
+      p <> q /\ p <> r /\ p <> s /\ p <> t /\ q <> r /\ q <> s /\ q <> t /\
+      r <> s /\ r <> t /\ s <> t /\
+      R2 p q /\ R2 p r /\ R2 p s /\ R2 p t /\ R2 q r.
+  Proof. unfold is_c5_3_b, has_edges_of_shape. intro Hex. c5_finish Hex. Qed.
+
+  Lemma is_c5_4_b_to_exists :
+    is_c5_4_b M = true ->
+    exists p q r s t : B,
+      p <> q /\ p <> r /\ p <> s /\ p <> t /\ q <> r /\ q <> s /\ q <> t /\
+      r <> s /\ r <> t /\ s <> t /\
+      R2 p q /\ R2 p r /\ R2 p s /\ R2 q r /\ R2 q s.
+  Proof. unfold is_c5_4_b, has_edges_of_shape. intro Hex. c5_finish Hex. Qed.
+
+  Lemma is_c5_5_b_to_exists :
+    is_c5_5_b M = true ->
+    exists p q r s t : B,
+      p <> q /\ p <> r /\ p <> s /\ p <> t /\ q <> r /\ q <> s /\ q <> t /\
+      r <> s /\ r <> t /\ s <> t /\
+      R2 p q /\ R2 p r /\ R2 s q /\ R2 s r /\ R2 t q.
+  Proof. unfold is_c5_5_b, has_edges_of_shape. intro Hex. c5_finish Hex. Qed.
+
+  Lemma is_c5_6_b_to_exists :
+    is_c5_6_b M = true ->
+    exists p q r s t : B,
+      p <> q /\ p <> r /\ p <> s /\ p <> t /\ q <> r /\ q <> s /\ q <> t /\
+      r <> s /\ r <> t /\ s <> t /\
+      R2 p q /\ R2 p r /\ R2 q r /\ R2 s r /\ R2 s t.
+  Proof. unfold is_c5_6_b, has_edges_of_shape. intro Hex. c5_finish Hex. Qed.
+
+  Lemma is_c5_7_b_to_exists :
+    is_c5_7_b M = true ->
+    exists p q r s t : B,
+      p <> q /\ p <> r /\ p <> s /\ p <> t /\ q <> r /\ q <> s /\ q <> t /\
+      r <> s /\ r <> t /\ s <> t /\
+      R2 p q /\ R2 p r /\ R2 p s /\ R2 q r /\ R2 t r.
+  Proof. unfold is_c5_7_b, has_edges_of_shape. intro Hex. c5_finish Hex. Qed.
+
+  Lemma is_c5_8_b_to_exists :
+    is_c5_8_b M = true ->
+    exists p q r s t : B,
+      p <> q /\ p <> r /\ p <> s /\ p <> t /\ q <> r /\ q <> s /\ q <> t /\
+      r <> s /\ r <> t /\ s <> t /\
+      R2 p q /\ R2 p r /\ R2 p s /\ R2 q r /\ R2 s r.
+  Proof. unfold is_c5_8_b, has_edges_of_shape. intro Hex. c5_finish Hex. Qed.
+
+  Lemma is_c5_9_b_to_exists :
+    is_c5_9_b M = true ->
+    exists p q r s t : B,
+      p <> q /\ p <> r /\ p <> s /\ p <> t /\ q <> r /\ q <> s /\ q <> t /\
+      r <> s /\ r <> t /\ s <> t /\
+      R2 p q /\ R2 p r /\ R2 q r /\ R2 s q /\ R2 s r.
+  Proof. unfold is_c5_9_b, has_edges_of_shape. intro Hex. c5_finish Hex. Qed.
+
+  Lemma is_c5_10_b_to_exists :
+    is_c5_10_b M = true ->
+    exists p q r s t : B,
+      p <> q /\ p <> r /\ p <> s /\ p <> t /\ q <> r /\ q <> s /\ q <> t /\
+      r <> s /\ r <> t /\ s <> t /\
+      R2 p q /\ R2 p r /\ R2 q r /\ R2 s r /\ R2 t r.
+  Proof. unfold is_c5_10_b, has_edges_of_shape. intro Hex. c5_finish Hex. Qed.
 
 End Iff.
