@@ -436,6 +436,32 @@ and `edge_count_5_cover_invariant` shared across all counts. Whole project green
   general-n Trotter coverage keystone; the only remaining gap for an admit-free
   `hiraguchi_bound`).
 
+### Trotter admit — precise decomposition (analysis 2026-05-30)
+
+Exact remaining claim (parts (i)/(ii) of `trotter_per_L_acyclic_covering_family`
+already Qed): for every boundary CP `(p,q)`, some `L'∈r'` has
+`(p,q) ∈ greedy_acyclic_subset S' x' y' L' nil boundary`.
+
+A proof (Trotter 1992 Ch.6 Thm 6.1) needs three pieces, NONE shallow:
+1. **greedy-rejection ⟹ path.** `aug_cycle_implies_step3_path` (Qed) does only
+   the singleton `B=[(p,q)]` case (cycle ⟹ `step3` path `p→q`). Need the general
+   `B=(p,q)::acc` case: a path in `R ∪ L' ∪ {x'→y'} ∪ reversed(acc)`. UNWRITTEN.
+2. **path ⟹ refining critical pair** `(p',q')` with `R p' p ∧ R q q'` ("Trotter's
+   algebra", the cycle↔CP correspondence). UNWRITTEN.
+3. **refining CP + boundary endpoint-sharing + extremality(x',y') ⟹ False.**
+   Uses `IsExtremalCP` (exists). Connection UNWRITTEN.
+
+No SOUND progressive refinement (smaller admit + Qed wrapper) found:
+- "∃L' makes the whole boundary acyclic ⟹ greedy accepts all" — premise is FALSE
+  in general (different boundary pairs need different L'; the per-L' family is
+  exactly to avoid this). 
+- singleton-acyclicity ⤏ greedy-acceptance (greedy accumulator is order-dependent).
+
+Conclusion: genuinely irreducible research-grade content; multi-session
+formalization of the augmented-digraph cycle↔CP algebra + extremality argument.
+Do NOT fabricate a relabeling admit. The achievable milestone (admit #1, the
+entire n=5 base case) is done and verified above.
+
 ## (historical) Remaining admits: 4
 
 - `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, deep).
