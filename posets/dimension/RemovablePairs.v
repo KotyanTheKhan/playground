@@ -2016,6 +2016,45 @@ Section RemovablePairs.
         eapply rt_trans; [ apply aug_rt_nil_mono; exact Hc0w | exact Hwd1 ].
   Qed.
 
+  (** A reflexive-transitive path is either trivial or a (strict) transitive one. *)
+  Lemma rt_eq_or_t :
+    forall (X : Type) (Rel : X -> X -> Prop) (u v : X),
+    clos_refl_trans X Rel u v -> u = v \/ clos_trans X Rel u v.
+  Proof.
+    intros X Rel u v Hrt. induction Hrt as [u v Huv | u | u w v Huw IHuw Hwv IHwv].
+    - right. apply t_step. exact Huv.
+    - left. reflexivity.
+    - destruct IHuw as [E1 | T1]; destruct IHwv as [E2 | T2].
+      + left. subst. reflexivity.
+      + right. subst. exact T2.
+      + right. subst. exact T1.
+      + right. eapply t_trans; eauto.
+  Qed.
+
+  (** No augmenting path runs "against" [L'] inside [S']: if [v] precedes [u]
+      in the linear order [L'] (both in [S']) and the augmentation is acyclic,
+      there is no [aug_step ... acc] path [u → v].  (Such a path plus the
+      [L']-edge [v → u] would be a 2-cycle.)  This constrains the [S']-internal
+      portion of every augmenting path — a structural ingredient for the
+      boundary-CP coverage argument. *)
+  Lemma aug_no_backward_S' :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+           (acc : list (A * A)) (u v : A) (hu : In A S' u) (hv : In A S' v),
+    aug_acyclic S' x' y' L' acc ->
+    u <> v ->
+    L' (exist _ v hv) (exist _ u hu) ->
+    ~ clos_refl_trans A (aug_step S' x' y' L' acc) u v.
+  Proof.
+    intros x' y' S' L' acc u v hu hv Hacyc Hneq HL' Hpath.
+    assert (Hct_uv : clos_trans A (aug_step S' x' y' L' acc) u v).
+    { destruct (rt_eq_or_t _ _ _ _ Hpath) as [E | T];
+        [ exfalso; apply Hneq; exact E | exact T ]. }
+    assert (Hct_vu : clos_trans A (aug_step S' x' y' L' acc) v u).
+    { apply t_step. unfold aug_step. right; left. exists hv, hu. exact HL'. }
+    exact (Hacyc u v Hneq Hct_uv Hct_vu).
+  Qed.
+
 
   (** ===================================================================
       Focused coverage sub-admit (Trotter Ch.6, EXTREMALITY-based).
