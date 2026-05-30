@@ -1890,7 +1890,8 @@ Section RemovablePairs.
     List.In (p, q) rest ->
     ~ List.In (p, q) (greedy_acyclic_subset S' x' y' L' acc rest) ->
     exists acc',
-      aug_acyclic S' x' y' L' acc'
+      (forall pq, List.In pq acc' -> List.In pq acc \/ List.In pq rest)
+      /\ aug_acyclic S' x' y' L' acc'
       /\ clos_refl_trans A (aug_step S' x' y' L' acc') p q.
   Proof.
     intros x' y' S' L'.
@@ -1905,17 +1906,32 @@ Section RemovablePairs.
           exfalso. apply Hnotout. apply greedy_subset_contains_acc.
           left. symmetry. exact Heq.
         * (* (p,q) is in tl; recurse with acc := hd :: acc *)
-          apply (IH (hd :: acc) p q Hyes); [| exact Hnotout].
-          destruct Hin as [Hhd | Htl]; [ exfalso; apply Hne; symmetry; exact Hhd | exact Htl ].
+          assert (Hintl : List.In (p, q) tl)
+            by (destruct Hin as [Hhd | Htl];
+                [ exfalso; apply Hne; symmetry; exact Hhd | exact Htl ]).
+          destruct (IH (hd :: acc) p q Hyes Hintl Hnotout)
+            as [acc' [Hincl [Hac' Hpath]]].
+          exists acc'. split; [| split; [ exact Hac' | exact Hpath ]].
+          intros pq Hpq. destruct (Hincl pq Hpq) as [Hin2 | Hin2].
+          -- destruct Hin2 as [Hhd2 | Hacc2];
+             [ right; left; exact Hhd2 | left; exact Hacc2 ].
+          -- right; right; exact Hin2.
       + (* hd rejected *)
         destruct (classic ((p, q) = hd)) as [Heq | Hne].
         * (* (p,q) = hd rejected here: acc is acyclic, (p,q)::acc is not *)
           subst hd.
-          exists acc. split; [ exact Hacc |].
-          apply (aug_cycle_implies_acc_path x' y' S' L' acc p q Hacc Hno).
+          exists acc. split; [| split; [ exact Hacc |]].
+          -- intros pq Hpq. left. exact Hpq.
+          -- apply (aug_cycle_implies_acc_path x' y' S' L' acc p q Hacc Hno).
         * (* (p,q) in tl; recurse with same acc *)
-          apply (IH acc p q Hacc); [| exact Hnotout].
-          destruct Hin as [Hhd | Htl]; [ exfalso; apply Hne; symmetry; exact Hhd | exact Htl ].
+          assert (Hintl : List.In (p, q) tl)
+            by (destruct Hin as [Hhd | Htl];
+                [ exfalso; apply Hne; symmetry; exact Hhd | exact Htl ]).
+          destruct (IH acc p q Hacc Hintl Hnotout)
+            as [acc' [Hincl [Hac' Hpath]]].
+          exists acc'. split; [| split; [ exact Hac' | exact Hpath ]].
+          intros pq Hpq. destruct (Hincl pq Hpq) as [Hin2 | Hin2];
+            [ left; exact Hin2 | right; right; exact Hin2 ].
   Qed.
 
 
@@ -1980,7 +1996,8 @@ Section RemovablePairs.
        List.In (p, q) boundary ->
        (forall L', In _ r' L' ->
           exists acc',
-            aug_acyclic S' x' y' L' acc'
+            (forall pq, List.In pq acc' -> List.In pq boundary)
+            /\ aug_acyclic S' x' y' L' acc'
             /\ clos_refl_trans A (aug_step S' x' y' L' acc') p q) ->
        False.
   Admitted.
@@ -2025,10 +2042,15 @@ Section RemovablePairs.
       IsLinearExtension
         (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L')
       by exact (realizer_linear Hr'_real L' HL'in).
-    apply (greedy_reject_path x' y' S' L' boundary nil p q).
-    - apply aug_acyclic_nil; [ exact Hcp | exact HS'_eq | exact HL'lin ].
-    - exact Hpq_in.
-    - intro Hin. apply Hno. exists L'. split; [ exact HL'in | exact Hin ].
+    assert (Hrej : ~ List.In (p, q)
+                       (greedy_acyclic_subset S' x' y' L' nil boundary)).
+    { intro Hin. apply Hno. exists L'. split; [ exact HL'in | exact Hin ]. }
+    destruct (greedy_reject_path x' y' S' L' boundary nil p q
+                (aug_acyclic_nil x' y' S' L' Hcp HS'_eq HL'lin) Hpq_in Hrej)
+      as [acc' [Hincl [Hac' Hpath]]].
+    exists acc'. split; [| split; [ exact Hac' | exact Hpath ]].
+    intros pq Hpq. destruct (Hincl pq Hpq) as [Hnil | Hbnd];
+      [ destruct Hnil | exact Hbnd ].
   Qed.
 
   Lemma trotter_per_L_acyclic_covering_family :
