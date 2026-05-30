@@ -462,6 +462,26 @@ formalization of the augmented-digraph cycle↔CP algebra + extremality argument
 Do NOT fabricate a relabeling admit. The achievable milestone (admit #1, the
 entire n=5 base case) is done and verified above.
 
+### Trotter admit — PROGRESSIVE REFINEMENT landed (2026-05-30)
+
+Piece 1 (greedy-rejection ⟹ path) is now fully Qed, and the admit was
+soundly refined (the greedy plumbing is no longer in the admit):
+- `aug_cycle_implies_acc_path` (Qed): generalizes `aug_cycle_implies_step3_path`
+  from singleton `[(p,q)]` to arbitrary already-acyclic accumulator `acc`
+  (cycle must use the new `q→p` edge ⟹ `aug_step ... acc` path `p→q`; no poset
+  hyps — acyclicity of `acc` replaces them).
+- `greedy_subset_contains_acc` + `greedy_reject_path` (Qed): a pair rejected by
+  the greedy walker is never re-accepted, so rejection ⟹ ∃ acyclic `acc'` (a
+  boundary subset) with an `aug_step ... acc'` path `p→q`.
+- `trotter_coverage_via_extremality` is now **Qed**, a reduction (via `NNPP`,
+  `realizer_linear`, `aug_acyclic_nil`, `greedy_reject_path`) to:
+- **`trotter_path_family_impossible`** (the SOLE remaining admit,
+  RemovablePairs.v:1986): for a boundary `(p,q)`, NOT every `L'∈r'` can admit an
+  acyclic `acc'` with an `aug_step ... acc'` path `p→q`. This statement no
+  longer mentions `greedy_acyclic_subset` — it is purely the augmented-digraph
+  path family + extremality. Remaining work = pieces 2 (path ⟹ refining CP, the
+  cycle↔CP algebra) + 3 (refining CP + boundary + extremality ⟹ False).
+
 ## (historical) Remaining admits: 4
 
 - `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, deep).
