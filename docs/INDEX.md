@@ -98,7 +98,12 @@
 | `incomparable_extension` | `Theorems.v` | incomparable elements can be ordered in some linear extension |
 | `dushnik_miller_exists` | `Theorems.v` | every poset has a realizer |
 | `subposet_dimension_le` | `Theorems.v` | dimension is monotone under sub-posets |
-| `hiraguchi_bound` | `RemovablePairs.v` | Hiraguchi's bound `dim ≤ ⌊n/2⌋` (n≥4). **⚠ Proof currently depends on the admit `non_antichain_removable_pair_exists`, which is the OPEN Removable Pair Conjecture (see below) — not yet an independent proof.** Planned fix: re-prove via Hiraguchi/Kimble's direct construction (no removable pairs). |
+| `hiraguchi_bound_direct` | `HiraguchiDirect.v` | **Hiraguchi's bound `dim ≤ ⌊n/2⌋` (n≥4), SOUND proof.** Via `dimension_le_width` + `antichain_complement_dim_bound` (Trotter 1975 Thm 2) + `hiraguchi_combine`, using `width_exists`. `Print Assumptions` = standard classical axioms + the single base-case admit `small_complement_le_2` (Trotter Lemma 3). **No dependence on the Removable Pair Conjecture.** |
+| `one_point_removal` | `OnePointRemoval.v` | `dim X ≤ 1 + dim(X−p)` (Trotter 1975 ineq. 1), Qed |
+| `antichain_complement_dim_bound` | `AntichainComplement.v` | `dim P ≤ max{2,|P−A|}` for antichain A (Trotter 1975 Thm 2); Qed modulo `small_complement_le_2` |
+| `width_exists` | `WidthExists.v` | every finite nonempty poset has a maximum antichain (Width), Qed |
+| `hiraguchi_bound` | `RemovablePairs.v` | same statement, **older proof — depends on `non_antichain_removable_pair_exists` (the OPEN Removable Pair Conjecture).** Superseded by `hiraguchi_bound_direct`; the dependency on the conjecture is the reason to prefer the direct proof. |
+| `small_complement_le_2` | `AntichainComplement.v` | **(admit, TRUE)** antichain + ≤2 points ⟹ dim ≤ 2 (Trotter Lemma 3 finite analysis). The sole remaining gap in the sound Hiraguchi proof. |
 
 #### Open problems / conjectures (`posets/dimension/RemovablePairs.v`)
 

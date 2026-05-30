@@ -720,3 +720,20 @@ Proven this session (all Qed, no admits in their own logic): hiraguchi_combine,
 one_point_removal (+ lift_low/high/keep, coverage facts), cardinal_setminus,
 dim_ge_1_of_two, card_inhabited, card_ge_2_distinct,
 antichain_complement_dim_bound (induction), subtype_remove_data.
+
+## hiraguchi_bound_direct PROVEN — SOUND, off the open conjecture (2026-05-30)
+
+Commits b27a0b2 (width_exists), 5d76f70 (HiraguchiDirect). `HiraguchiDirect.v`:
+`hiraguchi_bound_direct : cardinal Full n -> n>=4 -> PosetDimension R d -> d<=n/2`.
+Qed. `Print Assumptions` = standard classical axioms + the SINGLE admit
+`small_complement_le_2` (Trotter Lemma 3). **No dependence on the Removable
+Pair Conjecture / removable_pair_exists.**
+
+THE ENTIRE SOUND HIRAGUCHI PROOF NOW RESTS ON ONE ADMIT:
+- `small_complement_le_2` : antichain + <=2 points ⟹ dim <= 2 (finite case
+  analysis; cannot use one_point_removal as it adds 1). Trotter Figure 1.
+
+Cleanup TODO (non-blocking): `AntichainDimBound.dim_le_antichain_complement`
+admit is superseded by `antichain_complement_dim_bound` — remove. The older
+`RemovablePairs.hiraguchi_bound` (open-conjecture-based) can be redirected to
+`hiraguchi_bound_direct` or deprecated. INDEX.md updated.
