@@ -676,3 +676,25 @@ REMAINING for hiraguchi_bound (all build on the above, well-scoped):
 3. Rewire `hiraguchi_bound`: dimension_le_width (w) + dim_le_antichain_complement
    (max{2,n-w}) + hiraguchi_combine => dim<=n/2; drop removable_pair_exists.
 4. Print Assumptions check.
+
+## Step 2 DONE — antichain-complement induction proven (2026-05-30, cont.)
+
+`AntichainComplement.v` (commits 09d1aa6, 271f955), all building:
+- `cardinal_setminus` (Qed): |Full−Sub| = |Full|−|Sub|.
+- `dim_ge_1_of_two` (Qed): ≥2 elements ⟹ dim ≥ 1.
+- `card_inhabited`, `card_ge_2_distinct` (Qed).
+- **`antichain_complement_dim_bound` (Qed)**: dim P ≤ max{2,|P−A|} for antichain A.
+  Polymorphic strong induction on m=|P−A| via `one_point_removal` + IH +
+  `dushnik_miller_exists`. The induction LOGIC is fully verified.
+
+Whole Hiraguchi proof now reduces to TWO true, bounded admits + final rewire:
+1. `small_complement_le_2` — base case m≤2 ⟹ dim≤2 (Trotter Lemma 3 finite
+   analysis + antichain dim≤2). TRUE.
+2. `subtype_remove_data` — subtype {a|a<>p} is a finite poset, Ach stays an
+   antichain, complement has m−1 elements. TRUE, mechanical subtype/cardinal
+   bookkeeping (cardinal_subtype_full + cardinal_setminus + injective-image).
+
+STEP 3 (remaining): rewire `hiraguchi_bound` = `dimension_le_width` (needs Width
+existence for finite posets) + `antichain_complement_dim_bound` (on a maximum
+antichain, |P−A| = n−w) + `hiraguchi_combine`; drop `removable_pair_exists`.
+Then Print Assumptions.
