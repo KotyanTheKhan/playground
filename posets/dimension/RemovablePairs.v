@@ -1934,6 +1934,88 @@ Section RemovablePairs.
             [ left; exact Hin2 | right; right; exact Hin2 ].
   Qed.
 
+  (** [aug_step ... nil] (= the poset [step3 = R ∪ L' ∪ {x'→y'}]) embeds into
+      any [aug_step ... acc]. *)
+  Lemma aug_step_nil_mono :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+           (acc : list (A * A)) u v,
+    aug_step S' x' y' L' nil u v -> aug_step S' x' y' L' acc u v.
+  Proof. intros x' y' S' L' acc u v Hs. unfold aug_step in *. simpl in *. tauto. Qed.
+
+  Lemma aug_rt_nil_mono :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+           (acc : list (A * A)) p q,
+    clos_refl_trans A (aug_step S' x' y' L' nil) p q ->
+    clos_refl_trans A (aug_step S' x' y' L' acc) p q.
+  Proof.
+    intros x' y' S' L' acc p q Hrt. induction Hrt.
+    - apply rt_step. apply aug_step_nil_mono; assumption.
+    - apply rt_refl.
+    - eapply rt_trans; eauto.
+  Qed.
+
+  (** A reversed boundary edge: [(c,d) ∈ acc] gives the [aug_step] edge [d → c]. *)
+  Lemma aug_step_rev_edge :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+           (acc : list (A * A)) c d,
+    List.In (c, d) acc -> aug_step S' x' y' L' acc d c.
+  Proof.
+    intros x' y' S' L' acc c d Hin. unfold aug_step.
+    right. right. right. exact Hin.
+  Qed.
+
+  (** Structural decomposition (piece 2 toward [trotter_path_family_impossible]):
+      an [aug_step ... acc] path [p → q] either avoids every reversed-boundary
+      edge — and is then a pure [step3 = aug_step ... nil] path — or it threads
+      through the last such edge [d → c] (for some [(c,d) ∈ acc]), splitting as
+      an [aug_step ... acc] path [p → d] followed by a pure [step3] path
+      [c → q].  This isolates the role of the reversed boundary critical pairs
+      in any augmenting path. *)
+  Lemma aug_path_step3_or_via_acc :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+           (acc : list (A * A)) (p q : A),
+    clos_refl_trans A (aug_step S' x' y' L' acc) p q ->
+    clos_refl_trans A (aug_step S' x' y' L' nil) p q
+    \/ (exists c d, List.In (c, d) acc
+          /\ clos_refl_trans A (aug_step S' x' y' L' acc) p d
+          /\ clos_refl_trans A (aug_step S' x' y' L' nil) c q).
+  Proof.
+    intros x' y' S' L' acc p q Hrt.
+    induction Hrt as [u v Huv | u | u w v Huw IHuw Hwv IHwv].
+    - (* single step *)
+      unfold aug_step in Huv.
+      destruct Huv as [HR | [HL | [Hxy | HIn]]].
+      + left. apply rt_step. left. exact HR.
+      + left. apply rt_step. right; left. exact HL.
+      + left. apply rt_step. right; right; left. exact Hxy.
+      + (* reversed edge: (v,u) ∈ acc, i.e. edge u→v with (v,u)∈acc *)
+        right. exists v, u. split; [ exact HIn |].
+        split; [ apply rt_refl | apply rt_refl ].
+    - (* refl *)
+      left. apply rt_refl.
+    - (* trans u → w → v *)
+      destruct IHuw as [Huw3 | [c0 [d0 [Hin0 [Hpd0 Hc0w]]]]];
+      destruct IHwv as [Hwv3 | [c1 [d1 [Hin1 [Hwd1 Hc1v]]]]].
+      + left. eapply rt_trans; eauto.
+      + (* u→w pure step3, w→v via (c1,d1) *)
+        right. exists c1, d1. split; [ exact Hin1 |]. split; [| exact Hc1v ].
+        eapply rt_trans; [ apply aug_rt_nil_mono; exact Huw3 | exact Hwd1 ].
+      + (* u→w via (c0,d0), w→v pure step3 *)
+        right. exists c0, d0. split; [ exact Hin0 |]. split; [ exact Hpd0 |].
+        eapply rt_trans; [ exact Hc0w | exact Hwv3 ].
+      + (* both via — keep the LAST edge (c1,d1) *)
+        right. exists c1, d1. split; [ exact Hin1 |]. split; [| exact Hc1v ].
+        (* aug path u → d1 :  u →* d0 →(rev) c0 →* w →* d1 *)
+        eapply rt_trans; [ exact Hpd0 |].
+        eapply rt_trans;
+          [ apply rt_step; apply (aug_step_rev_edge x' y' S' L' acc c0 d0 Hin0) |].
+        eapply rt_trans; [ apply aug_rt_nil_mono; exact Hc0w | exact Hwd1 ].
+  Qed.
+
 
   (** ===================================================================
       Focused coverage sub-admit (Trotter Ch.6, EXTREMALITY-based).
