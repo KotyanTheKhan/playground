@@ -1948,6 +1948,47 @@ Section RemovablePairs.
 
       STATUS:  Admitted as a known true mathematical statement,
       following Trotter (1992, Ch.6, Thm 6.1).  *)
+  (** REFINED deep core (pieces 2+3 of the Trotter coverage argument).
+      For a boundary critical pair [(p,q)], it is impossible that EVERY
+      [L' ∈ r'] admits an acyclic accumulator [acc'] with an
+      [aug_step ... acc'] path [p → q].  Mathematically: such a path is a
+      critical pair refining [(p,q)] (Trotter's cycle↔CP algebra), and
+      extremality of [(x',y')] together with the boundary endpoint-sharing
+      condition eliminates the resulting refinement chain.  This is the
+      genuine remaining mathematical content; the greedy/rejection→path
+      reduction (piece 1) is now Qed via [greedy_reject_path]. *)
+  Lemma trotter_path_family_impossible :
+    forall (x' y' : A) (S' : Ensemble A)
+           (r' : Ensemble ({a : A | In A S' a} ->
+                            {a : A | In A S' a} -> Prop))
+           (L_extra : A -> A -> Prop)
+           (boundary : list (A * A)),
+    IsExtremalCP R x' y' ->
+    S' = Setminus A (Setminus A (Full_set A) (Singleton A x')) (Singleton A y') ->
+    Finite A (Full_set A) ->
+    IsRealizer (fun (a b : {a : A | In A S' a}) =>
+                   R (proj1_sig a) (proj1_sig b)) r' ->
+    IsLinearExtension R L_extra ->
+    L_extra y' x' ->
+    List.Forall (fun pq : A * A =>
+       IsCriticalPair R (fst pq) (snd pq) /\
+       (fst pq = x' \/ fst pq = y' \/ snd pq = x' \/ snd pq = y') /\
+       (fst pq, snd pq) <> (x', y') /\
+       (fst pq, snd pq) <> (y', x') /\
+       ~ L_extra (snd pq) (fst pq)) boundary ->
+    forall p q : A,
+       List.In (p, q) boundary ->
+       (forall L', In _ r' L' ->
+          exists acc',
+            aug_acyclic S' x' y' L' acc'
+            /\ clos_refl_trans A (aug_step S' x' y' L' acc') p q) ->
+       False.
+  Admitted.
+
+  (** The coverage lemma is now a Qed REDUCTION to the deep core above:
+      if some boundary [(p,q)] were rejected by every [L'∈r'], then (each
+      [L'∈r'] being a linear extension, via the realizer) [greedy_reject_path]
+      hands the deep core exactly the per-[L'] path family it rules out. *)
   Lemma trotter_coverage_via_extremality :
     forall (x' y' : A) (S' : Ensemble A)
            (r' : Ensemble ({a : A | In A S' a} ->
@@ -1972,7 +2013,23 @@ Section RemovablePairs.
        exists L', In _ r' L'
                   /\ List.In (p, q)
                        (greedy_acyclic_subset S' x' y' L' nil boundary).
-  Admitted.
+  Proof.
+    intros x' y' S' r' L_extra boundary
+           Hext HS'_eq HfinA Hr'_real HL_extra_lin HL_extra_yx Hbnd_forall p q Hpq_in.
+    pose proof (proj1 Hext) as Hcp.
+    apply NNPP. intro Hno.
+    apply (trotter_path_family_impossible x' y' S' r' L_extra boundary
+             Hext HS'_eq HfinA Hr'_real HL_extra_lin HL_extra_yx Hbnd_forall p q Hpq_in).
+    intros L' HL'in.
+    assert (HL'lin :
+      IsLinearExtension
+        (fun a b : {a : A | In A S' a} => R (proj1_sig a) (proj1_sig b)) L')
+      by exact (realizer_linear Hr'_real L' HL'in).
+    apply (greedy_reject_path x' y' S' L' boundary nil p q).
+    - apply aug_acyclic_nil; [ exact Hcp | exact HS'_eq | exact HL'lin ].
+    - exact Hpq_in.
+    - intro Hin. apply Hno. exists L'. split; [ exact HL'in | exact Hin ].
+  Qed.
 
   Lemma trotter_per_L_acyclic_covering_family :
     forall (x' y' : A) (S' : Ensemble A)
