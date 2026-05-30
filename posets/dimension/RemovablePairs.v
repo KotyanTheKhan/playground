@@ -2087,6 +2087,43 @@ Section RemovablePairs.
       apply (critical_incomparable Hxw). left. exact (critical_up Hxy w Hs).
   Qed.
 
+  (** A transitive path ends with a last edge. *)
+  Lemma clos_trans_last :
+    forall (X : Type) (Rel : X -> X -> Prop) (u v : X),
+    clos_trans X Rel u v ->
+    exists w, Rel w v /\ (u = w \/ clos_trans X Rel u w).
+  Proof.
+    intros X Rel u v Hct.
+    induction Hct as [u v Huv | u m v Hum IHum Hmv IHmv].
+    - exists u. split; [ exact Huv | left; reflexivity ].
+    - destruct IHmv as [w [Hwv Hmw]]. exists w. split; [ exact Hwv |].
+      right. destruct Hmw as [Em | Tm]; [ subst m; exact Hum | eapply t_trans; eauto ].
+  Qed.
+
+  (** Step 2 (structural).  A path arriving at a vertex [v ∉ S'] does so via a
+      last edge that is NOT an [L']-edge (those live in [S']): it is an [R]-edge,
+      the forced [x'→y'] edge, or a reversed boundary edge into [v]. *)
+  Lemma aug_path_into_notS' :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+           (acc : list (A * A)) (u v : A),
+    ~ In A S' v ->
+    clos_trans A (aug_step S' x' y' L' acc) u v ->
+    exists w,
+      (R w v \/ (w = x' /\ v = y') \/ List.In (v, w) acc)
+      /\ (u = w \/ clos_trans A (aug_step S' x' y' L' acc) u w).
+  Proof.
+    intros x' y' S' L' acc u v HvnS Hct.
+    destruct (clos_trans_last _ _ _ _ Hct) as [w [Hedge Hreach]].
+    exists w. split; [| exact Hreach ].
+    unfold aug_step in Hedge.
+    destruct Hedge as [HR | [HL | [Hxy | HIn]]].
+    - left; exact HR.
+    - exfalso. destruct HL as [ha [hb _]]. apply HvnS. exact hb.
+    - right; left; exact Hxy.
+    - right; right; exact HIn.
+  Qed.
+
 
   (** ===================================================================
       Focused coverage sub-admit (Trotter Ch.6, EXTREMALITY-based).
