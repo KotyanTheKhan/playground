@@ -591,3 +591,36 @@ Extensionality_Ensembles). No false step remains.
   case of Hiraguchi's removable-pair theorem (classical, true; deep). This is
   now the SOLE dimension admit. Admit #1 (the entire n=5 base, counts 1–9) is
   closed and admit-free.
+
+## DEAD END IDENTIFIED + correct path found (2026-05-30, cont.)
+
+**The remaining admit is the OPEN Removable Pair Conjecture.**
+`non_antichain_removable_pair_exists` (= ∃ removable pair for n≥4 non-antichain
+non-chain) is exactly the Removable Pair Conjecture (Bogart–Trotter 1971), which
+is OPEN for integer dimension (West's open-problems list). It CANNOT be proven;
+`hiraguchi_helper`'s removable-pair induction is a dead end. (Confirmed: n=3 is
+trivially removable, so existence ∀ n≥4 would settle the |P|≥3 conjecture.)
+
+**(B) done (commit 0071a56):** `RemovablePairConjecture` formulated as an
+unasserted `Prop` + docs/INDEX.md "Open problems" note; admit re-documented as
+OPEN; memory updated. Nothing depends on the conjecture statement.
+
+**(A) path found (commit pending):** Hiraguchi `dim ≤ ⌊n/2⌋` is a THEOREM proven
+INDEPENDENTLY of the conjecture (Hiraguchi/Kimble/Trotter). The "modern proof"
+(Trotter survey Thm 5.2) = two lemmas:
+- **Lemma 5.4** `dim ≤ width` — ✅ ALREADY in repo (`dimension_le_width`, Qed).
+- **Lemma 5.6** `dim ≤ max{2,|P−A|}` for a maximal antichain `A` — the SOLE new
+  content (Kimble [33], Trotter [46]).
+Combination is airtight arithmetic. Plan: `docs/superpowers/plans/2026-05-30-
+hiraguchi-direct-proof.md`. Reference PDF: `docs/references/trotter-149-*.pdf`.
+
+**GATING next step (Task 0):** pin down Lemma 5.6's realizer construction
+("split all points of `P−A`", needs the tight `max{2,n}`; iterating one-point
+removal `dim ≤ dim(P−x)+1` gives `n+2`, OFF BY ONE) from Trotter [46]/Kimble [33]
+or reconstruct + verify on `S_k`, BEFORE writing Coq. Then formalize 5.6, wire
+`hiraguchi_bound` to `dim≤width + 5.6`, drop the conjecture dependency.
+
+## Remaining admits: 1 (OPEN conjecture — to be made unused, not closed)
+- `non_antichain_removable_pair_exists` = Removable Pair Conjecture (OPEN).
+  Target: make `hiraguchi_bound` independent of it via the Lemma 5.6 route, then
+  it becomes the standalone documented `RemovablePairConjecture`.
