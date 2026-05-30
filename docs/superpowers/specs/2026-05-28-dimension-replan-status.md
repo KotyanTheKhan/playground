@@ -339,3 +339,49 @@ correct orientation is ever found.
 **Next (plan S2):** spike `EdgeCount9` (k=9, <=1 incomparable pair, fewest iso
 classes) to validate a technique that scales to counts 5-9, since the
 `EdgeCount4` reflection template does not.
+
+## Count-8 EXHAUSTIVENESS closed — dual wall broken (2026-05-30)
+
+The "dual wall" (above) was about reflecting a *realizer search/orientation*
+over the enumeration. This session sidestepped BOTH walls by reflecting only
+*pattern membership* (no orientation algorithm, no per-item search):
+
+- **Enumeration wall → constrained `enum_k_none`.** Instead of 3^10 = 59049 or
+  C(25,8)=1.08M, enumerate length-10 option-bool lists with exactly 2 `None`s
+  directly: `count8_assigns := enum_k_none 10 2` = 11520 (EdgeCount4-scale).
+  Committed earlier: `coverage_8 : forallb chk8 count8_assigns = true` (5 chunks
+  `N5Reflect8_ex{0..4}.v`, `native_cast_no_check`, glued in
+  `N5Reflect8_Exhaustive.v`), where `chk8 a = is_poset_b (mat_of a)` implies one
+  of 6 patterns `any_pattern_8_b`.
+- **∀-M bridge (this session, all Qed):**
+  - `N5Reflect8_Exhaustive.v` — `enum_k_none_complete`: every length-n, k-None
+    list is enumerated by `enum_k_none n k`.
+  - `N5Reflect8_Bridge.v` — `M_assign M` (canonical orientation of the 10
+    pairs), `mat_of_M_assign : is_poset_b M -> mat_of (M_assign M) i j = M i j`
+    (reconstruction, via `in_assign_edges_M_assign` + `pairs10_cover`/`_neq` +
+    `in_combine_map_self`). Foundational: `poset_refl`, `poset_antisym_b`,
+    `fin5` destruct tactic.
+  - `N5Reflect8_Count.v` — `num_none_M_assign : is_poset_b M -> edge_count_b M=8
+    -> num_none (M_assign M) = 2` (via `edge_count_pairs10` [all_pairs sum =
+    pairs10 paired sum, `cbn`+`ring`], `num_none_pairs10`, `pair_sum_1`
+    [per-pair antisym], `fold_combine`/`fold_add_eq`).
+  - **`exhaustive_8edge : forall M, is_poset_b M = true -> edge_count_b M = 8 ->
+    any_pattern_8_b M = true`** (Qed). Every 8-edge poset matches one of the 6
+    count-8 iso-class patterns. Commits on branch `dimension_finish`.
+
+This is the M5-level theorem. Whole project green via `@check` (vos).
+
+**Remaining to close `EdgeCount8.v` admit #1-residual (NOT yet done):**
+1. Transport `edge_count_5 R2 a b c d e = 8` (abstract B) → `R2_matrix` with
+   `is_poset_b R2_matrix = true` and `edge_count_b R2_matrix = 8` (reuse
+   `N5Transport.v`'s `R2_matrix_is_poset` / `_edge_count_eq`).
+2. Apply `exhaustive_8edge` → one of `is_c8_{1..6}_b R2_matrix = true`.
+3. 6 `is_c8_k_b_to_exists` iff lemmas (N5Iff template) → abstract pattern shape.
+4. 6 explicit 2-realizer constructions per pattern (each a concrete 8-edge poset
+   on f0..f4; give two literal total orders, verify via
+   `two_realizer_from_fin_ranks` / `n5_two_realizer_framework`).
+   The count-9 twin-rank does NOT directly apply (2 incomparable pairs), but each
+   fixed pattern's realizer is a finite explicit check.
+Then counts 5/6/7 replicate with `enum_k_none 10 {5,4,3}` + their iso-classes.
+
+## Admit count: still 5 (M5-level exhaustiveness landed; abstract wiring pending)
