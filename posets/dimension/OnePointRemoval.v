@@ -13,10 +13,11 @@
     (zone, L): zone ∈ {0,1,2} splits B into  Down(p) | {p} | rest  (for
     [lift_low]) and ties broken by the lifted suborder [Llift L]. *)
 
-From Stdlib Require Import Ensembles Finite_sets Arith Lia.
-From Stdlib Require Import Classical ClassicalDescription ProofIrrelevance.
+From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts Image Arith Lia.
+From Stdlib Require Import Classical ClassicalDescription IndefiniteDescription ProofIrrelevance.
+From Stdlib Require Import Constructive_sets.
 From Posets Require Import PosetClasses.
-From Dimension Require Import DimDefs Szpilrajn.
+From Dimension Require Import DimDefs Szpilrajn Theorems.
 
 Section OnePointRemoval.
   Context {B : Type}.
@@ -530,4 +531,126 @@ Section OnePointRemoval.
     Qed.
 
   End WithL.
+
+  (** ---- Assembly: dim R ≤ 1 + dim(X − p) ---- *)
+
+  (** Adding one element increases cardinality by at most 1. *)
+  Lemma card_add_le :
+    forall (U : Type) (T : Ensemble U) (x : U) (n : nat),
+      cardinal U T n -> exists m, cardinal U (Add U T x) m /\ m <= S n.
+  Proof.
+    intros U T x n Hn. destruct (classic (In U T x)) as [Hin | Hnin].
+    - exists n. split; [| lia].
+      replace (Add U T x) with T; [ exact Hn |].
+      apply Extensionality_Ensembles. split; intros y Hy.
+      + left; exact Hy.
+      + destruct Hy as [y Hy | y Hy]; [ exact Hy | destruct Hy; exact Hin ].
+    - exists (S n). split; [ apply card_add; assumption | lia ].
+  Qed.
+
+  (** Choice function: a fixed [lift_keep] for each linear extension. *)
+  Definition keepf (L : Sub -> Sub -> Prop) : B -> B -> Prop :=
+    match excluded_middle_informative (IsLinearExtension Qsub L) with
+    | left HL => proj1_sig (constructive_indefinite_description _ (lift_keep_exists L HL))
+    | right _ => (fun _ _ => True)
+    end.
+
+  Lemma keepf_spec :
+    forall L, IsLinearExtension Qsub L ->
+      IsLinearExtension R (keepf L) /\
+      (forall a b, a <> p -> b <> p -> (keepf L a b <-> Llift L a b)).
+  Proof.
+    intros L HL. unfold keepf.
+    destruct (excluded_middle_informative (IsLinearExtension Qsub L)) as [HL' | Hno];
+      [| exfalso; exact (Hno HL)].
+    exact (proj2_sig (constructive_indefinite_description _ (lift_keep_exists L HL'))).
+  Qed.
+
+  Theorem one_point_removal :
+    forall d d' : nat,
+      1 <= d' ->
+      PosetDimension R d ->
+      @PosetDimension Sub Qsub d' ->
+      d <= d' + 1.
+  Proof.
+    intros d d' Hd1 HdB HdSub.
+    pose proof (dimension_is_realizer HdSub) as HrQ.
+    pose proof (dimension_cardinality HdSub) as HrQcard.
+    set (rQ := dimension_realizer HdSub) in *.
+    (* rQ nonempty: cardinal rQ d' with d' = S (d'-1) *)
+    assert (Hd'eq : d' = S (d' - 1)) by lia.
+    rewrite Hd'eq in HrQcard.
+    destruct (cardinal_invert _ rQ _ HrQcard) as [A' [Ld [HrQ_eq [HLd_nin HA'card]]]].
+    assert (HLd_in : In _ rQ Ld) by (rewrite HrQ_eq; apply Add_intro2).
+    pose proof (realizer_linear HrQ Ld HLd_in) as HLd_lin.
+    (* the assembled realizer of R *)
+    set (rB := Add _ (Add _ (Im _ _ A' keepf) (lift_low Ld)) (lift_high Ld)).
+    (* membership helpers *)
+    assert (Hlow_in : In _ rB (lift_low Ld)) by (left; apply Add_intro2).
+    assert (Hhigh_in : In _ rB (lift_high Ld)) by (apply Add_intro2).
+    assert (Hkeep_in : forall L, In _ A' L -> In _ rB (keepf L)).
+    { intros L HL'. left; left. exists L; [ exact HL' | reflexivity ]. }
+    (* every member of A' is a linear extension of Qsub *)
+    assert (HA'_lin : forall L, In _ A' L -> IsLinearExtension Qsub L).
+    { intros L HL'. apply (realizer_linear HrQ). rewrite HrQ_eq. left; exact HL'. }
+    (* IsRealizer R rB *)
+    assert (HrB_real : IsRealizer R rB).
+    { constructor.
+      - (* every member is a linear extension of R *)
+        intros M HM. apply Add_inv in HM. destruct HM as [HM | HMeq2].
+        + apply Add_inv in HM. destruct HM as [HMim | HMeq1].
+          * destruct HMim as [L HL' M0 HMeq]. subst M0.
+            exact (proj1 (keepf_spec L (HA'_lin L HL'))).
+          * subst M. exact (lift_low_is_linext Ld HLd_lin).
+        + subst M. exact (lift_high_is_linext Ld HLd_lin).
+      - intros a b. split.
+        + (* R a b -> every member holds *)
+          intros Hab M HM. apply Add_inv in HM. destruct HM as [HM | HMeq2].
+          * apply Add_inv in HM. destruct HM as [HMim | HMeq1].
+            -- destruct HMim as [L HL' M0 HMeq]. subst M0.
+               exact (linear_extends (proj1 (keepf_spec L (HA'_lin L HL'))) _ _ Hab).
+            -- subst M. exact (lift_low_extends Ld HLd_lin a b Hab).
+          * subst M. exact (lift_high_extends Ld HLd_lin a b Hab).
+        + (* coverage: all members hold -> R a b *)
+          intro Hall. apply NNPP. intro Hnab.
+          destruct (classic (a = p)) as [-> | Ha].
+          * (* a = p, b <> p (else R p p) *)
+            assert (Hb : b <> p) by (intro Hbp; subst b; apply Hnab; apply (poset_refl (R := R))).
+            assert (Hnpb : ~ R p b) by exact Hnab.
+            exact (lift_high_rev_pb Ld b Hb Hnpb (Hall _ Hhigh_in)).
+          * destruct (classic (b = p)) as [-> | Hb].
+            -- assert (Hnap : ~ R a p) by exact Hnab.
+               exact (lift_low_rev_ap Ld a Ha Hnap (Hall _ Hlow_in)).
+            -- (* a,b <> p: use rQ realizer to find a reversing L *)
+               assert (HnQ : ~ (forall L, In _ rQ L ->
+                                  L (exist _ a Ha) (exist _ b Hb))).
+               { intro Hq. apply Hnab.
+                 exact (proj2 (realizer_intersection HrQ (exist _ a Ha) (exist _ b Hb)) Hq). }
+               apply not_all_ex_not in HnQ. destruct HnQ as [L HnL].
+               apply imply_to_and in HnL. destruct HnL as [HL_in HnLab].
+               assert (HnLlift : ~ Llift L a b).
+               { intros [ha [hb HLl]]. apply HnLab.
+                 rewrite (proof_irrelevance _ Ha ha), (proof_irrelevance _ Hb hb). exact HLl. }
+               destruct (classic (L = Ld)) as [-> | HLneq].
+               ++ destruct (lift_low_high_rev_SS Ld HLd_lin a b Ha Hb HnLlift) as [Hlo | Hhi].
+                  ** exact (Hlo (Hall _ Hlow_in)).
+                  ** exact (Hhi (Hall _ Hhigh_in)).
+               ++ (* L in A' (= rQ minus Ld); use keepf L *)
+                  assert (HL_A' : In _ A' L).
+                  { rewrite HrQ_eq in HL_in. destruct HL_in as [L HL' | L HLs];
+                      [ exact HL' | destruct HLs; exfalso; apply HLneq; reflexivity ]. }
+                  pose proof (proj2 (keepf_spec L (HA'_lin L HL_A')) a b Ha Hb) as Hiff.
+                  apply HnLlift. apply Hiff. exact (Hall _ (Hkeep_in L HL_A')). }
+    (* cardinality of rB ≤ d' - 1 + 2 = d' + 1 *)
+    destruct (cardinal_Im_le_local _ _ A' keepf _ HA'card)
+      as [k [HImcard Hk_le]].
+    destruct (card_add_le _ (Im _ _ A' keepf) (lift_low Ld) _ HImcard)
+      as [k1 [Hk1card Hk1_le]].
+    destruct (card_add_le _ (Add _ (Im _ _ A' keepf) (lift_low Ld)) (lift_high Ld) _ Hk1card)
+      as [k2 [Hk2card Hk2_le]].
+    assert (Hk2_bound : k2 <= d' + 1) by lia.
+    apply (Nat.le_trans d k2 (d' + 1)); [| exact Hk2_bound].
+    exact (dimension_is_minimum HdB rB k2 HrB_real Hk2card).
+  Qed.
+
 End OnePointRemoval.
