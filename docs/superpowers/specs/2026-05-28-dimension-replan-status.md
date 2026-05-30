@@ -384,4 +384,45 @@ This is the M5-level theorem. Whole project green via `@check` (vos).
    fixed pattern's realizer is a finite explicit check.
 Then counts 5/6/7 replicate with `enum_k_none 10 {5,4,3}` + their iso-classes.
 
-## Admit count: still 5 (M5-level exhaustiveness landed; abstract wiring pending)
+## Count-8 CLOSED end-to-end — admit 5 → 4 (2026-05-30)
+
+`n5_edge_count_8_two_realizer` (EdgeCount8.v) is now **Qed**; the whole project
+is green (`@check`). The full abstract wiring landed this session:
+
+- `EdgeCount8_cover.v` — `five_distinct_cover` (5 distinct elts in a cardinal-5
+  carrier exhaust it; reusable pigeonhole via `carrier_5_destructure`).
+- `EdgeCount8_eccov.v` — `edge_count_5_cover_invariant` (permutation invariance
+  of `edge_count_5`; 5^5, proved once). This is what lets each closure be a
+  light **25-case** `(x,y)` enumeration instead of a 5^7 blow-up — the first
+  attempt at a K32mm-style 5^7 closure timed out at 540s; the invariance lemma
+  fixed it.
+- `EdgeCount8_c1.v` .. `EdgeCount8_c6.v` — the 6 per-pattern handlers. Each:
+  light closure (edge_count=8 over p..t ⟹ a 9th strict edge gives 9 distinct
+  indicators = 1 in a sum of 20 = 8, contradiction) + explicit L1/L2 rank
+  vectors fed to `n5_two_realizer_framework` (via `five_distinct_cover` for the
+  cover). The count-9 twin-rank does NOT apply (2 incomparable pairs); explicit
+  ranks per pattern were computed by hand and verified.
+- `N5Iff.v` — 6 `is_c8_k_b_to_exists` lifting lemmas (8-edge analogue of the
+  count-4 ones). NB: `apply strict_b_R2_matrix_iff in H1..H8` spawns 88 section
+  side goals (`a<>b` etc.) closed by a final `all: assumption`; the Ltac form
+  fails because `;`-chaining sprays `exists` onto the side goals — use `only 1:`
+  or inline.
+- `EdgeCount8.v` — dispatcher: 6 `classic` shape tests → per-pattern handler;
+  residual closed by `exhaustive_8edge` on `R2_matrix` (count transported via
+  `R2_matrix_edge_count_eq`) + the iff lemmas contradicting the refutations.
+
+## Remaining admits: 4
+
+- `RemovablePairs.v:1834` — `trotter_coverage_via_extremality` (admit #2, deep).
+- `N5Exhaustive/EdgeCount{5,6,7}.v:36` — counts 5/6/7 of the n=5 base (admit #1).
+
+**Counts 5/6/7 — replicate the count-8 pipeline.** Each needs: (0) extract the
+iso-class canonical shapes for that edge count (count-8's 6 shapes were
+pre-extracted in N5Reflect8.v; counts 5/6/7 shape lists are NOT yet computed —
+this is the prerequisite, more classes per count: 5 has 5 incomparable pairs,
+6 has 4, 7 has 3); (1) `enum_k_none 10 {5,4,3}` + chunked `native_cast`
+coverage; (2) `exhaustive_{5,6,7}edge` via the SAME `M_assign`/
+`mat_of_M_assign`/`*_pairs10`/`edge_count_5_cover_invariant`/`five_distinct_cover`
+apparatus (all reusable); (3) per-pattern handlers (explicit ranks); (4) iff
+lemmas; (5) dispatcher. The reusable helpers (`five_distinct_cover`,
+`edge_count_5_cover_invariant`, the count/bridge lemmas) already exist.
