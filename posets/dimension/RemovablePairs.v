@@ -2214,39 +2214,37 @@ Section RemovablePairs.
     (exists a b : A, R a b /\ a <> b) ->
     (exists a b, Incomparable R a b) ->
     exists x y, IsRemovablePair x y.
-  (** SOUNDNESS NOTE (2026-05-30).  This lemma is the non-antichain case
-      of Hiraguchi's removable-pair theorem:
+  (** ==================================================================
+      OPEN PROBLEM (2026-05-30).  This lemma is the n >= 4, non-antichain
+      instance of the REMOVABLE PAIR CONJECTURE (Bogart–Trotter, 1971):
 
-        every finite poset on n >= 4 elements that is not an antichain
-        has a pair (x, y) with  x <> y  and  dim(R) <= dim(R - {x,y}) + 1
-        (this is exactly [IsRemovablePair x y]).
+        every finite poset on n >= 4 elements that is not a chain or an
+        antichain has a pair (x, y) with x <> y and
+        dim(R) <= dim(R - {x,y}) + 1   (exactly [IsRemovablePair x y]).
 
-      The statement is TRUE — it is the classical removable-pair lemma
-      (Hiraguchi 1955; Trotter, "Combinatorics and Partially Ordered
-      Sets", Ch.6).  It is admitted here as the single genuine deep
-      mathematical input on the path to [hiraguchi_bound].
+      This is NOT a proven theorem — it is OPEN for ordinary (integer)
+      dimension.  (n = 3 is trivially removable, so existence for all
+      n >= 4 would settle the |P| >= 3 conjecture; since that is open,
+      this is open too.)  See the standalone statement
+      [removable_pair_conjecture] and docs/INDEX.md.  Sources:
+        - West, "Removable Pair Conjecture",
+          faculty.math.illinois.edu/~west/openp/rempair.html
+        - Biró, Hamburger, Pór, Trotter, "The Proof of the Removable Pair
+          Conjecture for Fractional Dimension" (integer case still open).
 
-      It was PREVIOUSLY "proved" by routing an arbitrary extremal
-      critical pair through the lift-construction lemma
-      [trotter_boundary_coverage], whose own proof relied on the
-      boundary-CP coverage core [trotter_path_family_impossible].  That
-      coverage core is FALSE: it claimed that for ANY d'-realizer r' of
-      the residual, every boundary critical pair is covered by some
-      L' in r'.  A 5-element counterexample (see
-      [TrotterCounterexample.v]) exhibits an extremal critical pair and a
-      minimum residual realizer for which a boundary CP is coverable by
-      NO L' in r' (the forced cycle x' -> S' -> q -> x' is unavoidable in
-      every extension).  Coverage holds only for a *coordinated* choice
-      of removable pair and realizer — i.e. the genuine Trotter content —
-      not for an arbitrary extremal CP + arbitrary realizer.
+      Hiraguchi's bound dim(P) <= floor(n/2) (n >= 4) IS a theorem, but it
+      is proven by a DIRECT construction (Hiraguchi 1955; more simply
+      Kimble 1973, Bogart 1973, Trotter) that does NOT route through
+      removable-pair existence — the conjecture "would imply it directly"
+      but the bound does not depend on the conjecture.  The intended fix
+      (see docs/superpowers/plans) is to re-prove [hiraguchi_bound] via
+      that direct construction and drop this dependency; this admit then
+      becomes the standalone documented open conjecture, used by nothing.
 
-      The false chain ([trotter_path_family_impossible],
-      [trotter_coverage_via_extremality],
-      [trotter_per_L_acyclic_covering_family],
-      [trotter_boundary_existence], [trotter_boundary_coverage]) is dead
-      code and slated for removal; [hiraguchi_bound] no longer depends on
-      it.  [Print Assumptions hiraguchi_bound] now lists this lemma as the
-      sole removable-pair input, with no dependence on the false core. *)
+      CAUTION: do not attempt to "close" this admit — it is an open
+      research problem.  The earlier attempt (the deleted
+      [trotter_path_family_impossible] chain) tried to prove a piece of it
+      and was FALSE; see [TrotterCounterexample.v]. *)
   Admitted.
 
   (** Trotter's removable-pair lemma — outer statement.
@@ -2286,6 +2284,33 @@ Section RemovablePairs.
   Qed.
 
 End RemovablePairs.
+
+(** ====================================================================
+    THE REMOVABLE PAIR CONJECTURE (Bogart–Trotter, 1971) — OPEN.
+
+    Stated here for the record as a named proposition.  We deliberately do
+    NOT assume it (it is a Definition, not an Axiom/Conjecture declaration),
+    so nothing in this development depends on it: [hiraguchi_bound] is to be
+    proven independently via Hiraguchi/Kimble's direct construction.
+
+    Statement: every finite poset on n >= 3 points has a pair (x, y) of
+    distinct elements with dim(P) <= dim(P - {x,y}) + 1 (here packaged via
+    [IsRemovablePair], the realizer-existence formulation).
+
+    Status: OPEN for ordinary (integer) dimension; only sufficient
+    conditions are known (an incomparable minimal–maximal pair is removable;
+    two maximal elements with nested down-sets are removable; ...).  The
+    fractional-dimension analogue is proven (Biró–Hamburger–Pór–Trotter).
+    It "would imply" Hiraguchi's bound dim <= floor(n/2) directly, but that
+    bound is itself a theorem proven WITHOUT the conjecture.
+
+    See docs/INDEX.md and the OPEN PROBLEM note on
+    [non_antichain_removable_pair_exists] above. *)
+Definition RemovablePairConjecture : Prop :=
+  forall (B : Type) (R2 : B -> B -> Prop) (HR2 : IsPoset B R2) (n : nat),
+    cardinal B (Full_set B) n ->
+    n >= 3 ->
+    exists x y : B, @IsRemovablePair B R2 x y.
 
 (** Hiraguchi's bound for an antichain of size ≥ 2 is exactly 2.
 

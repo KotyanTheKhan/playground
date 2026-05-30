@@ -98,7 +98,14 @@
 | `incomparable_extension` | `Theorems.v` | incomparable elements can be ordered in some linear extension |
 | `dushnik_miller_exists` | `Theorems.v` | every poset has a realizer |
 | `subposet_dimension_le` | `Theorems.v` | dimension is monotone under sub-posets |
-| `hiraguchi_bound` | `Theorems.v` | Hiraguchi's dimension bound |
+| `hiraguchi_bound` | `RemovablePairs.v` | Hiraguchi's bound `dim ≤ ⌊n/2⌋` (n≥4). **⚠ Proof currently depends on the admit `non_antichain_removable_pair_exists`, which is the OPEN Removable Pair Conjecture (see below) — not yet an independent proof.** Planned fix: re-prove via Hiraguchi/Kimble's direct construction (no removable pairs). |
+
+#### Open problems / conjectures (`posets/dimension/RemovablePairs.v`)
+
+| Name | File | Status |
+|------|------|--------|
+| `RemovablePairConjecture` | `RemovablePairs.v` | **OPEN** (Bogart–Trotter, 1971). Every finite poset on `n≥3` points has a pair `{x,y}` with `dim(P) ≤ dim(P−{x,y})+1`. Stated as an *unasserted* `Prop` (not assumed). Only sufficient conditions are known; the fractional analogue is proven (Biró–Hamburger–Pór–Trotter). Used by nothing. |
+| `non_antichain_removable_pair_exists` | `RemovablePairs.v` | **Admitted = the n≥4 non-antichain instance of `RemovablePairConjecture` (OPEN).** Do not attempt to close it. A prior attempt to prove a piece of it (`trotter_path_family_impossible`) was FALSE — disproof in `TrotterCounterexample.v`. `hiraguchi_bound` depends on it pending the direct-proof rewrite. |
 
 ### Happened-before (`happenedBefore/SemilatticeContradiction.v`)
 
