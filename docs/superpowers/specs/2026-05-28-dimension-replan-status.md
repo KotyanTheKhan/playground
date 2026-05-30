@@ -488,10 +488,30 @@ soundly refined (the greedy plumbing is no longer in the admit):
   hypothesis is threaded into `trotter_path_family_impossible`. So the admit is
   now Trotter's TRUE claim, not a too-general (false) one.
 
-`trotter_path_family_impossible` (RemovablePairs.v:2003) is the sole remaining
+`trotter_path_family_impossible` (RemovablePairs.v:~2085) is the sole remaining
 admit; it mentions only `aug_acyclic`/`aug_step`/`IsExtremalCP` (no greedy). Its
 proof is the multi-session formalization of Trotter 1992 Thm 6.1's cycle↔CP
 algebra + extremality elimination — genuinely irreducible; do NOT rush it.
+
+### Piece-2 infrastructure landed (Qed, 2026-05-30)
+
+Toward the path ⟹ refining-CP direction:
+- `aug_step_nil_mono`, `aug_rt_nil_mono` — `step3 = aug_step…nil` embeds into any
+  `aug_step…acc` (and its refl-trans closure).
+- `aug_step_rev_edge` — `(c,d)∈acc` gives the `aug_step…acc` edge `d→c`.
+- `aug_path_step3_or_via_acc` — an `aug_step…acc` path `p→q` is EITHER a pure
+  `step3` path OR threads through the last reversed-boundary edge `d→c`
+  (`(c,d)∈acc`), splitting into an `aug` path `p→d` and a pure `step3` path
+  `c→q`. This isolates the role of the reversed boundary CPs in any augmenting
+  path.
+
+REMAINING (the genuine core): combine, across ALL `L'∈r'` (using the realizer
+intersection `∩L' = R|S'`), the per-`L'` paths with the extremality of
+`(x',y')` to extract a critical pair refining `(x',y')` — contradiction. This is
+the simultaneous-over-realizer argument and is the irreducible content; it needs
+the refining-CP extraction lemma + the extremality-elimination lemma, neither of
+which has a short proof. Session count of Trotter Qed lemmas added: 7
+(pieces 1 + 2-start) + the sound refinement.
 
 ## (historical) Remaining admits: 4
 
