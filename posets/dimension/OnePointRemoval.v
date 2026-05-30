@@ -346,6 +346,55 @@ Section OnePointRemoval.
     Lemma lift_high_is_linext : IsLinearExtension R lift_high.
     Proof. constructor; [exact lift_high_total_order | exact lift_high_extends]. Qed.
 
+    (** ---- Reversal facts (the coverage core for the singled-out L_d) ---- *)
+
+    (** [lift_low] reverses (a,p) when a is not below p. *)
+    Lemma lift_low_rev_ap : forall a, a <> p -> ~ R a p -> ~ lift_low a p.
+    Proof.
+      intros a Ha Hnap Hl. unfold lift_low in Hl.
+      rewrite (zlow_rest a Ha Hnap), zlow_p in Hl.
+      destruct Hl as [Hlt | [Heq _]]; lia.
+    Qed.
+
+    (** [lift_high] reverses (p,b) when p is not below b. *)
+    Lemma lift_high_rev_pb : forall b, b <> p -> ~ R p b -> ~ lift_high p b.
+    Proof.
+      intros b Hb Hnpb Hh. unfold lift_high in Hh.
+      rewrite zhigh_p, (zhigh_rest b Hb Hnpb) in Hh.
+      destruct Hh as [Hlt | [Heq _]]; lia.
+    Qed.
+
+    (** A non-p pair not L-ordered (a → b) is reversed by [lift_low] or
+        [lift_high]: the only way both keep it is a∈D(p) ∧ b∈U(p), forcing R a b
+        hence Llift L a b. *)
+    Lemma lift_low_high_rev_SS :
+      forall a b, a <> p -> b <> p -> ~ Llift L a b ->
+        ~ lift_low a b \/ ~ lift_high a b.
+    Proof.
+      intros a b Ha Hb Hnl.
+      destruct (classic (lift_low a b)) as [Hlo | Hlo]; [| left; exact Hlo].
+      destruct (classic (lift_high a b)) as [Hhi | Hhi]; [| right; exact Hhi].
+      exfalso.
+      assert (Hcmp : ~ cmp a b).
+      { intros [[Hap _] | Hl]; [ apply Ha; exact Hap | exact (Hnl Hl) ]. }
+      (* both hold ⟹ zlow a < zlow b and zhigh a < zhigh b *)
+      assert (Hzlo : zlow a < zlow b).
+      { unfold lift_low in Hlo. destruct Hlo as [H' | [_ Hc]]; [ exact H' | exfalso; exact (Hcmp Hc) ]. }
+      assert (Hzhi : zhigh a < zhigh b).
+      { unfold lift_high in Hhi. destruct Hhi as [H' | [_ Hc]]; [ exact H' | exfalso; exact (Hcmp Hc) ]. }
+      (* zlow a < zlow b ⟹ R a p (else zlow a = 2 ≥ zlow b) *)
+      assert (Hap : R a p).
+      { destruct (classic (R a p)) as [Hap | Hnap]; [ exact Hap |].
+        rewrite (zlow_rest a Ha Hnap) in Hzlo.
+        destruct (zlow_eq_cases b) as [E | [E | E]]; rewrite E in Hzlo; lia. }
+      (* zhigh a < zhigh b ⟹ R p b (else zhigh b = 0) *)
+      assert (Hpb : R p b).
+      { destruct (classic (R p b)) as [Hpb | Hnpb]; [ exact Hpb |].
+        rewrite (zhigh_rest b Hb Hnpb) in Hzhi. lia. }
+      (* R a p ∧ R p b ⟹ R a b ⟹ Llift L a b, contradiction *)
+      apply Hnl. apply Llift_extends; [ exact (poset_trans _ _ _ Hap Hpb) | exact Ha | exact Hb ].
+    Qed.
+
     (** ---- [lift_keep]: a linear extension of R restricting to [Llift L] on
         X − p (p inserted WITHOUT reordering S).  Obtained from Szpilrajn applied
         to the partial order [Qkeep], which already contains R and [Llift L]. ---- *)
