@@ -1859,6 +1859,65 @@ Section RemovablePairs.
       apply rt_trans with (y := a); [ exact Hpa | exact Haq ].
   Qed.
 
+  (** The greedy walker never drops a pair already in [acc]. *)
+  Lemma greedy_subset_contains_acc :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+           (acc rest : list (A * A)) pq,
+    List.In pq acc ->
+    List.In pq (greedy_acyclic_subset S' x' y' L' acc rest).
+  Proof.
+    intros x' y' S' L'. intros acc rest. revert acc.
+    induction rest as [| hd tl IH]; intros acc pq Hin; simpl.
+    - exact Hin.
+    - destruct (excluded_middle_informative
+                  (aug_acyclic S' x' y' L' (hd :: acc))) as [Hyes | Hno].
+      + apply IH. right. exact Hin.
+      + apply IH. exact Hin.
+  Qed.
+
+  (** Piece 1 made usable from the greedy construction: if [(p,q)] occurs in
+      [rest] but the greedy walker (started from an acyclic [acc]) does NOT
+      output it, then at the step where it was rejected there is an acyclic
+      accumulator [acc'] and an [aug_step ... acc'] path [p → q].  By
+      [greedy_subset_contains_acc], a rejected pair is never subsequently
+      re-accepted, so rejection at its first occurrence is forced. *)
+  Lemma greedy_reject_path :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+           (rest acc : list (A * A)) (p q : A),
+    aug_acyclic S' x' y' L' acc ->
+    List.In (p, q) rest ->
+    ~ List.In (p, q) (greedy_acyclic_subset S' x' y' L' acc rest) ->
+    exists acc',
+      aug_acyclic S' x' y' L' acc'
+      /\ clos_refl_trans A (aug_step S' x' y' L' acc') p q.
+  Proof.
+    intros x' y' S' L'.
+    induction rest as [| hd tl IH]; intros acc p q Hacc Hin Hnotout.
+    - destruct Hin.
+    - simpl in Hnotout.
+      destruct (excluded_middle_informative
+                  (aug_acyclic S' x' y' L' (hd :: acc))) as [Hyes | Hno].
+      + (* hd accepted *)
+        destruct (classic ((p, q) = hd)) as [Heq | Hne].
+        * (* (p,q) = hd was accepted, so it is in the output — contradiction *)
+          exfalso. apply Hnotout. apply greedy_subset_contains_acc.
+          left. symmetry. exact Heq.
+        * (* (p,q) is in tl; recurse with acc := hd :: acc *)
+          apply (IH (hd :: acc) p q Hyes); [| exact Hnotout].
+          destruct Hin as [Hhd | Htl]; [ exfalso; apply Hne; symmetry; exact Hhd | exact Htl ].
+      + (* hd rejected *)
+        destruct (classic ((p, q) = hd)) as [Heq | Hne].
+        * (* (p,q) = hd rejected here: acc is acyclic, (p,q)::acc is not *)
+          subst hd.
+          exists acc. split; [ exact Hacc |].
+          apply (aug_cycle_implies_acc_path x' y' S' L' acc p q Hacc Hno).
+        * (* (p,q) in tl; recurse with same acc *)
+          apply (IH acc p q Hacc); [| exact Hnotout].
+          destruct Hin as [Hhd | Htl]; [ exfalso; apply Hne; symmetry; exact Hhd | exact Htl ].
+  Qed.
+
 
   (** ===================================================================
       Focused coverage sub-admit (Trotter Ch.6, EXTREMALITY-based).
