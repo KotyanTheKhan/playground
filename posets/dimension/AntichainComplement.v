@@ -107,7 +107,83 @@ Lemma subtype_remove_data :
       cardinal {a : B | a <> p}
         (Setminus {a : B | a <> p} (Full_set _) (fun s => In B Ach (proj1_sig s)))
         (m - 1).
-Admitted.
+Proof.
+  intros B R HR Ach p m Hfin Hanti Hp Hcompl.
+  destruct Hp as [Hp_full Hp_nAch].
+  destruct Hanti as [Hanti_inh Hanti_inc].
+  set (Sub := {a : B | a <> p}).
+  set (R' := fun a b : Sub => R (proj1_sig a) (proj1_sig b)).
+  set (Ach' := fun s : Sub => In B Ach (proj1_sig s)).
+  pose proof (@subtype_is_poset B R HR (fun x => x <> p)) as HR'.
+  exists HR'.
+  (* n := |Full B| *)
+  destruct (finite_cardinal _ _ Hfin) as [n Hn].
+  (* cardinal of {x | x <> p} as a B-ensemble = n - 1 *)
+  assert (Hsetp : (fun x : B => x <> p) = Subtract B (Full_set B) p).
+  { apply Extensionality_Ensembles. split.
+    - intros x Hx. split; [ apply Full_intro | intro Hs; destruct Hs; exact (Hx eq_refl) ].
+    - intros x [_ Hx] Heq. apply Hx. rewrite Heq. constructor. }
+  assert (Hn1 : n = S (n - 1)).
+  { destruct n as [| n']; [ exfalso | lia ].
+    pose proof (cardinalO_empty _ _ Hn) as Hfe. rewrite Hfe in Hp_full. destruct Hp_full. }
+  assert (HcardSp : cardinal B (fun x => x <> p) (n - 1)).
+  { rewrite Hsetp.
+    apply (cardinal_subtract_sn B (Full_set B) p (n - 1)); [ rewrite <- Hn1; exact Hn | exact Hp_full ]. }
+  (* cardinal of subtype Full = n - 1 *)
+  assert (HfullSub : cardinal Sub (Full_set Sub) (n - 1))
+    by exact (cardinal_subtype_full B (fun x => x <> p) (n - 1) HcardSp).
+  assert (HfinSub : Finite Sub (Full_set Sub)) by exact (cardinal_finite _ _ _ HfullSub).
+  split; [ exact HfinSub | split ].
+  - (* Ach' is an antichain *)
+    constructor.
+    + (* inhabited: Ach is inhabited and p ∉ Ach *)
+      destruct Hanti_inh as [a Ha].
+      assert (Ha_np : a <> p) by (intro Heq; apply Hp_nAch; rewrite <- Heq; exact Ha).
+      exists (exist _ a Ha_np). unfold Ach'. simpl. exact Ha.
+    + intros x y Hx Hy Hcmp. unfold Ach', R' in *.
+      assert (Hpe : proj1_sig x = proj1_sig y)
+        by exact (Hanti_inc _ _ Hx Hy Hcmp).
+      destruct x as [x Hxp]; destruct y as [y Hyp]; simpl in Hpe; subst y.
+      f_equal. apply proof_irrelevance.
+  - (* cardinal of the complement subtype = m - 1 *)
+    set (Comp := Setminus Sub (Full_set Sub) Ach').
+    assert (HfinComp : Finite Sub Comp).
+    { apply (Finite_downward_closed _ (Full_set Sub) HfinSub).
+      intros s _; apply Full_intro. }
+    destruct (finite_cardinal _ _ HfinComp) as [k Hk].
+    (* image of Comp under proj1_sig = Subtract (Setminus Full Ach) p *)
+    set (f := fun s : Sub => proj1_sig s).
+    assert (Hinj : forall a b : Sub, In _ (Full_set Sub) a -> In _ (Full_set Sub) b ->
+                     f a = f b -> a = b).
+    { intros [a Ha] [b Hb] _ _ Heq. unfold f in Heq; simpl in Heq; subst b.
+      f_equal. apply proof_irrelevance. }
+    assert (HImCard : cardinal B (Im Sub B Comp f) k).
+    { apply (cardinal_Im_injective _ _ Comp f k Hk).
+      intros a b Ha Hb Heq. apply Hinj; [ apply Full_intro | apply Full_intro | exact Heq ]. }
+    assert (HImEq : Im Sub B Comp f = Subtract B (Setminus B (Full_set B) Ach) p).
+    { apply Extensionality_Ensembles. split.
+      - intros x Hx. destruct Hx as [s Hs x0 Hx0]. subst x0. unfold f.
+        destruct Hs as [_ Hs_nAch]. unfold Ach' in Hs_nAch.
+        destruct s as [a Hap]; simpl in *. split.
+        + split; [ apply Full_intro | exact Hs_nAch ].
+        + intro Hsing; destruct Hsing; exact (Hap eq_refl).
+      - intros x [[_ Hx_nAch] Hx_np].
+        assert (Hxp : x <> p) by (intro Heq; apply Hx_np; rewrite Heq; constructor).
+        exists (exist _ x Hxp); [| reflexivity ].
+        split; [ apply Full_intro | unfold Ach'; simpl; exact Hx_nAch ]. }
+    rewrite HImEq in HImCard.
+    (* cardinal (Subtract (Setminus Full Ach) p) = m - 1 *)
+    assert (Hm1 : m = S (m - 1)).
+    { destruct m as [| m']; [ exfalso | lia ].
+      pose proof (cardinalO_empty _ _ Hcompl) as He.
+      assert (Hpin : In B (Setminus B (Full_set B) Ach) p) by (split; assumption).
+      rewrite He in Hpin. destruct Hpin. }
+    assert (HsubCard : cardinal B (Subtract B (Setminus B (Full_set B) Ach) p) (m - 1)).
+    { apply (cardinal_subtract_sn B (Setminus B (Full_set B) Ach) p (m - 1));
+        [ rewrite <- Hm1; exact Hcompl | split; assumption ]. }
+    assert (Hkeq : k = m - 1) by exact (cardinal_unicity _ _ _ HImCard _ HsubCard).
+    subst k. exact Hk.
+Qed.
 
 (** A positive-cardinality set is inhabited. *)
 Lemma card_inhabited :
