@@ -624,3 +624,28 @@ or reconstruct + verify on `S_k`, BEFORE writing Coq. Then formalize 5.6, wire
 - `non_antichain_removable_pair_exists` = Removable Pair Conjecture (OPEN).
   Target: make `hiraguchi_bound` independent of it via the Lemma 5.6 route, then
   it becomes the standalone documented `RemovablePairConjecture`.
+
+## Direct Hiraguchi proof — formalization started (2026-05-30, cont.)
+
+New, sound, all building (commits 6faa95f, 743ff6d, +lift_high):
+- `AntichainDimBound.v`: `hiraguchi_combine` (Qed) — arithmetic core
+  `4≤n → w+m=n → d≤w → d≤max{2,m} → d≤n/2`. `dim_le_antichain_complement`
+  (Admitted, TRUE — Trotter 1975 Thm 2, full sketch in-file).
+- `OnePointRemoval.v`: subtype `X−p`, lifted suborder `Llift` (+ refl/antisym/
+  trans/total/extends via proof_irrelevance), and BOTH block orders proven
+  linear extensions of R (Qed): `lift_low_is_linext` (zlow: Down|{p}|rest),
+  `lift_high_is_linext` (zhigh: rest|{p}|Up). Formulated as `lex(zone,Llift)`.
+
+REMAINING for `one_point_removal : dim R ≤ 1 + dim(X−p)`:
+1. `lift_keep` — a linear extension of R restricting to `Llift L` on `X−p`
+   (p inserted preserving L). Plan: Szpilrajn on `clos_trans (R ∪ Llift L)`;
+   the closure is antisymmetric (a cycle through p forces a'=a'' with
+   a'∈D(p),a''∈U(p) ⟹ a'=p, contra). [next]
+2. Realizer assembly: `rB = Im (rQ ∖ {L_d}) lift_keep ∪ {lift_low L_d,
+   lift_high L_d}`, |rB| ≤ d'+1; pick L_d ∈ rQ (d'≥1; d'=0 ⟹ |X|≤2, dim≤1).
+3. Coverage (IsRealizer ∩rB = R): S-S pairs by lift_keep(L_i≠L_d) or
+   lift_low/high(L_d); p-pairs by lift_low (p below non-D) + lift_high
+   (p above non-U). [the combinatorial core]
+4. `one_point_removal` via dimension_is_minimum.
+Then: base case |X−A|=2 ⟹ dim≤2; polymorphic induction on |X−A| for
+`dim_le_antichain_complement`; rewire `hiraguchi_bound`.
