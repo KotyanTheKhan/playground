@@ -1777,6 +1777,88 @@ Section RemovablePairs.
       apply rt_trans with (y := a); [exact Hpa | exact Haq].
   Qed.
 
+  (** GENERALIZATION of [aug_cycle_implies_step3_path] from the singleton
+      boundary [(p,q)::nil] to an arbitrary already-acyclic accumulator
+      [acc].  The new edge introduced by prepending [(p,q)] is still the
+      single edge [q → p]; if [acc] alone is acyclic but [(p,q)::acc] is
+      not, the witnessing cycle must use that edge, and removing it leaves
+      a [aug_step ... acc] path [p → q].  (Piece 1 toward
+      [trotter_coverage_via_extremality]: greedy-rejection ⟹ path, now in
+      the presence of the greedy accumulator.)  No poset hypotheses are
+      needed — acyclicity of [acc] does the work the poset structure did
+      in the singleton case. *)
+  Lemma aug_cycle_implies_acc_path :
+    forall (x' y' : A) (S' : Ensemble A)
+           (L' : {a : A | In A S' a} -> {a : A | In A S' a} -> Prop)
+           (acc : list (A * A)) (p q : A),
+    aug_acyclic S' x' y' L' acc ->
+    ~ aug_acyclic S' x' y' L' ((p, q) :: acc) ->
+    clos_refl_trans A (aug_step S' x' y' L' acc) p q.
+  Proof.
+    intros x' y' S' L' acc p q Hacc Hnot_acyc.
+    set (sa := aug_step S' x' y' L' acc).
+    (* Witness cycle from ~ aug_acyclic. *)
+    unfold aug_acyclic in Hnot_acyc.
+    apply not_all_ex_not in Hnot_acyc. destruct Hnot_acyc as [a Hnot_acyc].
+    apply not_all_ex_not in Hnot_acyc. destruct Hnot_acyc as [b Hnot_acyc].
+    apply imply_to_and in Hnot_acyc. destruct Hnot_acyc as [Hneq Hnot_acyc].
+    apply imply_to_and in Hnot_acyc. destruct Hnot_acyc as [Hab Hnot_acyc].
+    apply imply_to_and in Hnot_acyc. destruct Hnot_acyc as [Hba _].
+    (* Bridge: prepending (p,q) adds exactly the edge q→p. *)
+    assert (Hbridge : forall u v,
+              aug_step S' x' y' L' ((p, q) :: acc) u v
+              <-> sa u v \/ (u = q /\ v = p)).
+    { intros u v. unfold sa, aug_step. simpl. split.
+      - intros [HR | [HL | [Hxy | HIn]]].
+        + left; left; exact HR.
+        + left; right; left; exact HL.
+        + left; right; right; left; exact Hxy.
+        + destruct HIn as [Heq | Hin].
+          * right. injection Heq as Ep Eq. split; [ symmetry; exact Eq | symmetry; exact Ep ].
+          * left; right; right; right; exact Hin.
+      - intros [[HR | [HL | [Hxy | Hin]]] | [Hq Hp]].
+        + left; exact HR.
+        + right; left; exact HL.
+        + right; right; left; exact Hxy.
+        + right; right; right; right; exact Hin.
+        + subst u v. right; right; right; left. reflexivity. }
+    (* Decompose any clos_trans of the augmented step into a pure sa path
+       or a pair of sa segments through the q→p edge. *)
+    assert (Hdecomp : forall u v,
+              clos_trans A (aug_step S' x' y' L' ((p, q) :: acc)) u v ->
+              clos_trans A sa u v
+              \/ (clos_refl_trans A sa u q /\ clos_refl_trans A sa p v)).
+    { intros u v Hct.
+      induction Hct as [u v Huv | u w v Huw IHuw Hwv IHwv].
+      - apply Hbridge in Huv. destruct Huv as [Hsa | [Hu Hv]].
+        + left. apply t_step. exact Hsa.
+        + subst u v. right. split; apply rt_refl.
+      - destruct IHuw as [Huw3 | [Huq Hpw]];
+        destruct IHwv as [Hwv3 | [Hwq Hpv]].
+        + left. eapply t_trans; eauto.
+        + right. split.
+          * apply rt_trans with (y := w); [ apply clos_trans_in_rt; exact Huw3 | exact Hwq ].
+          * exact Hpv.
+        + right. split.
+          * exact Huq.
+          * apply rt_trans with (y := w); [ exact Hpw | apply clos_trans_in_rt; exact Hwv3 ].
+        + right. split; [ exact Huq | exact Hpv ]. }
+    specialize (Hdecomp a b Hab) as Hab_dec.
+    specialize (Hdecomp b a Hba) as Hba_dec.
+    destruct Hab_dec as [Hab_sa | [Haq Hpb]];
+    destruct Hba_dec as [Hba_sa | [Hbq Hpa]].
+    - (* both pure: contradicts acyclicity of acc *)
+      exfalso. exact (Hacc a b Hneq Hab_sa Hba_sa).
+    - (* a→b pure, b→a uses edge: p →* a →* b →* q *)
+      apply rt_trans with (y := a); [ exact Hpa | ].
+      apply rt_trans with (y := b); [ apply clos_trans_in_rt; exact Hab_sa | exact Hbq ].
+    - (* a→b uses edge, b→a pure: p →* b →* a →* q *)
+      apply rt_trans with (y := b); [ exact Hpb | ].
+      apply rt_trans with (y := a); [ apply clos_trans_in_rt; exact Hba_sa | exact Haq ].
+    - (* both use edge: p →* a →* q *)
+      apply rt_trans with (y := a); [ exact Hpa | exact Haq ].
+  Qed.
+
 
   (** ===================================================================
       Focused coverage sub-admit (Trotter Ch.6, EXTREMALITY-based).
