@@ -2,7 +2,7 @@
     pairs, i.e. [num_none (M_assign M) = 2]. Combined with [length_M_assign]
     and [enum_k_none_complete], this places [M_assign M] in [count8_assigns]. *)
 
-From Stdlib Require Import List Arith Lia Bool.
+From Stdlib Require Import List Arith Lia Bool FunctionalExtensionality.
 Import ListNotations.
 From Dimension.N5Exhaustive Require Import N5Reflect N5Reflect8 N5Reflect8_Exhaustive N5Reflect8_Bridge.
 
@@ -85,3 +85,25 @@ Qed.
 Lemma num_none_M_assign : forall M, is_poset_b M = true ->
   edge_count_b M = 8 -> num_none (M_assign M) = 2.
 Proof. intros M Hp He. pose proof (edge_plus_none M Hp). lia. Qed.
+
+Lemma mat_of_M_assign_eq : forall M, is_poset_b M = true ->
+  mat_of (M_assign M) = M.
+Proof.
+  intros M Hp. apply functional_extensionality. intro i.
+  apply functional_extensionality. intro j. apply mat_of_M_assign; assumption.
+Qed.
+
+(** Every 8-edge poset matches one of the 6 count-8 iso-class patterns. *)
+Lemma exhaustive_8edge : forall M, is_poset_b M = true ->
+  edge_count_b M = 8 -> any_pattern_8_b M = true.
+Proof.
+  intros M Hp He.
+  assert (Hin : In (M_assign M) count8_assigns).
+  { unfold count8_assigns. apply enum_k_none_complete.
+    - apply length_M_assign.
+    - apply num_none_M_assign; assumption. }
+  pose proof coverage_8 as Hcov. rewrite forallb_forall in Hcov.
+  specialize (Hcov _ Hin). unfold chk8 in Hcov.
+  rewrite (mat_of_M_assign_eq M Hp) in Hcov.
+  rewrite Hp in Hcov. cbn in Hcov. exact Hcov.
+Qed.
