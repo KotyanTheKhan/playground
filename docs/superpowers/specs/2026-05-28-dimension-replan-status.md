@@ -481,6 +481,17 @@ soundly refined (the greedy plumbing is no longer in the admit):
   longer mentions `greedy_acyclic_subset` — it is purely the augmented-digraph
   path family + extremality. Remaining work = pieces 2 (path ⟹ refining CP, the
   cycle↔CP algebra) + 3 (refining CP + boundary + extremality ⟹ False).
+- SOUNDNESS FIX: the admit must constrain `acc' ⊆ boundary` (reversed boundary
+  CPs) — with an arbitrary acyclic `acc'` the statement is likely false (e.g.
+  `acc'=[(q,p)]` adds the edge `p→q` directly). `greedy_reject_path` now records
+  `(forall pq, In pq acc' -> In pq acc \/ In pq rest)`, and that `⊆ boundary`
+  hypothesis is threaded into `trotter_path_family_impossible`. So the admit is
+  now Trotter's TRUE claim, not a too-general (false) one.
+
+`trotter_path_family_impossible` (RemovablePairs.v:2003) is the sole remaining
+admit; it mentions only `aug_acyclic`/`aug_step`/`IsExtremalCP` (no greedy). Its
+proof is the multi-session formalization of Trotter 1992 Thm 6.1's cycle↔CP
+algebra + extremality elimination — genuinely irreducible; do NOT rush it.
 
 ## (historical) Remaining admits: 4
 
