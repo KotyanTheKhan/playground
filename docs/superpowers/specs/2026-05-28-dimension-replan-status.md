@@ -649,3 +649,30 @@ REMAINING for `one_point_removal : dim R ≤ 1 + dim(X−p)`:
 4. `one_point_removal` via dimension_is_minimum.
 Then: base case |X−A|=2 ⟹ dim≤2; polymorphic induction on |X−A| for
 `dim_le_antichain_complement`; rewire `hiraguchi_bound`.
+
+## one_point_removal PROVEN (2026-05-30, cont.) — hardest lemma done
+
+`OnePointRemoval.v` fully proven (Qed, NO admits), commits 052c659, d0d0948,
+e0daedd:
+- Llift + lemmas; lift_low / lift_high block orders (lex(zone,Llift)) as linear
+  extensions of R; lift_keep via Szpilrajn on the partial order Qkeep; three
+  coverage reversal facts; and the assembly
+  `one_point_removal : 1<=d' -> PosetDimension R d -> PosetDimension Qsub d'
+   -> d <= d'+1` (Qsub = R on subtype {a|a<>p}). Realizer
+  `Add(Add(Im(rQ\{Ld}) keepf)(lift_low Ld))(lift_high Ld)`, size <= d'+1.
+  NOTE: needs `1<=d'` (codebase allows dim=0 for <=1-elt posets; 2-antichain
+  would otherwise break it).
+
+REMAINING for hiraguchi_bound (all build on the above, well-scoped):
+1. Base/small cases: |X-A| <= 2 (with A antichain) => dim <= 2. Use
+   `antichain_two_realizer` (RemovablePairs) for the antichain part; the
+   |X-A|=1,2 cases. (Trotter Lemma 3.)
+2. `dim_le_antichain_complement` (currently admit in AntichainDimBound.v):
+   prove POLYMORPHICALLY over the carrier (like hiraguchi_helper) by strong
+   induction on m=|X-A|, removing p in X-A -> subtype {a|a<>p}, IH gives
+   dim<=max{2,m-1}, then one_point_removal gives dim<=m. Needs: subtype is
+   antichain-preserving + finite, `exists d, PosetDimension` (Theorems.v:679),
+   cardinal of subtype Setminus = m-1.
+3. Rewire `hiraguchi_bound`: dimension_le_width (w) + dim_le_antichain_complement
+   (max{2,n-w}) + hiraguchi_combine => dim<=n/2; drop removable_pair_exists.
+4. Print Assumptions check.
