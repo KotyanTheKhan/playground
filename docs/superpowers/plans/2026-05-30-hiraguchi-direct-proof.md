@@ -48,25 +48,44 @@ open-problems list + Trotter's survey, 2026-05-30.)
 
 ## Tasks
 
-### Task 0: Obtain & verify the exact proof of Lemma 5.6  ← GATING
+### Task 0: Obtain the exact proof of Lemma 5.6  ✅ DONE (2026-05-30)
 
-Do NOT write Coq for 5.6 until the construction is pinned down from a primary
-source (Trotter [46] / Kimble [33]) or reconstructed AND verified on the standard
-example `S_k` and on small posets. The realizer construction "splits all points
-of `P − A`": one linear extension per element of `P − A`, reusing them to reverse
-the antichain `A`'s internal pairs (needs `max{2, n}`, not `n+2` — iterating
-one-point removal Thm 5.1 is OFF BY ONE for Hiraguchi, so the tight `5.6` is
-essential).
-- Deliverable: a written, example-checked statement + proof skeleton of 5.6 in
-  this plan, reviewed by `proof-skeptic` before any Coq.
+Got the full primary source: **Trotter 1975** (AMS free PDF, saved to
+`docs/references/trotter-1975-inequalities-dimension.pdf`; the JSTOR DOI
+10.2307/2039736 redirects to AMS `S0002-9939-1975-0369192-2`). The proof is
+SIMPLE and inductive — NOT the "split all points" simultaneous construction.
+Trotter's actual argument (his Theorem 2 = our Lemma 5.6):
 
-### Task 1: Formalize Lemma 5.6 (new file `AntichainDimBound.v`)
-`forall A maximal antichain, n=|P−A| → dim(P) ≤ max{2, n}` (realizer form:
-build a size-`max{2,n}` realizer of `R`). Decompose into:
-- partition `P = A ⊔ D(A) ⊔ U(A)` for a maximal antichain (Qed plumbing);
-- the per-element linear-extension construction + verification it reverses every
-  critical/incomparable pair (the deep part);
-- assemble realizer + cardinality `max{2,n}`.
+- **Inequality (1)** [one-point removal]: `dim X ≤ 1 + dim(X − x)` for any point
+  `x`. Construction: let `{L_1,…,L_d}` realize `Q = X − x`, `D(x)`=points `< x`,
+  `U(x)`=points `> x` (in `Q`). Take `M_i` (`i∈[d−1]`) = any linear extension of
+  `X` restricting to `L_i`; and
+    `M_d     = L_d(D(x)) < x < L_d(Q − D(x))`   (x as LOW as possible),
+    `M_{d+1} = L_d(Q − U(x)) < x < L_d(U(x))`   (x as HIGH as possible).
+  Then `{M_1,…,M_{d+1}}` realizes `X`. (d+1 extensions.)
+- **Lemma 3** [base case]: if `A` is an antichain and `|X − A| = 2`, then
+  `dim X = 2` (`≤ 2`). Trotter: such `X` embeds in one of finitely many posets,
+  all of dimension 2 (Figure 1). Formalize via a direct 2-realizer OR the
+  finite analysis.
+- **Theorem 2** [our 5.6]: if `A` antichain and `|X − A| ≥ 2`, then
+  `dim X ≤ |X − A|`. Induct on `|X − A|`: remove a point `x ∈ X − A` (keeps `A`
+  an antichain, `|(X−x) − A| = |X−A| − 1`); base case `|X−A| = 2` is Lemma 3;
+  step uses inequality (1): `dim X ≤ 1 + dim(X−x) ≤ 1 + (|X−A|−1) = |X−A|`.
+  Tight because the induction stops at 2 (dim 2), not 0.
+
+(Note: `max{2, |X−A|}` only matters for `|X−A| ≤ 1`, i.e. `X` is an antichain or
+antichain+1 point — both `dim ≤ 2`, already in repo.)
+
+### Task 1: Formalize the pieces (new file e.g. `AntichainDimBound.v`)
+In dependency order, each a small Qed lemma:
+1. **`dim_le_succ_remove_point`**: `dim X ≤ 1 + dim(X − x)` via the realizer
+   construction above (insert `x` low/high into one extension; the rest extend
+   arbitrarily). The genuine plumbing: point-insertion into a linear extension +
+   proving the d+1 extensions intersect to `P`. Work in the subtype framework
+   (`{a | In (Full ∖ {x}) a}`) used by `subposet_dimension_le`.
+2. **`antichain_plus_two_dim_le_2`** (Lemma 3): `A` antichain, `|X−A|=2` ⟹
+   `dim ≤ 2`. Build an explicit 2-realizer (2 linear extensions) of such an `X`.
+3. **`antichain_complement_dim_bound`** (Theorem 2): induction on `|X−A|`.
 
 ### Task 2: New `hiraguchi_bound` proof
 In a new section/file, prove `dim ≤ ⌊n/2⌋` from `dimension_le_width` + Lemma 5.6
