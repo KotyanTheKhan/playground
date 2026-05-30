@@ -62,3 +62,24 @@ Proof.
   - exact cov_c3.
   - exact cov_c4.
 Qed.
+
+(* ---- bridge piece: enum_k_none enumerates every exactly-k-None list ---- *)
+Definition num_none (a : list (option bool)) : nat :=
+  length (filter (fun o => match o with None => true | _ => false end) a).
+
+Lemma enum_k_none_complete : forall a n k,
+  length a = n -> num_none a = k -> In a (enum_k_none n k).
+Proof.
+  induction a as [|x a IH]; intros n k Hlen Hk.
+  - simpl in Hlen, Hk. subst. simpl. left. reflexivity.
+  - destruct x as [b|].
+    + simpl in Hlen. unfold num_none in Hk; simpl in Hk. fold (num_none a) in Hk.
+      subst n k. simpl. apply in_or_app. right. destruct b.
+      * apply in_or_app. left.
+        apply (in_map (cons (Some true))). apply IH; reflexivity.
+      * apply in_or_app. right. apply in_or_app. left.
+        apply (in_map (cons (Some false))). apply IH; reflexivity.
+    + simpl in Hlen. unfold num_none in Hk; simpl in Hk. fold (num_none a) in Hk.
+      subst n k. simpl. apply in_or_app. left.
+      apply (in_map (cons None)). apply IH; reflexivity.
+Qed.
