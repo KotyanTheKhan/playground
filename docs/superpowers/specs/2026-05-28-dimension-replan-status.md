@@ -505,6 +505,25 @@ Toward the path ⟹ refining-CP direction:
   `c→q`. This isolates the role of the reversed boundary CPs in any augmenting
   path.
 
+### Trotter steps 1–2 + base lemmas landed (Qed, 2026-05-30, budgeted attempt)
+
+15 sound lemmas now bracket the admit: greedy→path (`greedy_reject_path`), path
+decomposition (`aug_path_step3_or_via_acc` + mono helpers), `aug_no_backward_S'`,
+`two_cp_share_top/bottom_incomp` (step 1), `clos_trans_last`/`aug_path_into_notS'`
+(step 2), `rt_R_collapse`/`cp_no_R_path` (an obstruction path can't be R-only).
+
+KEY RECONSTRUCTION FINDINGS (from the budgeted attempt):
+- The file's authors marked this "delicate but standard; mechanizing it is left
+  for future work" and gave a 4-element counterexample showing the constant
+  witness `B_of L' = boundary` is FALSE — coverage is genuinely L'-dependent.
+- The obstruction (path `p→q`) cannot be R-only (`cp_no_R_path`); it must use an
+  `L'`-edge / the forced `x'→y'` / a reversed boundary edge. In the counterexample
+  the culprit is an incomparable S'-pair `(z,q)` the realizer can flip.
+- Closing it needs the alternating-cycle ⟹ refining-CP extraction via a
+  well-founded **path induction**, then extremality — a substantial standalone
+  mechanization (the deferred "future work"), not reconstructable here to sound
+  formalizable precision. NOT fabricated.
+
 REMAINING (the genuine core): combine, across ALL `L'∈r'` (using the realizer
 intersection `∩L' = R|S'`), the per-`L'` paths with the extremality of
 `(x',y')` to extract a critical pair refining `(x',y')` — contradiction. This is
