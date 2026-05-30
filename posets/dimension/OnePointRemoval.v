@@ -244,5 +244,107 @@ Section OnePointRemoval.
       - exact lift_low_extends.
     Qed.
 
+    (** ---- [lift_high] is a linear extension of R (dual of [lift_low]) ---- *)
+    Lemma zhigh_p : zhigh p = 1.
+    Proof. unfold zhigh. destruct (excluded_middle_informative (p = p)); [reflexivity | contradiction]. Qed.
+
+    Lemma zhigh_up : forall a, a <> p -> R p a -> zhigh a = 2.
+    Proof.
+      intros a ha Hpa. unfold zhigh.
+      destruct (excluded_middle_informative (a = p)); [contradiction |].
+      destruct (excluded_middle_informative (R p a)); [reflexivity | contradiction].
+    Qed.
+
+    Lemma zhigh_rest : forall a, a <> p -> ~ R p a -> zhigh a = 0.
+    Proof.
+      intros a ha Hnpa. unfold zhigh.
+      destruct (excluded_middle_informative (a = p)); [contradiction |].
+      destruct (excluded_middle_informative (R p a)); [contradiction | reflexivity].
+    Qed.
+
+    Lemma zhigh_1_iff : forall a, zhigh a = 1 <-> a = p.
+    Proof.
+      intro a. unfold zhigh. split.
+      - repeat destruct excluded_middle_informative; intro; first [exact e | discriminate | lia | auto].
+      - intro Ha. destruct (excluded_middle_informative (a = p)); [reflexivity | contradiction].
+    Qed.
+
+    Lemma lift_high_refl : forall a, lift_high a a.
+    Proof. intro a. right. split; [reflexivity | apply cmp_refl]. Qed.
+
+    Lemma lift_high_antisym : forall a b, lift_high a b -> lift_high b a -> a = b.
+    Proof.
+      intros a b Hab Hba.
+      destruct Hab as [Hlt | [Heq Hcab]]; destruct Hba as [Hlt' | [Heq' Hcba]]; try lia.
+      unfold cmp in Hcab, Hcba.
+      destruct Hcab as [[-> ->] | Hlab]; [reflexivity |].
+      destruct Hcba as [[-> ->] | Hlba]; [reflexivity |].
+      exact (Llift_antisym a b Hlab Hlba).
+    Qed.
+
+    Lemma lift_high_trans : forall a b c, lift_high a b -> lift_high b c -> lift_high a c.
+    Proof.
+      intros a b c Hab Hbc.
+      destruct Hab as [Hlt | [Heq Hcab]]; destruct Hbc as [Hlt' | [Heq' Hcbc]].
+      - left; lia.
+      - left; lia.
+      - left; lia.
+      - right. split; [lia |].
+        unfold cmp in *.
+        destruct Hcab as [[Hap Hbp] | Hlab].
+        + subst a b. exact Hcbc.
+        + destruct Hcbc as [[Hbp Hcp] | Hlbc].
+          * subst b c. destruct Hlab as [ha [hb _]]. left; split; [|reflexivity].
+            exfalso. apply hb; reflexivity.
+          * right. exact (Llift_trans a b c Hlab Hlbc).
+    Qed.
+
+    Lemma lift_high_total : forall a b, lift_high a b \/ lift_high b a.
+    Proof.
+      intros a b. destruct (Nat.lt_trichotomy (zhigh a) (zhigh b)) as [Hlt | [Heq | Hgt]].
+      - left; left; exact Hlt.
+      - destruct (classic (a = p)) as [-> | Ha].
+        + rewrite zhigh_p in Heq. symmetry in Heq. rewrite zhigh_1_iff in Heq. subst b.
+          left. apply lift_high_refl.
+        + destruct (classic (b = p)) as [-> | Hb].
+          * rewrite zhigh_p in Heq. rewrite zhigh_1_iff in Heq. contradiction.
+          * destruct (Llift_total a b Ha Hb) as [Hl | Hl].
+            -- left; right; split; [exact Heq | right; exact Hl].
+            -- right; right; split; [lia | right; exact Hl].
+      - right; left; exact Hgt.
+    Qed.
+
+    Lemma lift_high_poset : IsPoset B lift_high.
+    Proof. constructor; [exact lift_high_refl | exact lift_high_antisym | exact lift_high_trans]. Qed.
+
+    Lemma lift_high_total_order : IsTotalOrder lift_high.
+    Proof. constructor; [exact lift_high_poset | exact lift_high_total]. Qed.
+
+    Lemma lift_high_extends : forall a b, R a b -> lift_high a b.
+    Proof.
+      intros a b Hab.
+      destruct (classic (a = p)) as [-> | Ha].
+      - destruct (classic (b = p)) as [-> | Hb].
+        + apply lift_high_refl.
+        + left. rewrite zhigh_p, (zhigh_up b Hb Hab). lia.
+      - destruct (classic (b = p)) as [-> | Hb].
+        + (* b = p, a <> p, R a p -> ~ R p a -> zhigh a = 0 < 1 *)
+          assert (Hnpa : ~ R p a).
+          { intro Hpa. apply Ha. exact (poset_antisym _ _ Hab Hpa). }
+          left. rewrite zhigh_p, (zhigh_rest a Ha Hnpa). lia.
+        + destruct (classic (R p a)) as [Hpa | Hnpa].
+          * (* a in Up; R p a, R a b -> R p b -> b in Up *)
+            assert (Hpb : R p b) by exact (poset_trans _ _ _ Hpa Hab).
+            right. rewrite (zhigh_up a Ha Hpa), (zhigh_up b Hb Hpb).
+            split; [reflexivity | right; apply Llift_extends; assumption].
+          * destruct (classic (R p b)) as [Hpb | Hnpb].
+            -- left. rewrite (zhigh_rest a Ha Hnpa), (zhigh_up b Hb Hpb). lia.
+            -- right. rewrite (zhigh_rest a Ha Hnpa), (zhigh_rest b Hb Hnpb).
+               split; [reflexivity | right; apply Llift_extends; assumption].
+    Qed.
+
+    Lemma lift_high_is_linext : IsLinearExtension R lift_high.
+    Proof. constructor; [exact lift_high_total_order | exact lift_high_extends]. Qed.
+
   End WithL.
 End OnePointRemoval.
