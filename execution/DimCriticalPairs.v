@@ -90,7 +90,14 @@ Proof.
       * destruct Hin. apply Hneq. reflexivity.
 Qed.
 
-(* No alternating cycle of critical pairs  =>  dimension <= 2. *)
+(* No alternating cycle of critical pairs  =>  dimension <= 2.
+   CAUTION — the hypothesis is STRICTLY STRONGER than [dim <= 2]: it means a single
+   linear extension reverses every critical pair, and it FAILS for any poset
+   containing an antichain (e.g. the 2-element antichain), so it is rarely usable
+   for genuinely 2-dimensional posets. The converse [dim <= 2 -> no alt cycle] is
+   FALSE. For a usable [dim <= 2] lever see [barrier_dim_le2] (BarrierDim2.v) and
+   the exact-dimension results. See the full caution on [no_alt_cycle] in
+   Ordinal.v. *)
 Lemma exec_dim_le_2_of_no_alt_cycle :
   forall E,
     ~ (exists cycle,

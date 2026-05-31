@@ -274,7 +274,7 @@
 | Name | Meaning |
 |------|---------|
 | `IsFullySync` | execution is an ordinal sum of blocks (each prefix split a barrier) |
-| `fully_sync_no_alt_cycle` / `fully_sync_dim2` | every block free of alternating cycles ⇒ the whole execution is dim ≤ 2 |
+| `fully_sync_no_alt_cycle` / `fully_sync_dim2` | every block free of alternating cycles ⇒ the whole execution is dim ≤ 2. **⚠ WEAK:** no-alt-cycle ≫ dim ≤ 2 and fails on antichain blocks (effectively vacuous for mΨ); a genuine n-way lever would iterate `barrier_dim_le2`. |
 
 #### `execution/FrontierExamples.v` — concrete barrier (test-only)
 
