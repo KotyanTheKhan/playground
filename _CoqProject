@@ -7,6 +7,7 @@
 -R abhishek Abhishek
 -R chipala_book CpdtTactics
 -R vendor/ZornsLemma ZornsLemma
+-R execution Execution
 
 posets/Posets.v
 posets/PosetClasses.v
@@ -66,3 +67,14 @@ abhishek/Graph.v
 abhishek/Halls_Thm.v
 abhishek/Marriage_Thm.v
 abhishek/Erdos_Szeker.v
+
+execution/Op.v
+execution/Event.v
+execution/Finite.v
+execution/Edges.v
+execution/Rank.v
+execution/Poset.v
+execution/Schedule.v
+execution/FromEdges.v
+execution/Examples.v
+execution/Execution.v

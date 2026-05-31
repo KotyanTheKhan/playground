@@ -1,0 +1,1 @@
+(* Rank — structural acyclicity. Placeholder. *)

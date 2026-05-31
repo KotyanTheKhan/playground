@@ -1,0 +1,15 @@
+(coq.theory
+ (name Execution)
+ (package playground)
+ (theories Posets Stdlib)
+ (modules
+  Op
+  Event
+  Finite
+  Edges
+  Rank
+  Poset
+  Schedule
+  FromEdges
+  Examples
+  Execution))
