@@ -211,6 +211,31 @@
 | `schedule_edges_agree` | `∀ s, desugar_prog s = prog_of_edgespec (translate s)` (axiom-free) |
 | `schedule_edges_hb_agree` | the two representations induce the same `hb` order (transported) |
 
+#### `execution/DimBridge.v` — dimension bridge to the Dimension theory
+
+| Name | Meaning |
+|------|---------|
+| `exec_has_dimension` | an execution poset has dimension d |
+| `exec_dimension_exists` | every execution has a dimension |
+| `exec_dim_ge_2` | an incomparable pair forces dim ≥ 2 |
+| `exec_dim_eq_2_of_realizer` | a size-2 realizer + incomparable pair ⇒ dim = 2 |
+
+#### `execution/DimCriticalPairs.v` — critical-pair interface
+
+| Name | Meaning |
+|------|---------|
+| `exec_critical_pair` | critical pair of an execution poset |
+| `exec_incomparable_has_critical_pair` | every incomparable pair contains a critical pair |
+| `exec_critical_pairs_reversible_iff_no_alt_cycle` | reversibility ⟺ no alternating cycle |
+| `exec_dim_le_2_of_no_alt_cycle` | no alternating cycle of critical pairs ⇒ dim ≤ 2 |
+
+#### `execution/DimExamples.v` / `DimExampleN3.v` — concrete dimension-2 results (test-only)
+
+| Name | Meaning |
+|------|---------|
+| `E_min_dim_2` | the minimal 4-event execution has dimension exactly 2 |
+| `E_n3_dim_2` | the N=3 execution has dimension exactly 2 |
+
 #### `execution/Examples.v` — test examples (not exported by aggregator)
 
 | Name | Meaning |
