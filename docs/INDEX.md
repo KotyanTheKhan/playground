@@ -102,15 +102,16 @@
 | `one_point_removal` | `OnePointRemoval.v` | `dim X ≤ 1 + dim(X−p)` (Trotter 1975 ineq. 1), Qed |
 | `antichain_complement_dim_bound` | `AntichainComplement.v` | `dim P ≤ max{2,|P−A|}` for antichain A (Trotter 1975 Thm 2); Qed modulo `small_complement_le_2` |
 | `width_exists` | `WidthExists.v` | every finite nonempty poset has a maximum antichain (Width), Qed |
-| `hiraguchi_bound` | `RemovablePairs.v` | same statement, **older proof — depends on `non_antichain_removable_pair_exists` (the OPEN Removable Pair Conjecture).** Superseded by `hiraguchi_bound_direct`; the dependency on the conjecture is the reason to prefer the direct proof. |
-| `small_complement_le_2` | `AntichainComplement.v` | **(admit, TRUE)** antichain + ≤2 points ⟹ dim ≤ 2 (Trotter Lemma 3 finite analysis). The sole remaining gap in the sound Hiraguchi proof. |
+| `linear_sum_dimension` | `LinearSum.v` | `dim(A ⊕ B) = max(dim A, dim B)` for the linear sum (positive dims), Qed |
+| `product_dimension_le` | `ProductDimension.v` | `dim(A × B) ≤ dim A + dim B` (positive dims), Qed |
+| `small_complement_le_2` | `AntichainComplement.v` | **(admit, TRUE)** antichain + ≤2 points ⟹ dim ≤ 2 (Trotter Lemma 3 finite analysis). The sole remaining gap — and the only admit — in the dimension module. |
 
-#### Open problems / conjectures (`posets/dimension/RemovablePairs.v`)
-
-| Name | File | Status |
-|------|------|--------|
-| `RemovablePairConjecture` | `RemovablePairs.v` | **OPEN** (Bogart–Trotter, 1971). Every finite poset on `n≥3` points has a pair `{x,y}` with `dim(P) ≤ dim(P−{x,y})+1`. Stated as an *unasserted* `Prop` (not assumed). Only sufficient conditions are known; the fractional analogue is proven (Biró–Hamburger–Pór–Trotter). Used by nothing. |
-| `non_antichain_removable_pair_exists` | `RemovablePairs.v` | **Admitted = the n≥4 non-antichain instance of `RemovablePairConjecture` (OPEN).** Do not attempt to close it. A prior attempt to prove a piece of it (`trotter_path_family_impossible`) was FALSE — disproof in `TrotterCounterexample.v`. `hiraguchi_bound` depends on it pending the direct-proof rewrite. |
+> **Note (2026-05-31 prune).** The superseded `hiraguchi_bound` proof and its
+> dependency on the OPEN Removable Pair Conjecture — together with the entire
+> N5/N4 realizer + dispatcher + exhaustive machinery (~75.5K lines) — were
+> removed. The full investigation is preserved on the git tag
+> `archive/dimension-n5-full`. `hiraguchi_bound_direct` is the headline result;
+> its only admit is `small_complement_le_2`.
 
 ### Happened-before (`happenedBefore/SemilatticeContradiction.v`)
 
