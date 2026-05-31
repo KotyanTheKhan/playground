@@ -243,3 +243,41 @@
 | `sched_n3` / `edges_n3` / `n3_same_program` | 3-event schedule and its edge spec, program agreement |
 | `n3_ordered` / `n3_concurrent` | ordering facts for the n3 example |
 | `sched_m45` / `edges_m45` / `m45_same_program` | 4+5-process mixed schedule example |
+
+#### `execution/Frontier.v` — frontiers and barriers
+
+| Name | Meaning |
+|------|---------|
+| `ConsistentCut` / `Frontier` | down-closed cut; antichain frontier of a cut |
+| `IsBarrier` | L/U partition with all of L below all of U |
+| `frontier_is_antichain` / `barrier_lower_consistent` / `barrier_upper_disjoint_below` | structural lemmas |
+
+#### `execution/DimIso.v` — dimension under isomorphism
+
+| Name | Meaning |
+|------|---------|
+| `dimension_iso` | poset dimension is invariant under order-isomorphism |
+
+#### `execution/Ordinal.v` — barrier (ordinal-sum) decomposition
+
+| Name | Meaning |
+|------|---------|
+| `sub_order` / `no_alt_cycle` | sub-poset on an ensemble; no alternating cycle of critical pairs |
+| `barrier_critical_pairs` | critical pairs lie within a single block |
+| `barrier_dim_ge` | `dim ≥ max` of block dimensions |
+| `barrier_no_alt_cycle_propagation` | block no-alt-cycle ⇒ whole no-alt-cycle |
+| `barrier_dim2` | both blocks no-alt-cycle ⇒ whole dim ≤ 2 |
+| `barrier_dimension` | `dim = max` of block dimensions (via the linear sum) |
+
+#### `execution/FullySync.v` — fully-synchronized decomposition
+
+| Name | Meaning |
+|------|---------|
+| `IsFullySync` | execution is an ordinal sum of blocks (each prefix split a barrier) |
+| `fully_sync_no_alt_cycle` / `fully_sync_dim2` | every block free of alternating cycles ⇒ the whole execution is dim ≤ 2 |
+
+#### `execution/FrontierExamples.v` — concrete barrier (test-only)
+
+| Name | Meaning |
+|------|---------|
+| `E_min_barrier` / `E_min_barrier_cps` | the minimal execution's bottom barrier; critical pairs within blocks |
