@@ -281,3 +281,21 @@
 | Name | Meaning |
 |------|---------|
 | `E_min_barrier` / `E_min_barrier_cps` | the minimal execution's bottom barrier; critical pairs within blocks |
+
+#### `execution/Reduction.v` — dimension-preserving reductions
+
+| Name | Meaning |
+|------|---------|
+| `PreservesDim` / `ReducesDim` | two posets share a dimension / source dim ≤ target dim |
+| `preserves_dim_refl` / `_sym` / `_trans`, `reduces_dim_refl` / `_trans`, `preserves_dim_reduces` | composability algebra |
+| `iso_preserves_dim` | order-isomorphism preserves dimension |
+| `subposet_reduces_dim` | an induced subposet has dimension ≤ the whole |
+| `embedding_reduces_dim` | an order-embedding reduces dimension |
+| `preserves_dim2` / `reduces_dim2` | the relations transport / bound the `dim ≤ 2` property |
+
+#### `execution/ReductionExamples.v` — concrete reduction (test-only)
+
+| Name | Meaning |
+|------|---------|
+| `E_min_block_reduces` / `E_min_block_dim_le_2` | E_min's dimension analysis reduces to its nontrivial block |
+| `reduction_chain_demo` | composing an iso step with a subposet reduction |
