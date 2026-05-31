@@ -313,3 +313,16 @@
 |------|---------|
 | `E_min_a_global_min` | E_min's bottom event is a global minimum |
 | `E_min_remove_min_dim2` / `E_min_block_dim_le_2_via_extremum` | E_min's dim<=2 analysis reduces to its 3-element block |
+
+#### `execution/BarrierDim2.v` — all-cases binary barrier dim<=2 lever
+
+| Name | Meaning |
+|------|---------|
+| `block_dim0_global_min` / `block_dim0_global_max` | a dimension-0 block is a single global extremum |
+| `barrier_dim_le2` | a barrier with both blocks dim<=2 makes the whole dim<=2 (no dim>0 hypothesis) |
+
+#### `execution/BarrierDim2Examples.v` — concrete barrier dim<=2 (test-only)
+
+| Name | Meaning |
+|------|---------|
+| `E_min_dim_le_2_via_barrier` | E_min is dim<=2 via the all-cases barrier lever on its bottom split |
