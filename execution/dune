@@ -26,4 +26,6 @@
   Reduction
   ReductionExamples
   ExtremumReduction
-  ExtremumReductionExamples))
+  ExtremumReductionExamples
+  BarrierDim2
+  BarrierDim2Examples))
