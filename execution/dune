@@ -11,5 +11,6 @@
   Poset
   Schedule
   FromEdges
+  Agreement
   Examples
   Execution))

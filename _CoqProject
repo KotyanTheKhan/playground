@@ -76,5 +76,6 @@ execution/Rank.v
 execution/Poset.v
 execution/Schedule.v
 execution/FromEdges.v
+execution/Agreement.v
 execution/Examples.v
 execution/Execution.v
