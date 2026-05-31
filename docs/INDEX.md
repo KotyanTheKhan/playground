@@ -299,3 +299,17 @@
 |------|---------|
 | `E_min_block_reduces` / `E_min_block_dim_le_2` | E_min's dimension analysis reduces to its nontrivial block |
 | `reduction_chain_demo` | composing an iso step with a subposet reduction |
+
+#### `execution/ExtremumReduction.v` — extremum removal preserves dim<=2
+
+| Name | Meaning |
+|------|---------|
+| `IsGlobalMin` / `IsGlobalMax` | element below / above all others |
+| `remove_min_preserves_dim2` / `remove_max_preserves_dim2` | removing a global extremum preserves dim <= 2 (realizer surgery) |
+
+#### `execution/ExtremumReductionExamples.v` — concrete extremum reduction (test-only)
+
+| Name | Meaning |
+|------|---------|
+| `E_min_a_global_min` | E_min's bottom event is a global minimum |
+| `E_min_remove_min_dim2` / `E_min_block_dim_le_2_via_extremum` | E_min's dim<=2 analysis reduces to its 3-element block |
