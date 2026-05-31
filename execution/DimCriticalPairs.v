@@ -44,3 +44,108 @@ Proof.
   apply (critical_pairs_reversible_iff_no_alternating_cycle
            (hb (ep_ranked E)) S HS).
 Qed.
+
+(* Helper: a two-element (or one-element) realizer has cardinal <= 2. *)
+Lemma exec_two_extension_realizer_card :
+  forall E (L1 L : ep_carrier E -> ep_carrier E -> Prop),
+    exists n,
+      cardinal _ (fun K => K = L1 \/ K = L) n /\ n <= 2.
+Proof.
+  intros E L1 L.
+  destruct (classic (L1 = L)) as [Heq | Hneq].
+  - (* single element: { K | K = L1 } *)
+    exists 1. split; [| lia].
+    assert (Hset : (fun K : ep_carrier E -> ep_carrier E -> Prop => K = L1 \/ K = L)
+                   = Ensembles.Add _ (Empty_set _) L1).
+    { apply Extensionality_Ensembles. split.
+      - intros K HK. destruct HK as [-> | ->]; [right; constructor | rewrite <- Heq; right; constructor].
+      - intros K HK. destruct HK as [K HK | K HK].
+        + inversion HK.
+        + destruct HK. left; reflexivity. }
+    rewrite Hset.
+    apply card_add.
+    + apply card_empty.
+    + intro Hin. inversion Hin.
+  - (* two distinct elements: { K | K = L1 \/ K = L } *)
+    exists 2. split; [| lia].
+    assert (Hset : (fun K : ep_carrier E -> ep_carrier E -> Prop => K = L1 \/ K = L)
+                   = Ensembles.Add _ (Ensembles.Add _ (Empty_set _) L1) L).
+    { apply Extensionality_Ensembles. split.
+      - intros K HK. destruct HK as [-> | ->].
+        + left; right; constructor.
+        + right; constructor.
+      - intros K HK. destruct HK as [K HK | K HK].
+        + destruct HK as [K HK | K HK].
+          * inversion HK.
+          * destruct HK. left; reflexivity.
+        + destruct HK. right; reflexivity. }
+    rewrite Hset.
+    apply card_add.
+    + apply card_add.
+      * apply card_empty.
+      * intro Hin. inversion Hin.
+    + intro Hin.
+      destruct Hin as [K Hin | K Hin].
+      * inversion Hin.
+      * destruct Hin. apply Hneq. reflexivity.
+Qed.
+
+(* No alternating cycle of critical pairs  =>  dimension <= 2. *)
+Lemma exec_dim_le_2_of_no_alt_cycle :
+  forall E,
+    ~ (exists cycle,
+         (forall p, List.In p cycle -> exec_critical_pair E (fst p) (snd p))
+         /\ IsAlternatingCycle (ep_order E) cycle) ->
+    exists d, exec_has_dimension E d /\ d <= 2.
+Proof.
+  intros E Hno.
+  (* The ensemble of all critical pairs. *)
+  pose (S_cp := fun p : ep_carrier E * ep_carrier E =>
+                  exec_critical_pair E (fst p) (snd p)).
+  assert (HS : forall p, Ensembles.In _ S_cp p ->
+                         exec_critical_pair E (fst p) (snd p)).
+  { intros p Hp. exact Hp. }
+  (* Reversibility characterization. *)
+  pose proof (exec_critical_pairs_reversible_iff_no_alt_cycle E S_cp HS) as Hiff.
+  (* The RHS of Hiff is exactly Hno. *)
+  assert (Hrev_exists : exists L, IsLinearExtension (ep_order E) L /\
+                        forall x y, Ensembles.In _ S_cp (x, y) -> L y x).
+  { apply Hiff.
+    intro Hcyc. apply Hno.
+    destruct Hcyc as [cycle [Hcyc_in Hcyc_alt]].
+    exists cycle. split; [| exact Hcyc_alt].
+    intros p Hp. exact (Hcyc_in p Hp). }
+  destruct Hrev_exists as [L [HLlin HLrev]].
+  (* L reverses every critical pair. *)
+  assert (HLrev_cp : forall x y, IsCriticalPair (ep_order E) x y -> L y x).
+  { intros x y Hcp. apply (HLrev x y). exact Hcp. }
+  (* Second linear extension. *)
+  destruct (at_least_one_linear_extension (ep_order E)) as [L1 HL1lin].
+  (* The realizer. *)
+  pose (realizer := fun K : ep_carrier E -> ep_carrier E -> Prop =>
+                      K = L1 \/ K = L).
+  assert (Hinh : Ensembles.Inhabited _ realizer).
+  { exists L1. left. reflexivity. }
+  assert (Hmem : forall K, Ensembles.In _ realizer K ->
+                           IsLinearExtension (ep_order E) K).
+  { intros K HK. destruct HK as [-> | ->]; assumption. }
+  (* Finiteness of the carrier. *)
+  pose (Hfin := cardinal_finite (ep_carrier E) (Full_set _)
+                  (ep_size E) (ep_size_ok E)).
+  (* realizer is a realizer. *)
+  assert (Hreal : IsRealizer (ep_order E) realizer).
+  { apply (critical_pair_realizer_iff (ep_order E) Hfin realizer Hinh Hmem).
+    intros x y Hcp.
+    exists L. split.
+    - right. reflexivity.
+    - apply HLrev_cp. exact Hcp. }
+  (* Cardinal of the realizer. *)
+  destruct (exec_two_extension_realizer_card E L1 L) as [n [Hcard Hle2]].
+  fold realizer in Hcard.
+  (* Dimension bound. *)
+  destruct (exec_dimension_exists E) as [d [Hd]].
+  pose proof (dimension_is_minimum Hd realizer n Hreal Hcard) as Hle.
+  exists d. split.
+  - constructor. exact Hd.
+  - lia.
+Qed.
