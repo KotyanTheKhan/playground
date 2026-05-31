@@ -88,3 +88,5 @@ execution/Ordinal.v
 execution/FullySync.v
 execution/FrontierExamples.v
 execution/Execution.v
+execution/Reduction.v
+execution/ReductionExamples.v
