@@ -227,7 +227,7 @@
 | `exec_critical_pair` | critical pair of an execution poset |
 | `exec_incomparable_has_critical_pair` | every incomparable pair contains a critical pair |
 | `exec_critical_pairs_reversible_iff_no_alt_cycle` | reversibility ⟺ no alternating cycle |
-| `exec_dim_le_2_of_no_alt_cycle` | no alternating cycle of critical pairs ⇒ dim ≤ 2 |
+| `exec_dim_le_2_of_no_alt_cycle` | no alternating cycle of critical pairs ⇒ dim ≤ 2. **⚠ WEAK:** the hypothesis is strictly stronger than dim ≤ 2 (single-extension-reversible) and fails on antichains; converse is false. For a usable dim ≤ 2 lever see `barrier_dim_le2`. |
 
 #### `execution/DimExamples.v` / `DimExampleN3.v` — concrete dimension-2 results (test-only)
 
@@ -266,7 +266,7 @@
 | `barrier_critical_pairs` | critical pairs lie within a single block |
 | `barrier_dim_ge` | `dim ≥ max` of block dimensions |
 | `barrier_no_alt_cycle_propagation` | block no-alt-cycle ⇒ whole no-alt-cycle |
-| `barrier_dim2` | both blocks no-alt-cycle ⇒ whole dim ≤ 2 |
+| `barrier_dim2` | both blocks no-alt-cycle ⇒ whole dim ≤ 2. **⚠ WEAK** (no-alt-cycle ≫ dim ≤ 2); use `barrier_dim_le2` for the genuine all-cases lever. |
 | `barrier_dimension` | `dim = max` of block dimensions (via the linear sum) |
 
 #### `execution/FullySync.v` — fully-synchronized decomposition

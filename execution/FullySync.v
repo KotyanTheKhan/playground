@@ -433,6 +433,12 @@ Proof.
 Qed.
 
 (* No-alt-cycle in every block ⟹ whole execution has dimension ≤ 2. *)
+(** Sound, but WEAK: the per-block [no_alt_cycle] hypothesis is strictly stronger
+    than each block being [dim <= 2] (see the [no_alt_cycle] caution in Ordinal.v),
+    and FAILS for any block containing an antichain — so this is effectively
+    vacuous for the paper's mΨ structures. A genuine n-way [dim <= 2] lever would
+    iterate [barrier_dim_le2] (BarrierDim2.v) instead; that iteration
+    ([fully_sync_dim_le2]) is the tracked next step. *)
 Lemma fully_sync_dim2 :
   forall E blocks, IsFullySync E blocks ->
     (forall blk, List.In blk blocks -> no_alt_cycle _ (sub_order E blk)) ->

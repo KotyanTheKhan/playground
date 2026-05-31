@@ -268,6 +268,10 @@ Proof.
   - exact HrevP.
 Qed.
 
+(** Sound, but WEAK: the [no_alt_cycle] hypotheses are strictly stronger than the
+    blocks being [dim <= 2] (see the [no_alt_cycle] caution above), so this rarely
+    applies to real posets. For a genuine all-cases lever use [barrier_dim_le2]
+    (BarrierDim2.v), which assumes only the blocks are [dim <= 2]. *)
 Lemma barrier_dim2 :
   forall E L U, IsBarrier E L U ->
     no_alt_cycle _ (sub_order E L) ->
