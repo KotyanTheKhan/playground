@@ -1,7 +1,7 @@
 (coq.theory
  (name Execution)
  (package playground)
- (theories Posets Stdlib)
+ (theories Posets Dimension Stdlib)
  (modules
   Op
   Event
