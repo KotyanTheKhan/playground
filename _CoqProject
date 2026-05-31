@@ -90,3 +90,5 @@ execution/FrontierExamples.v
 execution/Execution.v
 execution/Reduction.v
 execution/ReductionExamples.v
+execution/ExtremumReduction.v
+execution/ExtremumReductionExamples.v
