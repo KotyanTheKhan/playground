@@ -1,9 +1,10 @@
 (* ordinal-sum decomposition of executions *)
 
 From Stdlib Require Import Ensembles Finite_sets List Arith Lia Classical ProofIrrelevance.
+From Stdlib Require Import ClassicalDescription.
 From Posets Require Import PosetClasses FinitePoset.
-From Dimension Require Import DimDefs CriticalPairs Theorems.
-From Execution Require Import Op Event Edges Rank Poset DimBridge DimCriticalPairs Frontier.
+From Dimension Require Import DimDefs CriticalPairs Theorems LinearSum.
+From Execution Require Import Op Event Edges Rank Poset DimBridge DimCriticalPairs Frontier DimIso.
 Import ListNotations.
 
 #[local] Existing Instance hb_IsPoset.
@@ -281,4 +282,132 @@ Proof.
   destruct Hex as [cycle [Hin Halt]].
   exists cycle. split; [| exact Halt].
   intros p Hp. unfold exec_critical_pair in Hin. exact (Hin p Hp).
+Qed.
+
+(** * STRETCH: dimension of a barrier decomposition equals the max of the
+      block dimensions.
+
+   For a barrier [E = L ⊕ U] (every L-element below every U-element), the
+   execution poset is order-isomorphic to the linear (ordinal) sum of its
+   blocks, so its dimension is [max(dim L, dim U)]. *)
+
+Section BarrierDimension.
+  Context (E : ExecPoset) (L U : Ensemble (ep_carrier E)).
+  Context (HB : IsBarrier E L U).
+
+  (* The two sub-posets, and the linear sum relation on their disjoint union. *)
+  #[local] Notation RL := (sub_order E L).
+  #[local] Notation RU := (sub_order E U).
+  #[local] Notation SumT :=
+    ({x : ep_carrier E | Ensembles.In _ L x} +
+     {x : ep_carrier E | Ensembles.In _ U x})%type.
+  #[local] Notation SumRel := (LinearSumRel RL RU).
+
+  #[local] Instance RL_poset : IsPoset _ RL := sub_order_poset E L.
+  #[local] Instance RU_poset : IsPoset _ RU := sub_order_poset E U.
+  #[local] Instance SumRel_poset : IsPoset SumT SumRel :=
+    LinearSum_IsPoset RL RU.
+
+  (* From the cover and [~ In L x] we get [In U x] (propositionally). *)
+  Lemma barrier_not_L_in_U : forall x, ~ Ensembles.In _ L x -> Ensembles.In _ U x.
+  Proof.
+    intros x HnL.
+    destruct HB as [Hcov _].
+    destruct (Hcov x) as [HxL | HxU]; [contradiction | exact HxU].
+  Qed.
+
+  (* The forward iso map: classify each element into its block. *)
+  Definition bd_f (x : ep_carrier E) : SumT :=
+    match excluded_middle_informative (Ensembles.In _ L x) with
+    | left h => inl (exist _ x h)
+    | right h => inr (exist _ x (barrier_not_L_in_U x h))
+    end.
+
+  (* The backward iso map: forget the block tag. *)
+  Definition bd_g (s : SumT) : ep_carrier E :=
+    match s with
+    | inl p => proj1_sig p
+    | inr p => proj1_sig p
+    end.
+
+  Lemma bd_gf : forall a, bd_g (bd_f a) = a.
+  Proof.
+    intro a. unfold bd_f, bd_g.
+    destruct (excluded_middle_informative (Ensembles.In _ L a)); reflexivity.
+  Qed.
+
+  Lemma bd_fg : forall s, bd_f (bd_g s) = s.
+  Proof.
+    intro s. unfold bd_f, bd_g.
+    destruct s as [[x Hx] | [x Hx]]; simpl.
+    - destruct (excluded_middle_informative (Ensembles.In _ L x)) as [h | h].
+      + f_equal. f_equal. apply proof_irrelevance.
+      + contradiction.
+    - destruct (excluded_middle_informative (Ensembles.In _ L x)) as [h | h].
+      + (* In L x and In U x contradict disjointness *)
+        exfalso. destruct HB as [_ [Hdisj _]]. apply (Hdisj x). split; assumption.
+      + f_equal. f_equal. apply proof_irrelevance.
+  Qed.
+
+  Lemma bd_iso :
+    forall a a', ep_order E a a' <-> SumRel (bd_f a) (bd_f a').
+  Proof.
+    intros a a'. unfold bd_f.
+    destruct (excluded_middle_informative (Ensembles.In _ L a)) as [HaL | HaU];
+    destruct (excluded_middle_informative (Ensembles.In _ L a')) as [Ha'L | Ha'U].
+    - (* both in L *)
+      split.
+      + intro Hord. apply SumAA. unfold sub_order. simpl. exact Hord.
+      + intro Hsum. inversion Hsum as [x y Hxy Heqx Heqy| |]; subst.
+        unfold sub_order in Hxy. simpl in Hxy. exact Hxy.
+    - (* a in L, a' in U: L→U, always ordered and SumAB holds *)
+      pose proof (barrier_not_L_in_U a' Ha'U) as Ha'Uin.
+      split.
+      + intro _Hord. apply SumAB.
+      + intro _Hsum.
+        destruct HB as [_ [_ [_ [_ Hbelow]]]].
+        apply Hbelow; assumption.
+    - (* a in U, a' in L: U→L, never ordered and SumRel false *)
+      pose proof (barrier_not_L_in_U a HaU) as HaUin.
+      split.
+      + intro Hord. exfalso.
+        exact (barrier_upper_disjoint_below E L U HB a a' HaUin Ha'L Hord).
+      + intro Hsum. inversion Hsum.
+    - (* both in U *)
+      pose proof (barrier_not_L_in_U a HaU) as HaUin.
+      pose proof (barrier_not_L_in_U a' Ha'U) as Ha'Uin.
+      split.
+      + intro Hord. apply SumBB. unfold sub_order. simpl. exact Hord.
+      + intro Hsum. inversion Hsum as [|x y Hxy Heqx Heqy|]; subst.
+        unfold sub_order in Hxy. simpl in Hxy. exact Hxy.
+  Qed.
+
+  Theorem barrier_dimension_section :
+    forall dL dU d,
+      PosetDimension RL dL ->
+      PosetDimension RU dU ->
+      PosetDimension (ep_order E) d ->
+      0 < dL -> 0 < dU -> d = Nat.max dL dU.
+  Proof.
+    intros dL dU d HdL HdU Hd HposL HposU.
+    (* Transport the whole-poset dimension to the linear-sum poset. *)
+    assert (HdSum : PosetDimension SumRel d).
+    { apply (dimension_iso (ep_carrier E) SumT (ep_order E) SumRel
+                           bd_f bd_g bd_gf bd_fg bd_iso d Hd). }
+    (* The linear-sum theorem: dim(sum) = max(dim L, dim U). *)
+    exact (linear_sum_dimension RL RU dL dU d HdL HdU HdSum HposL HposU).
+  Qed.
+
+End BarrierDimension.
+
+Theorem barrier_dimension :
+  forall E L U, IsBarrier E L U ->
+    forall dL dU d,
+      PosetDimension (sub_order E L) dL ->
+      PosetDimension (sub_order E U) dU ->
+      PosetDimension (ep_order E) d ->
+      0 < dL -> 0 < dU -> d = Nat.max dL dU.
+Proof.
+  intros E L U HB dL dU d HdL HdU Hd HposL HposU.
+  exact (barrier_dimension_section E L U HB dL dU d HdL HdU Hd HposL HposU).
 Qed.
