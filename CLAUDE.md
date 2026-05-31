@@ -6,14 +6,39 @@ Do not add `Co-Authored-By` or any other AI watermarks to commit messages.
 
 ## Build commands
 
-Always use `mise` — never invoke `dune`, `opam`, or `coqc` directly. If you must call them, use `mise exec -- dune …` / `mise exec -- opam …`.
+**Every build goes through the wrapper.** Never call `dune`/`mise build`/`coqc`
+directly — they have no timeout and no memory cap, and the default `dune -j =
+ncpu` fan-out across memory-heavy proofs has crashed the machine (OOM) more than
+once. Use:
 
-- `mise build` — entire project
-- `mise run build <dir>/` — single submodule (e.g. `posets/`, `list/`)
-- `mise run build <file>.v` — single file
-- `mise run clean`
+```
+bash .claude/scripts/timed-build.sh <seconds> <target> [jobs] [mem_mb]
+```
 
-Run `mise build` (no target) before committing to catch cross-module import errors.
+- `<seconds>` — hard wall-clock cap; the build is killed if exceeded. Always
+  pass a real value (single files >300s must be justified — see the
+  `coq-fast-compile` skill).
+- `<target>` — a `path/to/File.vo` (single file), a submodule dir (e.g.
+  `posets`, `list`), or `@all` (entire project).
+- `[jobs]` — dune `-j` parallelism. **Default 2.** Use `1` for memory-heavy
+  cascade files; raise only for many small light files.
+- `[mem_mb]` — kill the build if total worker RSS exceeds this (default 20000 ≈
+  20 GB; leaves headroom on a 32 GB machine).
+
+Exit codes: `0` success, `124` timeout, `137` memory-limit kill, other = build
+failure. Examples:
+
+```
+bash .claude/scripts/timed-build.sh 120 posets/dimension/.../File.vo      # single file, -j2
+bash .claude/scripts/timed-build.sh 600 posets/dimension/.../Heavy.vo 1   # heavy cascade, -j1
+bash .claude/scripts/timed-build.sh 1800 @all 4                           # whole project, -j4
+```
+
+For non-build opam/dune needs, still go through `mise exec -- opam …`.
+`mise run clean` is fine (no compilation, no memory risk).
+
+Run a whole-project build through the wrapper before committing to catch
+cross-module import errors.
 
 ## Project layout
 

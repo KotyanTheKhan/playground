@@ -98,7 +98,20 @@
 | `incomparable_extension` | `Theorems.v` | incomparable elements can be ordered in some linear extension |
 | `dushnik_miller_exists` | `Theorems.v` | every poset has a realizer |
 | `subposet_dimension_le` | `Theorems.v` | dimension is monotone under sub-posets |
-| `hiraguchi_bound` | `Theorems.v` | Hiraguchi's dimension bound |
+| `hiraguchi_bound_direct` | `HiraguchiDirect.v` | **Hiraguchi's bound `dim ≤ ⌊n/2⌋` (n≥4), SOUND proof.** Via `dimension_le_width` + `antichain_complement_dim_bound` (Trotter 1975 Thm 2) + `hiraguchi_combine`, using `width_exists`. `Print Assumptions` = standard classical axioms + the single base-case admit `small_complement_le_2` (Trotter Lemma 3). **No dependence on the Removable Pair Conjecture.** |
+| `one_point_removal` | `OnePointRemoval.v` | `dim X ≤ 1 + dim(X−p)` (Trotter 1975 ineq. 1), Qed |
+| `antichain_complement_dim_bound` | `AntichainComplement.v` | `dim P ≤ max{2,|P−A|}` for antichain A (Trotter 1975 Thm 2); Qed modulo `small_complement_le_2` |
+| `width_exists` | `WidthExists.v` | every finite nonempty poset has a maximum antichain (Width), Qed |
+| `linear_sum_dimension` | `LinearSum.v` | `dim(A ⊕ B) = max(dim A, dim B)` for the linear sum (positive dims), Qed |
+| `product_dimension_le` | `ProductDimension.v` | `dim(A × B) ≤ dim A + dim B` (positive dims), Qed |
+| `small_complement_le_2` | `AntichainComplement.v` | **(admit, TRUE)** antichain + ≤2 points ⟹ dim ≤ 2 (Trotter Lemma 3 finite analysis). The sole remaining gap — and the only admit — in the dimension module. |
+
+> **Note (2026-05-31 prune).** The superseded `hiraguchi_bound` proof and its
+> dependency on the OPEN Removable Pair Conjecture — together with the entire
+> N5/N4 realizer + dispatcher + exhaustive machinery (~75.5K lines) — were
+> removed. The full investigation is preserved on the git tag
+> `archive/dimension-n5-full`. `hiraguchi_bound_direct` is the headline result;
+> its only admit is `small_complement_le_2`.
 
 ### Happened-before (`happenedBefore/SemilatticeContradiction.v`)
 
