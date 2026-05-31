@@ -12,5 +12,8 @@
   Schedule
   FromEdges
   Agreement
+  DimBridge
+  DimCriticalPairs
+  DimExamples
   Examples
   Execution))

@@ -77,5 +77,8 @@ execution/Poset.v
 execution/Schedule.v
 execution/FromEdges.v
 execution/Agreement.v
+execution/DimBridge.v
+execution/DimCriticalPairs.v
+execution/DimExamples.v
 execution/Examples.v
 execution/Execution.v
