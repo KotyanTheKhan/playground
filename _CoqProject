@@ -94,3 +94,6 @@ execution/ExtremumReduction.v
 execution/ExtremumReductionExamples.v
 execution/BarrierDim2.v
 execution/BarrierDim2Examples.v
+execution/FinPosetDimSurgery.v
+execution/FinPosetDim.v
+execution/FinPosetDimExamples.v
