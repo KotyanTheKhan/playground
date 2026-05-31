@@ -1,2 +1,2 @@
-(* Execution poset framework — aggregator. *)
-(* Submodule exports are added as each lands. *)
+(* Execution poset framework — public surface. *)
+From Execution Require Export Op Event Finite Edges Rank Poset Schedule FromEdges.

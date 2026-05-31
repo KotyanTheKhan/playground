@@ -122,3 +122,91 @@
 | `happened_before_cannot_be_join_semilattice_instance` | same for LUBs |
 | `happened_before_cannot_be_lattice_instance` | no `IsLattice` instance is causally correct |
 | `lex_meet_not_causal_glb` / `lex_join_not_causal_lub` | lexicographic meet/join are not causal GLB/LUB |
+
+### Execution poset (`execution/`)
+
+#### `execution/Op.v` — operations and programs
+
+| Name | Meaning |
+|------|---------|
+| `Op` | inductive: `Local` / `Send` / `Recv` |
+| `Program` | `list (list Op)` — per-process op sequences |
+| `nprocs` / `proc_ops` / `proc_len` / `op_at` | program accessor definitions |
+| `matched` | `Send`/`Recv` matching predicate |
+| `wf_program` | well-formedness: all sends are matched |
+
+#### `execution/Event.v` — event carrier
+
+| Name | Meaning |
+|------|---------|
+| `Valid` / `ValidSet` | in-bounds `(process, index)` predicate and set |
+| `Event` | finite carrier type (subtype of valid pairs) |
+| `total` | total number of events across all processes |
+| `raw_events` | explicit list of all events |
+| `raw_events_NoDup` / `raw_events_spec` / `raw_events_length` | list well-formedness lemmas |
+| `event_eq_dec` | decidable equality on `Event` |
+
+#### `execution/Finite.v` — finiteness of the event carrier
+
+| Name | Meaning |
+|------|---------|
+| `cardinal_of_NoDup_list` | cardinality via a duplicate-free list |
+| `valid_cardinal` | `|ValidSet|` equals `total` |
+| `event_cardinal` | `Event` carrier is finite (via `cardinal_subtype_full`) |
+
+#### `execution/Edges.v` — program order and happens-before
+
+| Name | Meaning |
+|------|---------|
+| `edge` | program-order + matched-message edge relation |
+| `hb` | reflexive-transitive closure of `edge` |
+| `hb_refl` / `hb_trans` | reflexivity and transitivity of `hb` |
+
+#### `execution/Rank.v` — ranked programs and acyclicity
+
+| Name | Meaning |
+|------|---------|
+| `RankedProgram` | rank strictly increasing along every `edge` |
+| `hb_eq_or_rank_lt` | `hb e1 e2 → e1 = e2 ∨ rank e1 < rank e2` |
+| `rank_hb_le` | `hb e1 e2 → rank e1 ≤ rank e2` |
+| `hb_neq_rank_lt` | `hb e1 e2 → e1 ≠ e2 → rank e1 < rank e2` |
+| `hb_antisym` | structural acyclicity of `hb` |
+
+#### `execution/Poset.v` — poset instances
+
+| Name | Meaning |
+|------|---------|
+| `hb_IsPoset` | `IsPoset Event hb` instance |
+| `hb_IsFinitePoset` | `IsFinitePoset Event hb n` instance |
+| `ExecPoset` | bundled record wrapping the poset |
+| `exec_of` | constructs an `ExecPoset` from a `RankedProgram` |
+
+#### `execution/Schedule.v` — frontier schedule model
+
+| Name | Meaning |
+|------|---------|
+| `Frontier` / `Schedule` | Ψ(N,S) frontier model types |
+| `op_for` | operation at a schedule step |
+| `desugar_prog` / `desugar_rank` / `desugar` | schedule desugaring to `Program` + rank |
+| `desugar_rank_mono` | desugared rank is strictly monotone along edges |
+| `exec_of_schedule` | produces an `ExecPoset` from a `Schedule` |
+| `schedule_program_agree` | schedule and desugared program agree on operations |
+
+#### `execution/FromEdges.v` — poset construction from an edge spec
+
+| Name | Meaning |
+|------|---------|
+| `EdgeSpec` | record specifying a finite edge relation |
+| `op_at_es` | operation lookup from an `EdgeSpec` |
+| `prog_of_edgespec` | builds a `Program` from an `EdgeSpec` |
+| `edgespec_ranked` | `prog_of_edgespec` satisfies `RankedProgram` |
+| `from_edges` | produces an `ExecPoset` directly from an `EdgeSpec` |
+| `hb_prog_eq` | equal-process events agree on program |
+
+#### `execution/Examples.v` — test examples (not exported by aggregator)
+
+| Name | Meaning |
+|------|---------|
+| `sched_n3` / `edges_n3` / `n3_same_program` | 3-event schedule and its edge spec, program agreement |
+| `n3_ordered` / `n3_concurrent` | ordering facts for the n3 example |
+| `sched_m45` / `edges_m45` / `m45_same_program` | 4+5-process mixed schedule example |
