@@ -203,6 +203,14 @@
 | `from_edges` | produces an `ExecPoset` directly from an `EdgeSpec` |
 | `hb_prog_eq` | equal-process events agree on program |
 
+#### `execution/Agreement.v` — universal schedule ⟷ edge-set agreement
+
+| Name | Meaning |
+|------|---------|
+| `translate` | builds the equivalent `EdgeSpec` from a `Schedule` |
+| `schedule_edges_agree` | `∀ s, desugar_prog s = prog_of_edgespec (translate s)` (axiom-free) |
+| `schedule_edges_hb_agree` | the two representations induce the same `hb` order (transported) |
+
 #### `execution/Examples.v` — test examples (not exported by aggregator)
 
 | Name | Meaning |
