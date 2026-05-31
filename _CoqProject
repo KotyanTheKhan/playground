@@ -85,5 +85,6 @@ execution/DimExampleN3.v
 execution/Frontier.v
 execution/DimIso.v
 execution/Ordinal.v
+execution/FullySync.v
 execution/FrontierExamples.v
 execution/Execution.v
