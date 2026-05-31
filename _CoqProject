@@ -82,4 +82,8 @@ execution/DimCriticalPairs.v
 execution/DimExamples.v
 execution/Examples.v
 execution/DimExampleN3.v
+execution/Frontier.v
+execution/DimIso.v
+execution/Ordinal.v
+execution/FrontierExamples.v
 execution/Execution.v

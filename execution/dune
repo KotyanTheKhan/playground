@@ -16,5 +16,9 @@
   DimCriticalPairs
   DimExamples
   DimExampleN3
+  Frontier
+  DimIso
+  Ordinal
+  FrontierExamples
   Examples
   Execution))
