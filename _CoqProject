@@ -100,3 +100,5 @@ execution/FinPosetDimExamples.v
 execution/FinFullySync.v
 execution/FullySyncDim2.v
 execution/FinFullySyncExamples.v
+execution/FinExtremumDim.v
+execution/FinExtremumDimExamples.v

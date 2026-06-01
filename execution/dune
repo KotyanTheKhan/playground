@@ -34,4 +34,6 @@
   FinPosetDimExamples
   FinFullySync
   FullySyncDim2
-  FinFullySyncExamples))
+  FinFullySyncExamples
+  FinExtremumDim
+  FinExtremumDimExamples))

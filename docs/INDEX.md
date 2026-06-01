@@ -354,3 +354,14 @@ The genuine n-way dim≤2 lever: a fully-synchronized execution whose blocks are
 | `fully_sync_pairwise_below` | IsFullySync's prefix barriers ⇒ earlier blocks lie below later ones |
 | `fully_sync_dim_le2` | (ExecPoset) the n-way dim ≤ 2 lever for `IsFullySync` |
 | `E_min_is_fully_sync_2` / `E_min_dim_le_2_via_fully_sync` | (test) E_min as a 2-block fully-sync execution, dim ≤ 2 via the n-way path |
+
+#### `execution/FinExtremumDim.v` — exact barrier dimension (exact n-way dim=max, slice 1)
+
+Exact-dimension siblings of the dim≤2 levers. Adding a global extremum to a nonempty poset gives `dim = max(d, 1)` (so a singleton rest ⇒ a 2-chain ⇒ dim 1); a barrier with blocks of dimensions dL, dU has `dim = max(1, max(dL, dU))`.
+
+| Name | Meaning |
+|------|---------|
+| `fin_singleton_dim0` | a ≤1-element poset has dimension 0 |
+| `fin_add_min_dim` / `fin_add_max_dim` | adding a global min/max gives `dim = max(d, 1)` (rest inhabited) |
+| `fin_barrier_dimension_full` | a barrier with block dims dL, dU has `dim = max(1, max(dL, dU))` |
+| `chain2_exact_dim` | (test) a 2-element chain has dimension 1 via `fin_add_min_dim` |
