@@ -36,4 +36,10 @@
   FullySyncDim2
   FinFullySyncExamples
   FinExtremumDim
-  FinExtremumDimExamples))
+  FinExtremumDimExamples
+  FinFullySyncDim
+  FullySyncDimExact
+  FinFullySyncDimExamples
+  ChainDim
+  TransformA
+  TransformAExamples))

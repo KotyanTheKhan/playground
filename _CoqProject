@@ -102,3 +102,9 @@ execution/FullySyncDim2.v
 execution/FinFullySyncExamples.v
 execution/FinExtremumDim.v
 execution/FinExtremumDimExamples.v
+execution/FinFullySyncDim.v
+execution/FullySyncDimExact.v
+execution/FinFullySyncDimExamples.v
+execution/ChainDim.v
+execution/TransformA.v
+execution/TransformAExamples.v

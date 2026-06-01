@@ -365,3 +365,27 @@ Exact-dimension siblings of the dim≤2 levers. Adding a global extremum to a no
 | `fin_add_min_dim` / `fin_add_max_dim` | adding a global min/max gives `dim = max(d, 1)` (rest inhabited) |
 | `fin_barrier_dimension_full` | a barrier with block dims dL, dU has `dim = max(1, max(dL, dU))` |
 | `chain2_exact_dim` | (test) a 2-element chain has dimension 1 via `fin_add_min_dim` |
+
+#### `execution/FinFullySyncDim.v` / `FullySyncDimExact.v` — exact n-way fully-synchronized dimension (slice 2)
+
+Completes the exact n-way `dim = max`: a fully-synchronized execution with ≥2 elements has `dim = max(1, maxᵢ dim(Bᵢ))` (the per-block dimensions given as a `dims` list; `max(1, …)` because singleton blocks have dimension 0).
+
+| Name | Meaning |
+|------|---------|
+| `singleton_union_one_block` | a singleton-union prefix is one singleton block (dims-fold = 0) |
+| `restricted_block_dim_exact` | a prefix block's exact dimension transports to its restriction |
+| `fin_fully_sync_dimension` | (generic) ordinal partition ⇒ `dim = max(1, fold_right max 0 dims)` |
+| `fully_sync_dimension` | (ExecPoset) the exact n-way dimension for `IsFullySync` |
+| `chain_all_singleton_dim` | (test) an all-singleton 2-block chain has dimension 1 |
+
+#### `execution/ChainDim.v` / `TransformA.v` — Transformation A (sync-square contraction)
+
+Transformation A (contract a synchronization square into 2 synchronized points) as a dimension-preserving block replacement: replacing a fully-synchronized block by another of equal dimension preserves the whole execution's dimension (via `fully_sync_dimension`). The square and its contraction are both dimension-1 chains, so A *preserves* (does not lower) dimension — matching the paper. The square↔contraction geometry is a concrete realization of the paper's informally-specified contraction.
+
+| Name | Meaning |
+|------|---------|
+| `chain_dim_1` | a total order on ≥2 elements has dimension 1 |
+| `transform_preserves_dimension` | two fully-sync executions with equal max-block-dimension have equal dimension |
+| `B_square_R` / `B_contracted_R` | the 4-event square (4-chain) and 2-point contracted (2-chain) blocks, each dimension 1 |
+| `transform_A_preserves` | swapping the square block for its contraction preserves the execution's dimension |
+| `transform_A_square_dim_1` / `transform_A_contracted_dim_1` | (test) both blocks have dimension 1 |
