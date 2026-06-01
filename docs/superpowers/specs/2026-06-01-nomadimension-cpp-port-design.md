@@ -101,7 +101,10 @@ internals that can change without breaking consumers.
 - **`enumerate`** — the multithreaded + multifibered work-stealing enumerator
   (boost::fiber), with the sorted-sync-name cache for pruning. Returns the set of
   non-isomorphic, fully-synchronized, dim-2 executions and the isomorphic-hit
-  count. Parameters: `N` (processes) and optional `K` (max sync count).
+  count. Parameters: `N` (processes), optional `K` (max sync count), and
+  `threads` (worker-thread count, default `hardware_concurrency()`; `1` =
+  single-threaded). Results are deduplicated to be deterministic regardless of
+  thread count.
 - **`io`** — YAML load/save for both schemas via yaml-cpp; validation lives here
   and in the constructors it feeds.
 
@@ -139,15 +142,20 @@ upstream style.
 ## 7. CLI surface (single binary)
 
 ```
-nomadim check <file.yaml>             # report dim<=2 (yes/no) + critical pairs
-nomadim enumerate -n N [-k K]         # non-iso fully-synced dim-2 executions; YAML + count
-nomadim convert <in.yaml> <out.yaml>  # execution -> expanded poset
+nomadim check <file.yaml>                  # report dim<=2 (yes/no) + critical pairs
+nomadim enumerate -n N [-k K] [-j THREADS] # non-iso fully-synced dim-2 executions; YAML + count
+nomadim convert <in.yaml> <out.yaml>       # execution -> expanded poset
 ```
 
 Argument parsing via CLI11. Exit codes: `0` success; nonzero for parse,
 validation, or usage errors. `enumerate` writes the found executions as YAML
 (execution documents) and prints the count summary; `-k` defaults to a value
 matched to `N` if omitted (documented in `--help`).
+
+`-j` / `--threads THREADS` sets the number of worker threads for the
+boost::fiber work-stealing enumerator. It defaults to
+`std::thread::hardware_concurrency()`; a value of `1` runs single-threaded
+(useful for deterministic debugging). The value is validated to be `>= 1`.
 
 ## 8. Data flow
 
