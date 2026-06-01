@@ -305,3 +305,21 @@ node --test nomadim/editor/test/*.test.cjs nomadim/editor/test/*.test.mjs
 [tasks.nomadim-editor-clean]
 description = "Remove the editor WASM build dir and generated module"
 run = "rm -rf nomadim/build-wasm nomadim/editor/public/nomadim.js nomadim/editor/public/nomadim.wasm && echo '✅ editor wasm artifacts removed'"
+
+[tasks.nomadim-editor]
+description = "Build the WASM module, serve the editor, and open it in the browser"
+tools = { emsdk = "4.0.23" }
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+bash nomadim/editor/build-wasm.sh
+PORT="${NOMADIM_EDITOR_PORT:-8731}"
+URL="http://localhost:${PORT}/index.html"
+# Open the browser once the server is up (macOS `open`, Linux `xdg-open`).
+( sleep 1
+  if command -v open >/dev/null 2>&1; then open "$URL"
+  elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL"
+  else echo "Open $URL in your browser."; fi ) &
+echo "Serving nomadim editor at ${URL} (Ctrl-C to stop)"
+exec python3 -m http.server "$PORT" --directory nomadim/editor
+'''
