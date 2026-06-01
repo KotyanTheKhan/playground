@@ -14,6 +14,7 @@ const DATA = path.join(ROOT, 'nomadim/data');
 const CLI = path.join(ROOT, 'nomadim/build/nomadim');
 
 function cliCheck(file) {
+  if (!fs.existsSync(CLI)) throw new Error('native CLI not built: ' + CLI + ' (run `mise run nomadim-editor-test`)');
   // The CLI exits 0 for YES and 2 for NO; execFileSync throws on non-zero, so
   // capture stdout from the thrown error object when the exit code is non-zero.
   let out;
@@ -82,10 +83,14 @@ test('expandExecution matches native `nomadim convert`', async () => {
   const src = path.join(DATA, 'exec_dim2.yaml');
   const edoc = JSON.parse(Nm.parseDocument(fs.readFileSync(src, 'utf8')));
   const wasmPoset = JSON.parse(Nm.expandExecution(JSON.stringify(edoc.execution)));
-  const tmp = path.join(os.tmpdir(), 'nm_convert_' + process.pid + '.yaml');
-  execFileSync(CLI, ['convert', src, tmp]);
-  const nativePoset = JSON.parse(Nm.parseDocument(fs.readFileSync(tmp, 'utf8'))).poset;
-  assert.deepStrictEqual(wasmPoset, nativePoset);
+  const tmp = path.join(os.tmpdir(), `nm_convert_${process.pid}_${Date.now()}.yaml`);
+  try {
+    execFileSync(CLI, ['convert', src, tmp]);
+    const nativePoset = JSON.parse(Nm.parseDocument(fs.readFileSync(tmp, 'utf8'))).poset;
+    assert.deepStrictEqual(wasmPoset, nativePoset);
+  } finally {
+    try { fs.rmSync(tmp); } catch (_) {}
+  }
 });
 
 test('findRealizer: dim-2 yields a verified realizer; S3 yields none', async () => {
@@ -94,7 +99,7 @@ test('findRealizer: dim-2 yields a verified realizer; S3 yields none', async () 
   const chain = '[[1],[2],[3],[]]';
   const r = JSON.parse(Nm.findRealizer(chain));
   assert.strictEqual(r.dim_le_2, true);
-  const n = 4;
+  const n = JSON.parse(chain).length;
   assert.ok(isPermutation(r.l1, n) && isPermutation(r.l2, n), 'l1/l2 must be permutations');
   const base = reachKeys(JSON.parse(chain));
   const pos1 = []; r.l1.forEach((e, i) => (pos1[e] = i));
