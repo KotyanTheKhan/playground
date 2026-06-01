@@ -340,3 +340,17 @@ Carrier-generic versions of the ExecPoset levers (on any `(A,R)` with `IsPoset` 
 | `fin_barrier_dimension` | `dim = max` of block dimensions (both > 0) |
 | `fin_barrier_dim_le2` | a barrier with both blocks dim ≤ 2 makes the whole dim ≤ 2 |
 | `fin_chain_reproduces_E_min` | (test) the generic chain reproduces E_min's dim ≤ 2 |
+
+#### `execution/FinFullySync.v` / `FullySyncDim2.v` — n-way fully-synchronized dim≤2
+
+The genuine n-way dim≤2 lever: a fully-synchronized execution whose blocks are each dim ≤ 2 is itself dim ≤ 2. Proven generically on bare finite posets (so the induction recurses into the lower sub-poset of a barrier split), then instantiated for `IsFullySync`.
+
+| Name | Meaning |
+|------|---------|
+| `fin_ordinal_partition` | a finite poset partitioned into linearly-ordered blocks |
+| `restrict_block` / `restrict_partition` / `restricted_block_dim2` | restricting a partition / block dimension to a prefix sub-poset |
+| `fin_sub_order_finite` / `fin_block_iso_full` | a subtype of a finite poset is finite; a full block is order-iso to the whole |
+| `fin_fully_sync_dim_le2` | (generic) ordinal partition with each block dim ≤ 2 ⇒ whole dim ≤ 2 |
+| `fully_sync_pairwise_below` | IsFullySync's prefix barriers ⇒ earlier blocks lie below later ones |
+| `fully_sync_dim_le2` | (ExecPoset) the n-way dim ≤ 2 lever for `IsFullySync` |
+| `E_min_is_fully_sync_2` / `E_min_dim_le_2_via_fully_sync` | (test) E_min as a 2-block fully-sync execution, dim ≤ 2 via the n-way path |

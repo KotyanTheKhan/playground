@@ -31,4 +31,7 @@
   BarrierDim2Examples
   FinPosetDimSurgery
   FinPosetDim
-  FinPosetDimExamples))
+  FinPosetDimExamples
+  FinFullySync
+  FullySyncDim2
+  FinFullySyncExamples))
