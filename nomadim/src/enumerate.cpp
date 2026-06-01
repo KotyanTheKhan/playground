@@ -3,16 +3,19 @@
 #include "nomadim/dimension.hpp"
 #include "nomadim/isomorphism.hpp"
 
-#include <boost/fiber/all.hpp>
 #include <unordered_set>
+#include <map>
+#include <array>
+#include <deque>
 #include <mutex>
+#include <condition_variable>
 #include <thread>
 #include <atomic>
 #include <vector>
+#include <algorithm>
 #include <cstddef>
 
 namespace nomadim {
-namespace bf = boost::fibers;
 
 bool is_full_synchronized(const ProcessGraph& g) {
     std::vector<int> m = make_graph_matrix(g.graph);
@@ -37,117 +40,157 @@ struct PEHashHash {
     }
 };
 
-// State shared across all worker threads / fibers of one enumerate() call.
-// Guarded by std::mutex because fibers on different threads run on independent
-// schedulers; the locked regions contain no fiber-suspension points, so they
-// cannot interleave other fibers of the same thread.
+// Cheap isomorphism invariant for bucketing results: isomorphic process graphs
+// share the same total vertex count and the same multiset of per-process event
+// counts, so is_isomorphic only needs to compare within a bucket.
+using IsoKey = std::vector<int>;
+IsoKey iso_key(const ProcessGraph& g) {
+    IsoKey key;
+    key.reserve(g.proc_verteces.size() + 1);
+    key.push_back((int)g.graph.size());
+    for (auto const& pv : g.proc_verteces) key.push_back((int)pv.size());
+    std::sort(key.begin() + 1, key.end());
+    return key;
+}
+
+// The prune cache is sharded so the per-node hot path does not become a single
+// lock convoy that serializes all worker threads onto one core.
+constexpr size_t NSHARD = 64;
+struct CacheShard {
+    std::mutex mut;
+    std::unordered_set<ProcessGraph::PEHash, PEHashHash> set;
+};
+
 struct EnumState {
     int max_sync = 0;
-    std::unordered_set<ProcessGraph::PEHash, PEHashHash> cache;
-    std::mutex cache_mut;
+    int parallel_cutoff = 0;   // queue children of nodes shallower than this
+    std::array<CacheShard, NSHARD> cache;
     std::mutex rp_mut;
-    std::vector<ProcessGraph> results;
+    std::map<IsoKey, std::vector<ProcessGraph>> buckets;
     std::atomic<int> count{0};
     std::atomic<int> iso_hits{0};
 };
 
-// Plain recursive search of one subtree: extend the execution by every sync
-// pair, prune by the shared canonical sync-name cache, and on full
-// synchronization test dimension-2 and dedup by isomorphism. Faithful to the
-// upstream enumeration; the count is independent of how branches are
-// distributed across fibers/threads (the cache+dedup are order-independent).
-void search(EnumState& st, ProcessGraph g, int sync_num) {
-    if (sync_num > st.max_sync) return;
+// Insert g's canonical sync-name into the cache; return true if it was new
+// (caller should process it), false if already seen (prune).
+bool cache_insert(EnumState& st, const ProcessGraph& g) {
+    auto key = canonical_sync_name(g);
+    size_t h = PEHashHash{}(key);
+    CacheShard& shard = st.cache[h % NSHARD];
+    std::lock_guard<std::mutex> lk(shard.mut);
+    if (shard.set.find(key) != shard.set.end()) return false;
+    shard.set.insert(std::move(key));
+    return true;
+}
 
+// A fully-synchronized node: test dimension-2 and dedup by isomorphism.
+void handle_full_sync(EnumState& st, const ProcessGraph& g) {
+    if (!is_dim2(g.graph)) return;
+    IsoKey key = iso_key(g);
+    bool iso = false;
     {
-        std::lock_guard<std::mutex> lk(st.cache_mut);
-        auto key = canonical_sync_name(g);
-        if (st.cache.find(key) != st.cache.end()) return;
-        st.cache.insert(std::move(key));
+        std::lock_guard<std::mutex> lk(st.rp_mut);
+        auto& bucket = st.buckets[key];
+        for (auto const& p : bucket)
+            if (is_isomorphic(p, g)) { iso = true; break; }
+        if (!iso) bucket.push_back(g);
+    }
+    if (iso) st.iso_hits.fetch_add(1);
+    else     st.count.fetch_add(1);
+}
+
+// Fine-grained work pool (std::thread). Tasks are subtree roots; workers pop
+// tasks, process the node, and either queue (shallow) or inline-recurse (deep)
+// the children. Duplicate nodes are pruned by the shared cache BEFORE being
+// queued, so distinct subtrees spread across the worker threads. in_flight
+// tracks outstanding tasks so the pool can detect quiescence and shut down.
+struct Task { ProcessGraph g; int sync_num; };
+
+struct Pool {
+    std::deque<Task> q;
+    std::mutex m;
+    std::condition_variable cv;
+    std::atomic<long> in_flight{0};
+    bool done = false;
+
+    void push(Task t) {
+        in_flight.fetch_add(1);
+        { std::lock_guard<std::mutex> lk(m); q.push_back(std::move(t)); }
+        cv.notify_one();
     }
 
-    if (is_full_synchronized(g)) {
-        if (is_dim2(g.graph)) {
-            bool iso = false;
-            {
-                std::lock_guard<std::mutex> lk(st.rp_mut);
-                for (auto const& p : st.results)
-                    if (is_isomorphic(p, g)) { iso = true; break; }
-                if (!iso) st.results.push_back(g);
-            }
-            if (iso) st.iso_hits.fetch_add(1);
-            else     st.count.fetch_add(1);
-        }
-        return;
+    bool pop(Task& t) {
+        std::unique_lock<std::mutex> lk(m);
+        cv.wait(lk, [&] { return !q.empty() || done; });
+        if (q.empty()) return false;
+        t = std::move(q.front());
+        q.pop_front();
+        return true;
     }
+
+    void finish_one() {
+        if (in_flight.fetch_sub(1) == 1) {
+            { std::lock_guard<std::mutex> lk(m); done = true; }
+            cv.notify_all();
+        }
+    }
+};
+
+// Process one already-cache-admitted node `g` at depth `sync_num`. Children
+// (deduped) are queued while shallow, inlined once deep, to bound queue size.
+void expand(EnumState& st, Pool& pool, const ProcessGraph& g, int sync_num) {
+    if (is_full_synchronized(g)) { handle_full_sync(st, g); return; }
+    if (sync_num >= st.max_sync) return;
 
     int proc_num = g.proc_num;
     for (int p1 = 0; p1 < proc_num; ++p1)
         for (int p2 = p1 + 1; p2 < proc_num; ++p2) {
             ProcessGraph ng = g;
             ng.sync(p1, p2);
-            search(st, std::move(ng), sync_num + 1);
+            if (!cache_insert(st, ng)) continue;          // prune duplicates here
+            if (sync_num < st.parallel_cutoff)
+                pool.push({std::move(ng), sync_num + 1});  // parallelizable task
+            else
+                expand(st, pool, ng, sync_num + 1);        // inline (deep)
         }
 }
 
 } // namespace
 
-// Multithreaded + multifibered: the first-level branches are partitioned across
-// `threads` OS threads (multithreaded); within each thread every assigned
-// branch runs as its own boost::fiber on that thread's default (round-robin)
-// scheduler (multifibered). The default scheduler keeps no process-global
-// state, so it is safe to spin threads up and down on every call (unlike the
-// work-stealing scheduler, whose global registry corrupts across repeated
-// short-lived threads).
 EnumerateResult enumerate(int n_procs, int max_sync, unsigned threads) {
     if (threads < 1) threads = 1;
 
     EnumState st;
     st.max_sync = max_sync;
+    // Queue children for the shallow levels (where, after symmetry dedup, enough
+    // distinct subtrees exist to keep all threads busy); inline deeper levels.
+    st.parallel_cutoff = std::min(max_sync, 5);
+
+    Pool pool;
 
     ProcessGraph root;
     root.init(n_procs);
+    cache_insert(st, root);
+    pool.push({std::move(root), 0});
 
-    std::vector<ProcessGraph> branches;
-    if (!is_full_synchronized(root)) {
-        for (int p1 = 0; p1 < n_procs; ++p1)
-            for (int p2 = p1 + 1; p2 < n_procs; ++p2) {
-                ProcessGraph child = root;
-                child.sync(p1, p2);
-                branches.push_back(std::move(child));
+    std::vector<std::thread> workers;
+    workers.reserve(threads);
+    for (unsigned i = 0; i < threads; ++i)
+        workers.emplace_back([&st, &pool] {
+            Task t;
+            while (pool.pop(t)) {
+                expand(st, pool, t.g, t.sync_num);
+                pool.finish_one();
             }
-    }
-
-    if (branches.empty()) {
-        // Degenerate (e.g. a single process): no branching needed.
-        search(st, std::move(root), 0);
-    } else {
-        const unsigned tc = std::min<unsigned>(threads, (unsigned)branches.size());
-        std::vector<std::thread> pool;
-        pool.reserve(tc);
-        for (unsigned t = 0; t < tc; ++t) {
-            pool.emplace_back([&st, &branches, t, tc] {
-                // 8 MiB fiber stacks: each fiber runs the recursive search plus
-                // is_dim2 / have_cycle (recursive DFS).
-                bf::fixedsize_stack salloc{ 8 * 1024 * 1024 };
-                std::vector<bf::fiber> fibers;
-                for (size_t i = t; i < branches.size(); i += tc) {
-                    ProcessGraph g = branches[i];
-                    fibers.emplace_back(
-                        bf::launch::post,
-                        std::allocator_arg, salloc,
-                        [&st, g]() mutable { search(st, std::move(g), 1); });
-                }
-                for (auto& f : fibers) f.join();
-            });
-        }
-        for (auto& th : pool) th.join();
-    }
+        });
+    for (auto& w : workers) w.join();
 
     EnumerateResult result;
     result.count = st.count.load();
     result.isomorphic_hits = st.iso_hits.load();
-    result.results = std::move(st.results);
+    for (auto& kv : st.buckets)
+        for (auto& g : kv.second)
+            result.results.push_back(std::move(g));
     return result;
 }
 

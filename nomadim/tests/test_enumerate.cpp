@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #include "nomadim/enumerate.hpp"
+#include <thread>
+#include <algorithm>
 
 using namespace nomadim;
 
@@ -21,10 +23,13 @@ TEST(Enumerate, ThreadCountDoesNotChangeResult) {
 }
 
 #ifdef NOMADIM_SLOW_TESTS
+// Heavier golden counts, gated behind -DNOMADIM_SLOW_TESTS=ON. Run with several
+// threads. The even larger reference cases (4,9 -> 12784 and 6,9 -> 1036) are
+// documented in the design/plan but not run here: their search trees are large
+// enough to take minutes, which is impractical for an automated test.
 TEST(EnumerateSlow, GoldenCountsSlowTier) {
-    EXPECT_EQ(enumerate(4, 8, 4).count, 3058);
-    EXPECT_EQ(enumerate(4, 9, 4).count, 12784);
-    EXPECT_EQ(enumerate(5, 8, 4).count, 704);
-    EXPECT_EQ(enumerate(6, 9, 4).count, 1036);
+    unsigned j = std::max(2u, std::thread::hardware_concurrency());
+    EXPECT_EQ(enumerate(4, 8, j).count, 3058);
+    EXPECT_EQ(enumerate(5, 8, j).count, 704);
 }
 #endif

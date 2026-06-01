@@ -28,7 +28,6 @@ FetchContent_Declare(googletest
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-find_package(Boost REQUIRED COMPONENTS fiber context)
 find_package(Threads REQUIRED)
 
 # ---- core library ----
@@ -44,7 +43,7 @@ add_library(nomadim_core
   src/io.cpp
 )
 target_include_directories(nomadim_core PUBLIC include)
-target_link_libraries(nomadim_core PUBLIC yaml-cpp Boost::fiber Boost::context Threads::Threads)
+target_link_libraries(nomadim_core PUBLIC yaml-cpp Threads::Threads)
 
 # ---- CLI (sources added in later tasks) ----
 add_executable(nomadim app/main.cpp)
