@@ -63,3 +63,25 @@ TEST(Realizer, ChainHasRealizer) {
     EXPECT_TRUE(r.dim_le_2);
     expect_valid_realizer(chain, r);
 }
+
+// A 3-element antichain has dimension 2: the realizer is any order and its
+// reverse, so the intersection is empty (all pairs incomparable).
+TEST(Realizer, AntichainHasRealizer) {
+    adjacency_list a3(3);   // no edges
+    Realizer r = find_realizer(a3);
+    EXPECT_TRUE(r.dim_le_2);
+    expect_valid_realizer(a3, r);
+}
+
+// Degenerate sizes: the empty poset and a single element both trivially realize.
+TEST(Realizer, EmptyAndSingleton) {
+    Realizer r0 = find_realizer(adjacency_list{});
+    EXPECT_TRUE(r0.dim_le_2);
+    EXPECT_TRUE(r0.l1.empty());
+    EXPECT_TRUE(r0.l2.empty());
+
+    adjacency_list one(1);
+    Realizer r1 = find_realizer(one);
+    EXPECT_TRUE(r1.dim_le_2);
+    expect_valid_realizer(one, r1);
+}
