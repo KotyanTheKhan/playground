@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { emptyExecution, setNProcs, appendSync, removeLastSync } from '../src/execution-edits.mjs';
+import { executionSvg } from '../src/execution-svg.mjs';
 
 test('emptyExecution has the requested process count and no syncs', () => {
   assert.deepStrictEqual(emptyExecution(3), { n_procs: 3, syncs: [] });
@@ -31,4 +32,23 @@ test('ops do not mutate their input', () => {
   removeLastSync(e);
   setNProcs(e, 1);
   assert.deepStrictEqual(e, { n_procs: 2, syncs: [[0, 1]] });
+});
+
+test('executionSvg renders one lane per process and one connector per sync', () => {
+  const svg = executionSvg({ n_procs: 3, syncs: [[0, 1], [1, 2]] });
+  assert.match(svg, /^<svg /);
+  assert.match(svg, /data-procs="3"/);
+  assert.match(svg, /data-syncs="2"/);
+  assert.strictEqual((svg.match(/class="lane"/g) || []).length, 3);
+  assert.strictEqual((svg.match(/class="sync"/g) || []).length, 2);
+  // each sync carries its endpoints
+  assert.match(svg, /data-sync="0" data-a="0" data-b="1"/);
+  assert.match(svg, /data-sync="1" data-a="1" data-b="2"/);
+});
+
+test('executionSvg handles an empty execution', () => {
+  const svg = executionSvg({ n_procs: 0, syncs: [] });
+  assert.match(svg, /data-procs="0"/);
+  assert.strictEqual((svg.match(/class="lane"/g) || []).length, 0);
+  assert.strictEqual((svg.match(/class="sync"/g) || []).length, 0);
 });
