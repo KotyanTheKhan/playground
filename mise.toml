@@ -323,3 +323,17 @@ URL="http://localhost:${PORT}/index.html"
 echo "Serving nomadim editor at ${URL} (Ctrl-C to stop)"
 exec python3 -m http.server "$PORT" --directory nomadim/editor
 '''
+
+[tasks.nomadim-editor-e2e]
+description = "Build the WASM module and run the Playwright browser smoke suite"
+tools = { emsdk = "4.0.23", node = "22" }
+dir = "nomadim/editor"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+# Build the module the page loads (paths are relative to repo root, so cd back).
+( cd ../.. && bash nomadim/editor/build-wasm.sh )
+npm install --no-audit --no-fund
+npx playwright install chromium
+npx playwright test
+'''
