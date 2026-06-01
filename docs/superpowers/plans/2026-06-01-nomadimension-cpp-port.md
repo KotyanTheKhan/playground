@@ -1194,10 +1194,21 @@ git commit -m "feat(nomadim): process-graph isomorphism + canonical sync name"
 ## Task 7: Enumerator (multithreaded + multifibered)
 
 Port of upstream `enumerate_isomorphic` generate_graph: recursive sync expansion
-pruned by the canonical sync-name cache, with boost::fiber work-stealing over
-`threads` worker threads. Full synchronization is tested with the upstream
-`is_full_syncronized` predicate; fully-synced dim-2 results are deduplicated by
-isomorphism. The returned **count** is deterministic regardless of thread count.
+pruned by the canonical sync-name cache. Full synchronization is tested with the
+upstream `is_full_syncronized` predicate; fully-synced dim-2 results are
+deduplicated by isomorphism. The returned **count** is deterministic regardless
+of thread count.
+
+> **IMPLEMENTATION NOTE (supersedes the boost::fiber work-stealing code shown
+> below):** On macOS/arm64 the boost::fiber `work_stealing` scheduler SIGBUS-
+> crashes when its threads are created/destroyed across repeated `enumerate()`
+> calls (process-global scheduler state; confirmed via the macOS `.ips` crash
+> report, not a stack overflow). The shipped design instead partitions the
+> first-level branches across `threads` `std::thread`s and, within each thread,
+> runs its branches as `boost::fiber`s on the **default round-robin** scheduler
+> (no global state). Shared cache/results use `std::mutex`; fibers get an 8 MiB
+> stack. This is multithreaded + multifibered and reproduces the golden counts.
+> See the committed `nomadim/src/enumerate.cpp` for the authoritative code.
 
 **Files:**
 - Create: `nomadim/include/nomadim/enumerate.hpp`
