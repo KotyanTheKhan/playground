@@ -108,3 +108,5 @@ execution/FinFullySyncDimExamples.v
 execution/ChainDim.v
 execution/TransformA.v
 execution/TransformAExamples.v
+execution/SyncShape.v
+execution/SyncShapeExamples.v

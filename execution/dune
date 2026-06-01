@@ -42,4 +42,6 @@
   FinFullySyncDimExamples
   ChainDim
   TransformA
-  TransformAExamples))
+  TransformAExamples
+  SyncShape
+  SyncShapeExamples))

@@ -389,3 +389,17 @@ Transformation A (contract a synchronization square into 2 synchronized points) 
 | `B_square_R` / `B_contracted_R` | the 4-event square (4-chain) and 2-point contracted (2-chain) blocks, each dimension 1 |
 | `transform_A_preserves` | swapping the square block for its contraction preserves the execution's dimension |
 | `transform_A_square_dim_1` / `transform_A_contracted_dim_1` | (test) both blocks have dimension 1 |
+
+#### `execution/SyncShape.v` — sync-shape operational definitions + IsFullySync bridge
+
+Program-level "sync-shape" (every matched send/recv pair at the same local index — the rendezvous form): every `desugar s` program is sync-shaped. A fully-synchronizing schedule's execution is a fully-synchronized decomposition by frontiers (`IsFullySync`), connecting program syntax to the dimension machinery. `FullySynchronizing` is the barrier-ordering lifted to the schedule (a caller-discharged hypothesis), not derived from per-frontier connectivity (a later refinement).
+
+| Name | Meaning |
+|------|---------|
+| `sync_shaped` / `synchronous_message` | every matched send/recv pair is at the same local index |
+| `desugar_sync_shaped` | every frontier-model (`desugar s`) program is sync-shaped |
+| `frontier_block` / `frontier_blocks` | the per-local-index event blocks of a schedule's execution |
+| `FullySynchronizing` | every index-i event precedes every index-j>i event (the barrier ordering hypothesis) |
+| `fully_synchronizing_is_fully_sync` | a fully-synchronizing schedule's execution is `IsFullySync` by frontiers |
+| `fully_synchronizing_dim2` | + per-frontier-block dim≤2 ⇒ execution dim≤2 |
+| `s_demo_*` | (test) a concrete 2×2 fully-synchronizing schedule end-to-end |
