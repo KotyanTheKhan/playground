@@ -12,3 +12,12 @@ export function posetToElements(poset) {
   }
   return elements;
 }
+
+// Overlay elements for critical pairs (incomparable pairs, drawn as a separate
+// dashed class so they don't affect the Hasse layout). Ids are "c<x>_<y>".
+export function criticalPairsToElements(pairs) {
+  return pairs.map(([x, y]) => ({
+    data: { id: `c${x}_${y}`, source: 'n' + x, target: 'n' + y },
+    classes: 'critical',
+  }));
+}
