@@ -14,9 +14,22 @@
   <header>
     <h1>nomadim editor</h1>
     <span id="version"></span>
-    <label>Load YAML <input id="file" type="file" accept=".yaml,.yml" /></label>
+    <label>Load <input id="file" type="file" accept=".yaml,.yml" /></label>
+    <button id="save">Save</button>
   </header>
+  <div id="toolbar">
+    <button id="new">New poset</button>
+    <button id="addv">Add vertex</button>
+    <span class="sep"></span>
+    <label>edge <input id="edge-u" type="number" min="0" class="vnum" /> &rarr;
+      <input id="edge-v" type="number" min="0" class="vnum" /></label>
+    <button id="adde">Add edge</button>
+    <button id="del">Delete selected</button>
+    <span class="sep"></span>
+    <label><input id="critical" type="checkbox" /> critical pairs</label>
+  </div>
   <div id="verdict">No document loaded.</div>
+  <div id="realizer"></div>
   <div id="error"></div>
   <main>
     <div id="cy"></div>
