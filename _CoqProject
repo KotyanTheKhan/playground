@@ -7,6 +7,7 @@
 -R abhishek Abhishek
 -R chipala_book CpdtTactics
 -R vendor/ZornsLemma ZornsLemma
+-R execution Execution
 
 posets/Posets.v
 posets/PosetClasses.v
@@ -66,3 +67,33 @@ abhishek/Graph.v
 abhishek/Halls_Thm.v
 abhishek/Marriage_Thm.v
 abhishek/Erdos_Szeker.v
+
+execution/Op.v
+execution/Event.v
+execution/Finite.v
+execution/Edges.v
+execution/Rank.v
+execution/Poset.v
+execution/Schedule.v
+execution/FromEdges.v
+execution/Agreement.v
+execution/DimBridge.v
+execution/DimCriticalPairs.v
+execution/DimExamples.v
+execution/Examples.v
+execution/DimExampleN3.v
+execution/Frontier.v
+execution/DimIso.v
+execution/Ordinal.v
+execution/FullySync.v
+execution/FrontierExamples.v
+execution/Execution.v
+execution/Reduction.v
+execution/ReductionExamples.v
+execution/ExtremumReduction.v
+execution/ExtremumReductionExamples.v
+execution/BarrierDim2.v
+execution/BarrierDim2Examples.v
+execution/FinPosetDimSurgery.v
+execution/FinPosetDim.v
+execution/FinPosetDimExamples.v

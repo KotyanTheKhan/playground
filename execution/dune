@@ -1,0 +1,34 @@
+(coq.theory
+ (name Execution)
+ (package playground)
+ (theories Posets Dimension Stdlib)
+ (modules
+  Op
+  Event
+  Finite
+  Edges
+  Rank
+  Poset
+  Schedule
+  FromEdges
+  Agreement
+  DimBridge
+  DimCriticalPairs
+  DimExamples
+  DimExampleN3
+  Frontier
+  DimIso
+  Ordinal
+  FullySync
+  FrontierExamples
+  Examples
+  Execution
+  Reduction
+  ReductionExamples
+  ExtremumReduction
+  ExtremumReductionExamples
+  BarrierDim2
+  BarrierDim2Examples
+  FinPosetDimSurgery
+  FinPosetDim
+  FinPosetDimExamples))
