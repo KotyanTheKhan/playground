@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>nomadim editor</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="vendor/cytoscape.min.js"></script>
+  <script src="vendor/dagre.min.js"></script>
+  <script src="vendor/cytoscape-dagre.js"></script>
+  <script src="public/nomadim.js"></script>
+</head>
+<body>
+  <header>
+    <h1>nomadim editor</h1>
+    <span id="version"></span>
+    <label>Load YAML <input id="file" type="file" accept=".yaml,.yml" /></label>
+  </header>
+  <div id="verdict">No document loaded.</div>
+  <div id="error"></div>
+  <main>
+    <div id="cy"></div>
+    <div id="side">
+      <textarea id="yaml" spellcheck="false" placeholder="poset / execution YAML"></textarea>
+      <div class="controls"><button id="apply">Apply YAML</button></div>
+    </div>
+  </main>
+  <script type="module" src="src/app.mjs"></script>
+</body>
+</html>
