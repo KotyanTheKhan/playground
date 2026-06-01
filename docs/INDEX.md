@@ -340,3 +340,42 @@ Carrier-generic versions of the ExecPoset levers (on any `(A,R)` with `IsPoset` 
 | `fin_barrier_dimension` | `dim = max` of block dimensions (both > 0) |
 | `fin_barrier_dim_le2` | a barrier with both blocks dim ≤ 2 makes the whole dim ≤ 2 |
 | `fin_chain_reproduces_E_min` | (test) the generic chain reproduces E_min's dim ≤ 2 |
+
+---
+
+## nomadim (C++ tool, `nomadim/`)
+
+A standalone C++17 port of the [NomaDimension](https://github.com/DePizzottri/NomaDimension)
+tool: enumerate distributed executions of *N* processes and decide whether their
+happened-before poset has order dimension ≤ 2. It is the **computational
+counterpart** of the Coq `execution/` dimension theory (it does not build through
+dune; see `nomadim/README.md`). Build/test/benchmark via mise:
+`mise run nomadim-test` · `nomadim-test-slow` · `nomadim-bench`.
+
+### Core library (`nomadim/include/nomadim/`, `nomadim/src/`)
+
+| Module | Key functions / types | Meaning |
+|--------|-----------------------|---------|
+| `execution` | `Execution{n_procs, syncs}`, `validate()` | distributed execution = processes + ordered sync pairs |
+| `process_graph` | `ProcessGraph`, `init`, `sync`, `build(Execution)` | event-structure DAG; reachability = happened-before poset |
+| `floyd` | `make_graph_matrix`, `floyd`, `floyd_advance_vertex` | transitive-closure distance matrix (Floyd–Warshall) |
+| `dimension` | `is_dim2`, `find_critical_pairs`, `check_if_critical`, `check_critical_pairs_graph`, `have_cycle`, `is_bipartite` | dim ≤ 2 ⇔ critical-pair incompatibility graph is bipartite |
+| `poset` | `Poset{n_vertices, edges}`, `validate()`, `from(ProcessGraph)` | general poset by cover/adjacency relation |
+| `isomorphism` | `is_isomorphic`, `generate_all_isomorphic`, `canonical_sync_name` | process-permutation isomorphism + canonical prune key |
+| `enumerate` | `enumerate(n,k,threads) -> EnumerateResult`, `is_full_synchronized` | multithreaded `std::thread` work-pool enumeration of non-isomorphic dim-2 executions |
+| `io` | `parse_document`, `load_file`, `dump_execution`, `dump_poset`, `save_file`, `Document` | YAML read/write for `execution` and `poset` documents |
+
+### CLI (`nomadim/app/`, binary `nomadim`)
+
+| Subcommand | Meaning |
+|------------|---------|
+| `check <file.yaml>` | report whether a poset/execution has dimension ≤ 2 (exit 0 = yes, 2 = no) |
+| `enumerate -n N [-k K] [-j threads] [-o out]` | enumerate non-isomorphic, fully-synchronized, dim-2 executions of N processes |
+| `convert <in.yaml> <out.yaml>` | expand an execution document into its poset document |
+
+### Tests & benchmarks (`nomadim/tests/`, `nomadim/bench/`)
+
+GoogleTest unit tests for every public function plus golden enumeration counts
+(N=4,K=5 → 10; K=6 → 102; K=7 → 634; N=5,K=7 → 40; …); `bench/bench_nomadim.cpp`
+(Google Benchmark) with `bench/compare.py` gating regressions against
+`bench/baseline.json`.
