@@ -28,20 +28,6 @@ void ProcessGraph::init(int process_num) {
     proc_sync_name.resize(proc_num);
 }
 
-int ProcessGraph::add_vertex_to_proc(int proc) {
-    assert(proc >= 0 && proc < proc_num);
-    int cur_vert = proc_last_vertex[proc];
-    Label cur_label = labels[cur_vert];
-
-    int new_vertex = next_vertex++;
-    graph.push_back({});
-    graph[cur_vert].push_back(new_vertex);
-    proc_last_vertex[proc] = new_vertex;
-    labels.push_back({proc, cur_label.num + 1});
-    proc_verteces[proc].push_back(new_vertex);
-    return new_vertex;
-}
-
 void ProcessGraph::sync(int proc1, int proc2) {
     assert(proc1 >= 0 && proc1 < proc_num);
     assert(proc2 >= 0 && proc2 < proc_num);

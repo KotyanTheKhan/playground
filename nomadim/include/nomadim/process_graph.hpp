@@ -45,9 +45,6 @@ public:
 
     // Convenience: init(e.n_procs) then replay e.syncs.
     static ProcessGraph build(const Execution& e);
-
-private:
-    int add_vertex_to_proc(int proc);
 };
 
 } // namespace nomadim
