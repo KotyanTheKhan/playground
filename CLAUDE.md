@@ -40,6 +40,24 @@ For non-build opam/dune needs, still go through `mise exec -- opam …`.
 Run a whole-project build through the wrapper before committing to catch
 cross-module import errors.
 
+### C++ subproject (`nomadim/`)
+
+The `nomadim/` directory is a standalone CMake C++17 project (the NomaDimension
+port) and is **not** part of the Coq/dune build — the `timed-build.sh` wrapper
+does not apply. Build and test it through mise (which provides a pinned CMake):
+
+```
+mise run nomadim-test        # configure + build + run tests
+mise run nomadim-test-slow   # include the heavy golden-count tier
+mise run nomadim-bench       # run benchmarks, fail on >25% regression vs baseline
+mise run nomadim-clean       # remove build dirs
+```
+
+Dependencies (yaml-cpp, CLI11, GoogleTest, and — for benchmarks — Google
+Benchmark) are fetched by CMake FetchContent at configure time; no Boost or
+manual installs. Heavy golden-count tests are gated behind
+`-DNOMADIM_SLOW_TESTS=ON`. See `nomadim/README.md`.
+
 ## Project layout
 
 | Directory | Contents |

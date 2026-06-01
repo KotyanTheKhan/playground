@@ -12,6 +12,7 @@
 [tools]
 opam   = "2.4.1"
 ocaml  = "5.1.0"
+cmake  = "3.31.1"
 
 [env]
 OPAMSWITCH = "."
@@ -196,4 +197,87 @@ echo "opam:         $(opam --version 2>/dev/null || echo MISSING)"
 echo "dune:         $(dune --version 2>/dev/null || echo MISSING)"
 echo "coqc:         $(coqc --version 2>/dev/null | head -1 || echo MISSING)"
 echo "coq-hammer:   $(opam show -f version coq-hammer 2>/dev/null || echo MISSING)"
+'''
+
+# ============================================================================
+# nomadim (C++ subproject) — independent of the Coq/dune build
+# ============================================================================
+
+[tasks.nomadim-deps]
+description = "Show the C++ toolchain for the nomadim subproject"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "cmake:    $(cmake --version | head -1)"
+echo "compiler: $(c++ --version | head -1)"
+echo "(yaml-cpp, CLI11, GoogleTest, Google Benchmark are fetched by CMake — nothing to install)"
+'''
+
+[tasks.nomadim-configure]
+description = "Configure the nomadim CMake build (Release)"
+run = "cmake -S nomadim -B nomadim/build -DCMAKE_BUILD_TYPE=Release"
+
+[tasks.nomadim-build]
+description = "Build the nomadim C++ project"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+cmake -S nomadim -B nomadim/build -DCMAKE_BUILD_TYPE=Release
+cmake --build nomadim/build -j
+'''
+
+[tasks.nomadim-test]
+description = "Build and run nomadim tests (default tier)"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+cmake -S nomadim -B nomadim/build -DCMAKE_BUILD_TYPE=Release
+cmake --build nomadim/build -j
+ctest --test-dir nomadim/build --output-on-failure
+'''
+
+[tasks.nomadim-test-slow]
+description = "Build and run nomadim tests including the heavy golden-count tier"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+cmake -S nomadim -B nomadim/build -DCMAKE_BUILD_TYPE=Release -DNOMADIM_SLOW_TESTS=ON
+cmake --build nomadim/build -j
+ctest --test-dir nomadim/build --output-on-failure
+'''
+
+[tasks.nomadim-clean]
+description = "Remove nomadim CMake build directories"
+run = "rm -rf nomadim/build nomadim/build-bench && echo '✅ nomadim build dirs removed'"
+
+[tasks.nomadim-bench]
+description = "Run nomadim benchmarks and compare to the committed baseline (fails on regression)"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+cmake -S nomadim -B nomadim/build-bench -DCMAKE_BUILD_TYPE=Release -DNOMADIM_BENCH=ON
+cmake --build nomadim/build-bench -j --target nomadim_bench
+./nomadim/build-bench/nomadim_bench \
+  --benchmark_repetitions=3 \
+  --benchmark_report_aggregates_only=true \
+  --benchmark_format=json \
+  --benchmark_out=nomadim/build-bench/bench_current.json \
+  --benchmark_out_format=json
+python3 nomadim/bench/compare.py nomadim/bench/baseline.json nomadim/build-bench/bench_current.json
+'''
+
+[tasks.nomadim-bench-baseline]
+description = "Regenerate the committed nomadim benchmark baseline"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+cmake -S nomadim -B nomadim/build-bench -DCMAKE_BUILD_TYPE=Release -DNOMADIM_BENCH=ON
+cmake --build nomadim/build-bench -j --target nomadim_bench
+./nomadim/build-bench/nomadim_bench \
+  --benchmark_repetitions=3 \
+  --benchmark_report_aggregates_only=true \
+  --benchmark_format=json \
+  --benchmark_out=nomadim/bench/baseline.json \
+  --benchmark_out_format=json
+echo "✅ baseline written to nomadim/bench/baseline.json"
 '''
