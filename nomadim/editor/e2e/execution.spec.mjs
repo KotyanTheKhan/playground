@@ -48,6 +48,22 @@ test('Show derived poset expands the execution and switches to the poset view', 
   await expect(page.locator('#verdict')).toContainText('Dimension <= 2: YES');
 });
 
+test('each view shows only its own toolbar', async ({ page }) => {
+  await boot(page);
+  // default poset view: poset tools visible, exec tools hidden
+  await expect(page.locator('#poset-tools')).toBeVisible();
+  await expect(page.locator('#exec-tools')).toBeHidden();
+  // switch to execution view: exec tools visible, poset tools hidden
+  await page.evaluate(() => window.__editor.newExecution(2));
+  await expect.poll(() => page.evaluate(() => window.__editor.currentView())).toBe('execution');
+  await expect(page.locator('#exec-tools')).toBeVisible();
+  await expect(page.locator('#poset-tools')).toBeHidden();
+  // back to poset view
+  await page.evaluate(() => window.__editor.newPoset());
+  await expect(page.locator('#poset-tools')).toBeVisible();
+  await expect(page.locator('#exec-tools')).toBeHidden();
+});
+
 test('the execution stays editable after deriving its poset', async ({ page }) => {
   await boot(page);
   await page.evaluate(() => { window.__editor.newExecution(3); window.__editor.appendSync(0, 1); });

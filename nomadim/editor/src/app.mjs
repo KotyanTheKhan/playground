@@ -18,7 +18,8 @@ async function main() {
   const ids = ['version', 'verdict', 'yaml', 'apply', 'file', 'error',
                'new', 'addv', 'adde', 'del', 'edge-u', 'edge-v', 'critical', 'realizer', 'save',
                'tab-poset', 'tab-exec', 'poset-pane', 'exec-pane', 'exec',
-               'nprocs', 'sync-a', 'sync-b', 'addsync', 'delsync', 'derive'];
+               'nprocs', 'sync-a', 'sync-b', 'addsync', 'delsync', 'derive',
+               'poset-tools', 'exec-tools'];
   const els = {};
   for (const id of ids) els[id] = document.getElementById(id);
   els.version.textContent = 'libnomadim ' + client.version();
@@ -29,6 +30,8 @@ async function main() {
     view = v;
     els['poset-pane'].style.display = v === 'poset' ? '' : 'none';
     els['exec-pane'].style.display = v === 'execution' ? '' : 'none';
+    els['poset-tools'].style.display = v === 'poset' ? '' : 'none';
+    els['exec-tools'].style.display = v === 'execution' ? '' : 'none';
     els['tab-poset'].classList.toggle('active', v === 'poset');
     els['tab-exec'].classList.toggle('active', v === 'execution');
     if (v === 'poset') cy.resize();
