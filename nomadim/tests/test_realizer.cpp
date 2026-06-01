@@ -5,6 +5,7 @@
 #include "nomadim/execution.hpp"
 #include "nomadim/types.hpp"
 #include <vector>
+#include <string>
 
 using namespace nomadim;
 
@@ -123,4 +124,31 @@ TEST(Realizer, NPosetHasRealizer) {
     EXPECT_TRUE(r.dim_le_2);
     EXPECT_EQ(r.dim_le_2, is_dim2(n_poset));
     expect_valid_realizer(n_poset, r);
+}
+
+// For every acyclic directed graph on up to 4 vertices, find_realizer must agree
+// with is_dim2, and whenever it claims dim <= 2 it must produce a verified
+// realizer. This exercises thousands of distinct posets (including ones with
+// redundant transitive edges).
+TEST(Realizer, MatchesIsDim2OnAllSmallDags) {
+    for (int n = 1; n <= 4; ++n) {
+        std::vector<std::pair<int,int>> slots;
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < n; ++j)
+                if (i != j) slots.push_back({i, j});
+        int E = (int)slots.size();
+        for (long mask = 0; mask < (1L << E); ++mask) {
+            adjacency_list g(n);
+            for (int b = 0; b < E; ++b)
+                if (mask & (1L << b))
+                    g[slots[b].first].push_back(slots[b].second);
+            if (have_cycle(g)) continue;
+            Realizer r = find_realizer(g);
+            ASSERT_EQ(r.dim_le_2, is_dim2(g)) << "n=" << n << " mask=" << mask;
+            if (r.dim_le_2) {
+                SCOPED_TRACE("n=" + std::to_string(n) + " mask=" + std::to_string(mask));
+                expect_valid_realizer(g, r);
+            }
+        }
+    }
 }
