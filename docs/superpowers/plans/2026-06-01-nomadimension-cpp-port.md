@@ -1056,9 +1056,12 @@ TEST(Isomorphism, ReflexiveAndPermutationInvariant) {
 }
 
 TEST(Isomorphism, DistinguishesDifferentExecutions) {
-    ProcessGraph a = ProcessGraph::build(Execution{4, {{0,1},{1,2}}});
-    ProcessGraph b = ProcessGraph::build(Execution{4, {{0,1},{0,2}}});
-    EXPECT_FALSE(is_isomorphic(a, b));
+    // path-of-syncs vs star-of-syncs: structurally distinct, not isomorphic
+    // (verified against upstream as oracle). Do NOT use (0,1),(1,2) vs
+    // (0,1),(0,2) here -- those ARE isomorphic via relabeling.
+    ProcessGraph path = ProcessGraph::build(Execution{4, {{0,1},{1,2},{2,3}}});
+    ProcessGraph star = ProcessGraph::build(Execution{4, {{0,1},{0,2},{0,3}}});
+    EXPECT_FALSE(is_isomorphic(path, star));
 }
 
 TEST(Isomorphism, GenerateAllIsomorphicCardinality) {
