@@ -24,6 +24,7 @@ header .tabs button.active { background: #4f8cff; color: #fff; }
 #exec-pane { overflow: auto; background: #fff; }
 #exec { padding: 8px; }
 .exec-svg .lane { stroke: #ccd; stroke-width: 1; }
+.exec-svg .lane { pointer-events: none; }
 .exec-svg .sync { stroke: #ff7043; stroke-width: 2; stroke-dasharray: 5 3; }
 .exec-svg .event { fill: #2ca06c; }
 .exec-svg .proc-label { fill: #555; font: 12px system-ui; }
