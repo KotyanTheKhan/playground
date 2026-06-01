@@ -47,3 +47,17 @@ test('Show derived poset expands the execution and switches to the poset view', 
   // a single-sync 2-process execution expands to a dimension-2 poset
   await expect(page.locator('#verdict')).toContainText('Dimension <= 2: YES');
 });
+
+test('the execution stays editable after deriving its poset', async ({ page }) => {
+  await boot(page);
+  await page.evaluate(() => { window.__editor.newExecution(3); window.__editor.appendSync(0, 1); });
+  await page.evaluate(() => window.__editor.derivePoset());
+  await expect.poll(() => page.evaluate(() => window.__editor.currentView())).toBe('poset');
+  // returning to the execution and editing it must work (no "create an execution first")
+  await page.evaluate(() => window.__editor.appendSync(1, 2));
+  await expect(page.locator('#error')).toHaveText('');
+  await expect.poll(() => page.evaluate(() => window.__editor.currentView())).toBe('execution');
+  await expect.poll(() => page.evaluate(() => window.__editor.syncCount())).toBe(2);
+  // the Execution tab shows the swimlane (lanes for all 3 processes)
+  await expect.poll(() => page.evaluate(() => window.__editor.laneCount())).toBe(3);
+});

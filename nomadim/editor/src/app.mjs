@@ -1,6 +1,6 @@
 import { makeClient } from './wasm-client.mjs';
 import { emptyModel, hasPoset, posetAdjacency } from './model.mjs';
-import { yamlToModel, modelToYaml } from './yaml-sync.mjs';
+import { yamlToModel } from './yaml-sync.mjs';
 import { computeVerdict, verdictText } from './verdict.mjs';
 import { initPosetView, renderPoset, setCriticalOverlay, clearCriticalOverlay } from './poset-view.mjs';
 import { emptyPoset, addVertex, removeVertex, addEdge, removeEdge } from './edits.mjs';
@@ -40,15 +40,37 @@ async function main() {
       ? `realizer  L1: [${cols.l1.join(', ')}]   L2: [${cols.l2.join(', ')}]` : '';
   }
 
+  // The model may hold a poset, an execution, or BOTH (after "Show derived
+  // poset" keeps its source execution). The active `view` decides what is shown;
+  // fall back to whatever the model actually has if the active pane is empty.
+  function effectiveView() {
+    if (view === 'execution' && model.execution) return 'execution';
+    if (view === 'poset' && model.poset) return 'poset';
+    if (model.poset) return 'poset';
+    if (model.execution) return 'execution';
+    return view;
+  }
+
+  // YAML for the document currently in view (so the panel matches what's shown).
+  function currentYaml() {
+    const v = effectiveView();
+    if (v === 'execution' && model.execution) return client.dumpExecution(model.execution);
+    if (model.poset) return client.dumpPoset(model.poset);
+    if (model.execution) return client.dumpExecution(model.execution);
+    return '';
+  }
+
   function refresh({ syncYaml = true } = {}) {
     showError('');
-    if (hasPoset(model)) {
+    const v = effectiveView();
+    setView(v);
+    if (v === 'poset' && model.poset) {
       const adj = posetAdjacency(model);
       renderPoset(cy, model.poset);
       els.verdict.textContent = verdictText(computeVerdict(client, adj));
       renderRealizer(adj);
       if (els.critical.checked) setCriticalOverlay(cy, client.criticalPairs(adj));
-    } else if (model.execution) {
+    } else if (v === 'execution' && model.execution) {
       renderExecution(els.exec, model.execution);
       els.verdict.textContent = `Execution: ${model.execution.n_procs} processes, ${model.execution.syncs.length} syncs`;
       els.realizer.textContent = '';
@@ -58,15 +80,17 @@ async function main() {
       els.verdict.textContent = 'No document loaded.';
       els.realizer.textContent = '';
     }
-    if (syncYaml) els.yaml.value = modelToYaml(client, model);
+    if (syncYaml) els.yaml.value = currentYaml();
   }
 
+  // Editing the poset keeps any source execution so you can switch back to it.
   function editPoset(fn) {
     if (!hasPoset(model)) { showError('Create or load a poset first (New poset).'); return; }
-    try { model = { poset: fn(model.poset), execution: null }; setView('poset'); refresh(); }
+    try { model = { poset: fn(model.poset), execution: model.execution }; setView('poset'); refresh(); }
     catch (e) { showError(e && e.message ? e.message : String(e)); }
   }
 
+  // Editing the execution invalidates any previously-derived poset, so drop it.
   function editExec(fn) {
     if (!model.execution) { showError('Create or load an execution first (New execution).'); return; }
     try { model = { poset: null, execution: fn(model.execution) }; setView('execution'); refresh(); }
@@ -93,18 +117,20 @@ async function main() {
     refresh();
   }
 
+  // Expand the execution to its poset (via WASM) and show it, but KEEP the source
+  // execution so the user can switch back to the Execution tab and keep editing.
   function derivePoset() {
     if (!model.execution) { showError('Load or build an execution first.'); return; }
     try {
       const poset = client.expandExecution(model.execution);
-      model = { poset, execution: null };
+      model = { poset, execution: model.execution };
       setView('poset');
       refresh();
     } catch (e) { showError('Expand failed: ' + (e && e.message ? e.message : e)); }
   }
 
-  els['tab-poset'].addEventListener('click', () => setView('poset'));
-  els['tab-exec'].addEventListener('click', () => setView('execution'));
+  els['tab-poset'].addEventListener('click', () => { setView('poset'); refresh(); });
+  els['tab-exec'].addEventListener('click', () => { setView('execution'); refresh(); });
 
   els.new.addEventListener('click', () => { model = { poset: emptyPoset(), execution: null }; setView('poset'); refresh(); });
   els.addv.addEventListener('click', () => editPoset(addVertex));
@@ -135,7 +161,8 @@ async function main() {
   els.derive.addEventListener('click', derivePoset);
 
   els.save.addEventListener('click', async () => {
-    try { await saveText(modelToYaml(client, model) || '', model.execution ? 'execution.yaml' : 'poset.yaml'); }
+    const name = effectiveView() === 'execution' && model.execution ? 'execution.yaml' : 'poset.yaml';
+    try { await saveText(currentYaml(), name); }
     catch (e) { if (e && e.name !== 'AbortError') showError('Save failed: ' + (e.message || e)); }
   });
   els.apply.addEventListener('click', () => {
@@ -168,7 +195,7 @@ async function main() {
     laneCount: () => els.exec.querySelectorAll('.lane').length,
     syncCount: () => els.exec.querySelectorAll('.sync').length,
     realizerText: () => els.realizer.textContent,
-    currentYaml: () => modelToYaml(client, model),
+    currentYaml: () => currentYaml(),
     nodeCount: () => cy.nodes().length,
     criticalCount: () => cy.$('edge.critical').length,
     verdictText: () => els.verdict.textContent,
