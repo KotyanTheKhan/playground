@@ -8,6 +8,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 option(NOMADIM_SLOW_TESTS "Enable heavy golden-count enumeration tests" OFF)
+option(NOMADIM_BENCH "Build performance benchmarks (fetches Google Benchmark)" OFF)
 
 include(FetchContent)
 
@@ -78,3 +79,16 @@ add_test(NAME cli_enumerate_4_5
   COMMAND nomadim enumerate -n 4 -k 5 -j 1)
 set_tests_properties(cli_enumerate_4_5 PROPERTIES
   PASS_REGULAR_EXPRESSION "Non-isomorphic dim-2 synced executions: 10")
+
+# ---- benchmarks (opt-in: -DNOMADIM_BENCH=ON) ----
+if(NOMADIM_BENCH)
+  FetchContent_Declare(benchmark
+    GIT_REPOSITORY https://github.com/google/benchmark.git
+    GIT_TAG v1.9.1)
+  set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+  set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(benchmark)
+
+  add_executable(nomadim_bench bench/bench_nomadim.cpp)
+  target_link_libraries(nomadim_bench PRIVATE nomadim_core benchmark::benchmark)
+endif()
