@@ -38,6 +38,7 @@ add_library(nomadim_core
   src/process_graph.cpp
   src/floyd.cpp
   src/dimension.cpp
+  src/poset.cpp
 )
 target_include_directories(nomadim_core PUBLIC include)
 target_link_libraries(nomadim_core PUBLIC yaml-cpp Boost::fiber Boost::context Threads::Threads)
@@ -49,7 +50,7 @@ target_link_libraries(nomadim PRIVATE nomadim_core CLI11::CLI11)
 # ---- tests ----
 enable_testing()
 include(GoogleTest)
-add_executable(nomadim_tests tests/test_smoke.cpp tests/test_execution.cpp tests/test_process_graph.cpp tests/test_floyd.cpp tests/test_dimension.cpp)
+add_executable(nomadim_tests tests/test_smoke.cpp tests/test_execution.cpp tests/test_process_graph.cpp tests/test_floyd.cpp tests/test_dimension.cpp tests/test_poset.cpp)
 target_link_libraries(nomadim_tests PRIVATE nomadim_core GTest::gtest_main)
 if(NOMADIM_SLOW_TESTS)
   target_compile_definitions(nomadim_tests PRIVATE NOMADIM_SLOW_TESTS=1)
