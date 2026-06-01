@@ -288,7 +288,7 @@ tools = { emsdk = "4.0.23" }
 run = "bash nomadim/editor/build-wasm.sh"
 
 [tasks.nomadim-editor-test]
-description = "Build the WASM module + native CLI, run the Node faithfulness harness"
+description = "Build the WASM module + native CLI, run the Node faithfulness + unit tests"
 tools = { emsdk = "4.0.23", node = "22" }
 run = '''
 #!/usr/bin/env bash
@@ -298,8 +298,8 @@ cmake -S nomadim -B nomadim/build -DCMAKE_BUILD_TYPE=Release
 cmake --build nomadim/build -j --target nomadim
 # WASM module under test.
 bash nomadim/editor/build-wasm.sh
-# Headless cross-check.
-node --test nomadim/editor/test/
+# Headless cross-check + pure-logic unit tests.
+node --test nomadim/editor/test/*.test.cjs nomadim/editor/test/*.test.mjs
 '''
 
 [tasks.nomadim-editor-clean]
