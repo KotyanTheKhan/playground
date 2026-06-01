@@ -34,6 +34,21 @@ There is **no Boost dependency**.
 
 ## Build & test
 
+With mise (recommended — provides a pinned CMake):
+
+```bash
+mise run nomadim-test          # configure + build + run tests
+mise run nomadim-build         # configure + build only
+mise run nomadim-test-slow     # include the heavy golden-count tier
+mise run nomadim-clean         # remove build dirs
+mise run nomadim-deps          # show toolchain versions
+```
+
+(`mise install` provisions the pinned CMake on first use; it needs network
+access. If it is unavailable, the tasks fall back to the system `cmake`.)
+
+Or directly with CMake:
+
 ```bash
 cmake -S nomadim -B nomadim/build -DCMAKE_BUILD_TYPE=Release
 cmake --build nomadim/build -j
@@ -42,6 +57,22 @@ ctest --test-dir nomadim/build --output-on-failure
 
 Heavier golden-count enumerations are off by default; enable with
 `-DNOMADIM_SLOW_TESTS=ON` (re-configure and rebuild).
+
+## Benchmarks
+
+Performance benchmarks (Google Benchmark) guard against regressions:
+
+```bash
+mise run nomadim-bench            # build + run benchmarks, fail if slower than baseline
+mise run nomadim-bench-baseline   # regenerate nomadim/bench/baseline.json
+```
+
+`nomadim-bench` compares the median `real_time` of each benchmark against the
+committed `nomadim/bench/baseline.json` and exits nonzero if any is more than 25%
+slower (`python3 nomadim/bench/compare.py --threshold` to adjust). Benchmarks
+cover `is_dim2` (micro, stable) and `enumerate` at several N/K (single-threaded
+and parallel). **Run on an idle machine** — background load skews absolute
+timings. Regenerate the baseline after an intentional performance change.
 
 ## Usage
 
