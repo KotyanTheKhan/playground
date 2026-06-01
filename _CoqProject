@@ -119,3 +119,5 @@ execution/YamlParseExamples.v
 execution/ScheduleWf.v
 execution/ScheduleWfExamples.v
 execution/EminBlockDimExamples.v
+execution/ConnSync.v
+execution/ConnSyncExamples.v

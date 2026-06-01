@@ -437,6 +437,21 @@ Program-level "sync-shape" (every matched send/recv pair at the same local index
 | `fully_synchronizing_dim2` | + per-frontier-block dim≤2 ⇒ execution dim≤2 |
 | `s_demo_*` | (test) a concrete 2×2 fully-synchronizing schedule end-to-end |
 
+#### `execution/ConnSync.v` — connectivity ⟹ FullySynchronizing (exported)
+
+Derives the `FullySynchronizing` barrier ordering (taken as a hypothesis in `SyncShape.v`) from a local, per-transition connectivity condition. The key reduction is gap-induction: if every adjacent local-index pair is ordered (`StepBarrier`), then every index-i event precedes every index-j>i event. `StepConnected` supplies the adjacent orderings from a per-transition sync-pair *witness* — either the same process (program edge), a same-index message edge, a next-index message edge, or a relay through some `r` (message-then-program-then-message). `s_demo` is discharged this way in `ConnSyncExamples.v`.
+
+| Name | Meaning |
+|------|---------|
+| `mk_event` | build a valid execution event `(p,k)` from in-range process/index proofs |
+| `prog_step` / `msg_step` | the two primitive happened-before edges: same-process program edge `(p,k)→(p,S k)`; same-index message edge `(p,k)→(q,k)` from a frontier pair |
+| `StepBarrier` / `step_barrier_implies_fullsync` | adjacent local-index events ordered; gap-induction lifts this to `FullySynchronizing` |
+| `step_witness` / `StepConnected` | per-transition sync-pair witness (same proc / this-frontier / next-frontier / relay through `r`); holding at every adjacent transition |
+| `step_connected_fully_synchronizing` | `wf_schedule` + nonempty procs + `StepConnected` ⇒ `FullySynchronizing` |
+| `step_connected_dim2` | + per-frontier-block dim≤2 ⇒ execution dim≤2 |
+
+Honest note: `StepConnected` is only satisfiable when the per-transition matching structure supplies the witnesses (caps synced procs per single transition ≈≤4); the lemmas themselves are general.
+
 #### `execution/Yaml.v` — YAML file format (libnomadim) datatypes, printer, and bridges
 
 The libnomadim on-disk format (a YAML block map: an `execution:` doc with `n_procs` + `syncs`, or a `poset:` doc with `n_vertices` + cover `edges`). This slice provides the in-memory datatypes, a byte-faithful serializer (`dump`), and bridges from each document kind to the existing model: executions become `Schedule`s, posets become finite reachability posets. The string *parser* (read direction) is in `YamlParse.v` below; OCaml-extracted real file I/O is deferred to a later slice.

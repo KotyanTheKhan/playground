@@ -53,4 +53,6 @@
   YamlParseExamples
   ScheduleWf
   ScheduleWfExamples
-  EminBlockDimExamples))
+  EminBlockDimExamples
+  ConnSync
+  ConnSyncExamples))
