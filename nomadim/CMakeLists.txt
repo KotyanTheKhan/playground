@@ -45,8 +45,8 @@ add_library(nomadim_core
 target_include_directories(nomadim_core PUBLIC include)
 target_link_libraries(nomadim_core PUBLIC yaml-cpp Threads::Threads)
 
-# ---- CLI (sources added in later tasks) ----
-add_executable(nomadim app/main.cpp)
+# ---- CLI ----
+add_executable(nomadim app/main.cpp app/cmd_check.cpp app/cmd_enumerate.cpp app/cmd_convert.cpp)
 target_link_libraries(nomadim PRIVATE nomadim_core CLI11::CLI11)
 
 # ---- tests ----
@@ -58,3 +58,23 @@ if(NOMADIM_SLOW_TESTS)
   target_compile_definitions(nomadim_tests PRIVATE NOMADIM_SLOW_TESTS=1)
 endif()
 gtest_discover_tests(nomadim_tests)
+
+add_test(NAME cli_check_dim2
+  COMMAND nomadim check ${CMAKE_CURRENT_SOURCE_DIR}/data/exec_dim2.yaml)
+set_tests_properties(cli_check_dim2 PROPERTIES
+  PASS_REGULAR_EXPRESSION "Dimension <= 2: YES")
+
+add_test(NAME cli_check_not_dim2
+  COMMAND nomadim check ${CMAKE_CURRENT_SOURCE_DIR}/data/poset_s3.yaml)
+set_tests_properties(cli_check_not_dim2 PROPERTIES
+  PASS_REGULAR_EXPRESSION "Dimension <= 2: NO")
+
+add_test(NAME cli_check_canonical_not_dim2
+  COMMAND nomadim check ${CMAKE_CURRENT_SOURCE_DIR}/data/exec_4_canonical.yaml)
+set_tests_properties(cli_check_canonical_not_dim2 PROPERTIES
+  PASS_REGULAR_EXPRESSION "Dimension <= 2: NO")
+
+add_test(NAME cli_enumerate_4_5
+  COMMAND nomadim enumerate -n 4 -k 5 -j 1)
+set_tests_properties(cli_enumerate_4_5 PROPERTIES
+  PASS_REGULAR_EXPRESSION "Non-isomorphic dim-2 synced executions: 10")

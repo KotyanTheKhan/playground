@@ -1,0 +1,4 @@
+execution:
+  n_procs: 2
+  syncs:
+    - [0, 1]
