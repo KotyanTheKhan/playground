@@ -186,8 +186,10 @@ The following produce a clear diagnostic and a nonzero exit code:
 
 - `floyd`: transitive closure correctness on small fixed graphs.
 - `dimension`: critical-pair detection and bipartiteness on hand-checked posets;
-  the canonical `0-1, 1-2, 2-3, 0-2` execution; at least one known non-dim-2
-  example.
+  positive cases (a chain; a single-sync execution) and negative cases (the
+  upstream hardcoded `0-1, 1-2, 2-3, 0-2` execution, which is NOT dim-2; the
+  standard example S_3). Expectations verified against the upstream binary as an
+  oracle.
 - `isomorphism`: positive and negative isomorphism cases; `generate_all_isomorphic`
   cardinality.
 - `io`: YAML round-trip (`load ∘ save == identity`) for both schemas; validation
@@ -214,8 +216,9 @@ the default test run stays fast. All counts are asserted exactly when their tier
 is enabled.
 
 **End-to-end** — CTest invokes the `nomadim` binary on `data/` fixtures:
-`check` on a known dim-2 file (expect success verdict), `check` on a non-dim-2
-file, and an `enumerate -n 4 -k 5` run asserting the count line.
+`check` on a known dim-2 file (expect YES verdict), `check` on non-dim-2 files
+(S_3 and the canonical execution, expect NO), and an `enumerate -n 4 -k 5` run
+asserting the count line.
 
 ## 11. Out of scope / future
 

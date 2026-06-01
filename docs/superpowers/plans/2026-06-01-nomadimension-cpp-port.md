@@ -721,10 +721,25 @@ TEST(Dimension, HelpersDetectCycleAndBipartite) {
     EXPECT_FALSE(is_bipartite(tri));
 }
 
-TEST(Dimension, CanonicalExecutionIsDim2) {
-    Execution e{4, {{0,1},{1,2},{2,3},{0,2}}};
+// chain has dimension 1 (no critical pairs); single sync expands to a dim-2
+// poset. Both verified against the upstream algorithm as oracle.
+TEST(Dimension, ChainIsDim2) {
+    adjacency_list chain = {{1}, {2}, {3}, {}};
+    EXPECT_TRUE(is_dim2(chain));
+}
+
+TEST(Dimension, SingleSyncExecutionIsDim2) {
+    Execution e{2, {{0, 1}}};
     ProcessGraph g = ProcessGraph::build(e);
     EXPECT_TRUE(is_dim2(g.graph));
+}
+
+// Matches upstream check_poset: this hardcoded execution is NOT 2-dimensional
+// (25 critical pairs; incompatibility graph not bipartite).
+TEST(Dimension, CanonicalExecutionIsNotDim2) {
+    Execution e{4, {{0,1},{1,2},{2,3},{0,2}}};
+    ProcessGraph g = ProcessGraph::build(e);
+    EXPECT_FALSE(is_dim2(g.graph));
 }
 
 TEST(Dimension, StandardExampleS3IsNotDim2) {
@@ -876,7 +891,9 @@ bool is_dim2(const adjacency_list& g) {
 - [ ] **Step 6: Build and run tests**
 
 Run: `cmake --build nomadim/build -j && ctest --test-dir nomadim/build --output-on-failure -R Dimension`
-Expected: 3 Dimension tests PASS (canonical is dim2; S_3 is not).
+Expected: 5 Dimension tests PASS (chain and single-sync are dim2; the canonical
+4-proc execution and S_3 are NOT dim2 — these expectations were verified against
+the upstream binary as an oracle; do not change the algorithm to flip them).
 
 - [ ] **Step 7: Commit**
 
@@ -1661,7 +1678,16 @@ git commit -m "feat(nomadim): YAML I/O for execution and poset documents"
 
 - [ ] **Step 2: Create the data fixtures**
 
-`nomadim/data/exec_4_canonical.yaml`:
+`nomadim/data/exec_dim2.yaml` (a single sync expands to a dim-2 poset — verified
+dim2=true against the upstream oracle):
+```yaml
+execution:
+  n_procs: 2
+  syncs:
+    - [0, 1]
+```
+
+`nomadim/data/exec_4_canonical.yaml` (the upstream hardcoded example; NOT dim-2):
 ```yaml
 execution:
   n_procs: 4
@@ -1871,13 +1897,18 @@ int main(int argc, char** argv) {
 
 ```cmake
 add_test(NAME cli_check_dim2
-  COMMAND nomadim check ${CMAKE_CURRENT_SOURCE_DIR}/data/exec_4_canonical.yaml)
+  COMMAND nomadim check ${CMAKE_CURRENT_SOURCE_DIR}/data/exec_dim2.yaml)
 set_tests_properties(cli_check_dim2 PROPERTIES
   PASS_REGULAR_EXPRESSION "Dimension <= 2: YES")
 
 add_test(NAME cli_check_not_dim2
   COMMAND nomadim check ${CMAKE_CURRENT_SOURCE_DIR}/data/poset_s3.yaml)
 set_tests_properties(cli_check_not_dim2 PROPERTIES
+  PASS_REGULAR_EXPRESSION "Dimension <= 2: NO")
+
+add_test(NAME cli_check_canonical_not_dim2
+  COMMAND nomadim check ${CMAKE_CURRENT_SOURCE_DIR}/data/exec_4_canonical.yaml)
+set_tests_properties(cli_check_canonical_not_dim2 PROPERTIES
   PASS_REGULAR_EXPRESSION "Dimension <= 2: NO")
 
 add_test(NAME cli_enumerate_4_5
@@ -1896,11 +1927,12 @@ Expected: all unit tests plus `cli_check_dim2`, `cli_check_not_dim2`,
 
 Run:
 ```bash
-./nomadim/build/nomadim check nomadim/data/exec_4_canonical.yaml
+./nomadim/build/nomadim check nomadim/data/exec_dim2.yaml          # YES
+./nomadim/build/nomadim check nomadim/data/exec_4_canonical.yaml   # NO
 ./nomadim/build/nomadim convert nomadim/data/exec_4_canonical.yaml /tmp/poset.yaml && cat /tmp/poset.yaml
 ./nomadim/build/nomadim enumerate -n 4 -k 5 -j 2
 ```
-Expected: YES verdict; a poset YAML with 16 vertices; count line `... : 10`.
+Expected: YES then NO verdicts; a poset YAML with 16 vertices; count line `... : 10`.
 
 - [ ] **Step 10: Commit**
 
