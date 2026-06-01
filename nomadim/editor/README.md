@@ -14,11 +14,9 @@ the editor never diverges from the `nomadim` CLI.
   rejected), critical-pair highlight, realizer panel, and Save.
 - **Phase 2b-iii (done):** execution view — process swimlanes with ordered sync
   connectors, execution editing (process count, append/remove-last sync), and
-  "Show derived poset" (expands via the WASM module into the poset view).
-
-Sync editing is append / remove-last; arbitrary reorder/insert is not yet
-supported. The swimlane shows the abstract execution; the full event-structure
-poset is produced by "Show derived poset".
+  "Show derived poset". **Drag editing:** drag lane→lane to create a sync, drag a
+  process header to reorder processes, drag a sync connector to reorder it, and
+  drag a connector onto the delete strip to remove it (the toolbar still works too).
 
 ## Build, run & test (via mise)
 
