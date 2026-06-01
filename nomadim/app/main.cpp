@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     unsigned threads = std::thread::hardware_concurrency();
     std::string enum_out;
     auto* en = app.add_subcommand("enumerate", "Enumerate non-isomorphic dim-2 executions");
-    en->add_option("-n,--procs", n_procs, "Number of processes")->required();
+    en->add_option("-n,--procs", n_procs, "Number of processes")->required()->check(CLI::PositiveNumber);
     en->add_option("-k,--max-sync", max_sync, "Max synchronizations (default: 2*n_procs)");
     en->add_option("-j,--threads", threads, "Worker threads (>=1)")->check(CLI::PositiveNumber);
     en->add_option("-o,--out", enum_out, "Write found executions to this YAML file");

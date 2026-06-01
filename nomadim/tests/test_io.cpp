@@ -40,6 +40,40 @@ TEST(Io, RejectsMalformedEdgePair) {
                  std::runtime_error);
 }
 
+// The remaining §9 validation classes, exercised through the YAML loader (which
+// runs Execution::validate / Poset::validate on the parsed values).
+TEST(Io, RejectsNonPositiveProcs) {
+    EXPECT_THROW(parse_document("execution:\n  n_procs: 0\n  syncs: []\n"),
+                 std::invalid_argument);
+}
+
+TEST(Io, RejectsOutOfRangeSyncEndpoint) {
+    EXPECT_THROW(parse_document("execution:\n  n_procs: 2\n  syncs: [[0,5]]\n"),
+                 std::invalid_argument);
+}
+
+TEST(Io, RejectsSelfSync) {
+    EXPECT_THROW(parse_document("execution:\n  n_procs: 3\n  syncs: [[1,1]]\n"),
+                 std::invalid_argument);
+}
+
+TEST(Io, RejectsCyclicPoset) {
+    EXPECT_THROW(parse_document("poset:\n  n_vertices: 3\n  edges: [[0,1],[1,2],[2,0]]\n"),
+                 std::invalid_argument);
+}
+
+TEST(Io, RejectsOutOfRangePosetEdgeSource) {
+    // source out of range is rejected by the parser (runtime_error)...
+    EXPECT_THROW(parse_document("poset:\n  n_vertices: 2\n  edges: [[9,0]]\n"),
+                 std::runtime_error);
+}
+
+TEST(Io, RejectsOutOfRangePosetEdgeTarget) {
+    // ...and target out of range is rejected by Poset::validate (invalid_argument).
+    EXPECT_THROW(parse_document("poset:\n  n_vertices: 2\n  edges: [[0,9]]\n"),
+                 std::invalid_argument);
+}
+
 TEST(Io, RejectsDocumentWithNeitherKey) {
     EXPECT_THROW(parse_document("foo: 1\n"), std::runtime_error);
 }
