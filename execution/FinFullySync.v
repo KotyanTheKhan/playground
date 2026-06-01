@@ -76,3 +76,112 @@ Proof.
     intros z z'. unfold fin_sub_order, g. reflexivity.
   - exact Hd.
 Qed.
+
+(* A prefix block (B ⊆ L), restricted to the L-subtype, has the same dimension. *)
+Lemma restricted_block_dim2 :
+  forall {A : Type} (R : A -> A -> Prop) {HR : IsPoset A R} (L B : Ensemble A),
+    (forall x, Ensembles.In _ B x -> Ensembles.In _ L x) ->
+    forall d, inhabited (PosetDimension (fin_sub_order R B) d) ->
+      inhabited (PosetDimension
+                  (fin_sub_order (fin_sub_order R L) (restrict_block L B)) d).
+Proof.
+  intros A R HR L B Hsub d [Hd].
+  apply inhabits.
+  (* Make the two subtype-poset instances available to resolution. *)
+  pose proof (fin_sub_order_poset R B) as HposB.
+  pose proof (fin_sub_order_poset R L) as HposL.
+  pose proof (fin_sub_order_poset (fin_sub_order R L) (restrict_block L B)) as HposTgt.
+  (* source carrier: {z | In B z}; target carrier:
+     {w : {z | In L z} | In (restrict_block L B) w}. *)
+  pose (f := fun s : {z | Ensembles.In _ B z} =>
+               let (x, HxB) := s in
+               exist (fun w : {z | Ensembles.In _ L z} =>
+                        Ensembles.In _ (restrict_block L B) w)
+                     (exist (fun z => Ensembles.In _ L z) x (Hsub x HxB))
+                     HxB).
+  pose (g := fun w : {w : {z | Ensembles.In _ L z}
+                      | Ensembles.In _ (restrict_block L B) w} =>
+               exist (fun z => Ensembles.In _ B z)
+                     (proj1_sig (proj1_sig w)) (proj2_sig w)).
+  apply (dimension_iso
+           {z | Ensembles.In _ B z}
+           {w : {z | Ensembles.In _ L z}
+            | Ensembles.In _ (restrict_block L B) w}
+           (fin_sub_order R B)
+           (fin_sub_order (fin_sub_order R L) (restrict_block L B))
+           f g).
+  - (* g (f s) = s *)
+    intro s. destruct s as [x HxB]. unfold f, g. cbn.
+    reflexivity.
+  - (* f (g w) = w *)
+    intro w. destruct w as [[x HxL] Hw]. unfold f, g. cbn.
+    (* goal: exist _ (exist _ x (Hsub x Hw)) Hw = exist _ (exist _ x HxL) Hw *)
+    (* The inner [In L x] proofs differ; replace [Hsub x Hw] by [HxL]. *)
+    generalize (Hsub x Hw); intro HxL'.
+    replace HxL' with HxL by apply proof_irrelevance.
+    reflexivity.
+  - (* order iso *)
+    intros s s'. destruct s as [x HxB]. destruct s' as [x' Hx'B].
+    unfold f, fin_sub_order. simpl. reflexivity.
+  - exact Hd.
+Qed.
+
+(* The prefix of an ordinal partition, restricted to its union L, is an ordinal
+   partition of the L-subtype. *)
+Lemma nth_map_restrict :
+  forall {A : Type} (R : A -> A -> Prop) (L : Ensemble A)
+         (pre : list (Ensemble A)) (i : nat),
+    i < length pre ->
+    nth i (map (restrict_block L) pre) (Empty_set _)
+    = restrict_block L (nth i pre (Empty_set _)).
+Proof.
+  intros A R L pre i Hi.
+  rewrite (nth_indep (map (restrict_block L) pre) (Empty_set _)
+             (restrict_block L (Empty_set _))).
+  - rewrite map_nth. reflexivity.
+  - rewrite length_map. exact Hi.
+Qed.
+
+Lemma restrict_partition :
+  forall {A : Type} (R : A -> A -> Prop) {HR : IsPoset A R} (L : Ensemble A) (pre : list (Ensemble A)),
+    (forall B, List.In B pre -> forall x, Ensembles.In _ B x -> Ensembles.In _ L x) ->
+    fin_ordinal_partition R pre ->
+    (forall x, Ensembles.In _ L x <->
+       exists i, i < length pre /\ Ensembles.In _ (nth i pre (Empty_set _)) x) ->
+    fin_ordinal_partition (fin_sub_order R L) (map (restrict_block L) pre).
+Proof.
+  intros A R HR L pre Hsub Hpart HLeq.
+  destruct Hpart as [Hne [Hcov [Hdis Hbel]]].
+  unfold fin_ordinal_partition.
+  repeat split.
+  - (* nonempty *)
+    intros blk Hblk.
+    apply in_map_iff in Hblk. destruct Hblk as [B [HBeq HBin]]. subst blk.
+    destruct (Hne B HBin) as [x HxB].
+    pose (HxL := Hsub B HBin x HxB).
+    exists (exist (fun z => Ensembles.In _ L z) x HxL).
+    unfold restrict_block. simpl. exact HxB.
+  - (* cover *)
+    intro z. destruct z as [x HxL].
+    destruct (proj1 (HLeq x) HxL) as [i [Hi Hxi]].
+    exists i. split.
+    + rewrite length_map. exact Hi.
+    + rewrite (nth_map_restrict R L pre i Hi).
+      unfold restrict_block. simpl. exact Hxi.
+  - (* disjoint *)
+    intros i j z Hi Hj Hij Hzi Hzj.
+    rewrite length_map in Hi, Hj.
+    rewrite (nth_map_restrict R L pre i Hi) in Hzi.
+    rewrite (nth_map_restrict R L pre j Hj) in Hzj.
+    unfold restrict_block in Hzi, Hzj. simpl in Hzi, Hzj.
+    apply (Hdis i j (proj1_sig z) Hi Hj Hij Hzi Hzj).
+  - (* below *)
+    intros i j Hij Hj x y Hxi Hyj.
+    rewrite length_map in Hj.
+    assert (Hi : i < length pre) by lia.
+    rewrite (nth_map_restrict R L pre i Hi) in Hxi.
+    rewrite (nth_map_restrict R L pre j Hj) in Hyj.
+    unfold restrict_block in Hxi, Hyj. simpl in Hxi, Hyj.
+    unfold fin_sub_order.
+    apply (Hbel i j Hij Hj (proj1_sig x) (proj1_sig y) Hxi Hyj).
+Qed.
