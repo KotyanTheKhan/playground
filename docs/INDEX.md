@@ -192,6 +192,20 @@
 | `exec_of_schedule` | produces an `ExecPoset` from a `Schedule` |
 | `schedule_program_agree` | schedule and desugared program agree on operations |
 
+#### `execution/ScheduleWf.v` — well-formed schedules + `desugar_wf`
+
+Well-formedness of the frontier model: each frontier must be a **partial matching** — every process participates at most once, in one role. This strengthens the original in-range-only sketch, which is *unsound* (`desugar_wf` is false under it: a frontier `[(0,1);(0,2)]` has all endpoints in range yet produces an unmatched receive). Under the matching condition, `op_for` is fully characterized by membership, discharging all four `wf_program` obligations.
+
+| Name | Meaning |
+|------|---------|
+| `wf_frontier` | a frontier is in-range + `NoDup (flat_map endpoints …)` (partial matching) |
+| `wf_schedule` | every frontier of the schedule is `wf_frontier` |
+| `find_fst_unique` / `find_snd_unique` / `no_fst_of_recv` | `find` is canonical under the `NoDup` matching |
+| `op_for_send_iff` / `op_for_recv_iff` | `op_for fr p k = Send q k ⟺ In (p,q) fr` (and the recv dual) |
+| `op_at_desugar_inv` | a `Some` from `op_at (desugar_prog s)` is in-range and reads back as `op_for` |
+| `desugar_wf` | `wf_schedule s → wf_program (desugar s)` (axiom-free); closes the core-model deferral |
+| `wf_sched_n3` / `wf_s_demo` / `wf_sched_m45` | (test) concrete well-formed schedule witnesses |
+
 #### `execution/FromEdges.v` — poset construction from an edge spec
 
 | Name | Meaning |
@@ -219,6 +233,14 @@
 | `exec_dimension_exists` | every execution has a dimension |
 | `exec_dim_ge_2` | an incomparable pair forces dim ≥ 2 |
 | `exec_dim_eq_2_of_realizer` | a size-2 realizer + incomparable pair ⇒ dim = 2 |
+
+#### `execution/DimTwoGeneric.v` — carrier-generic dimension-2 toolkit (exported)
+
+| Name | Meaning |
+|------|---------|
+| `dim_ge_2_of_incomparable` | an incomparable pair in any poset forces dim ≥ 2 |
+| `dim_eq_2_of_realizer` | a size-2 realizer + incomparable pair ⇒ dim = 2 |
+| `dim2_record` | builds `PosetDimension R 2` from two linear extensions meeting in `R` plus an incomparable pair (bare `Type`-sorted record) |
 
 #### `execution/DimCriticalPairs.v` — critical-pair interface
 
@@ -281,6 +303,17 @@
 | Name | Meaning |
 |------|---------|
 | `E_min_barrier` / `E_min_barrier_cps` | the minimal execution's bottom barrier; critical pairs within blocks |
+
+#### `execution/EminBlockDimExamples.v` — E_min {b,c,d} block dim = 2 (test-only)
+
+| Name | Meaning |
+|------|---------|
+| `bcd_R` / `bcd_poset` / `bcd_dim2` | a bare 3-element poset (b<nothing, c<d) of dimension exactly 2, via `dim2_record` |
+| `f3` / `g3` / `f3_iso` | order-isomorphism between the bare poset and the `Umin = {b,c,d}` block of `E_min` |
+| `dim_block_bcd_2` | the block `fin_sub_order (ep_order E_min) Umin` has `PosetDimension … 2`, transported via `dimension_iso` |
+| `dim_block_a_0` | the lower block `fin_sub_order (ep_order E_min) Lmin = {a}` is a singleton ⇒ `PosetDimension … 0` (via `fin_singleton_dim0`) |
+| `E_min_Hfin` / `E_min_fin_barrier` | E_min carrier finite; `IsBarrier E_min Lmin Umin` = `fin_is_barrier (ep_order E_min) Lmin Umin` |
+| `E_min_exact_dim_via_barrier` | barrier assembly: `dim E_min = max 1 (max (dim Lmin) (dim Umin)) = max 1 (max 0 2) = 2`, via `fin_barrier_dimension_full`, cross-checking `E_min_dim_2`. **#66 closed** (the {b,c,d} block has dimension exactly 2; E_min exact-dim cross-check). |
 
 #### `execution/Reduction.v` — dimension-preserving reductions
 
@@ -403,3 +436,32 @@ Program-level "sync-shape" (every matched send/recv pair at the same local index
 | `fully_synchronizing_is_fully_sync` | a fully-synchronizing schedule's execution is `IsFullySync` by frontiers |
 | `fully_synchronizing_dim2` | + per-frontier-block dim≤2 ⇒ execution dim≤2 |
 | `s_demo_*` | (test) a concrete 2×2 fully-synchronizing schedule end-to-end |
+
+#### `execution/Yaml.v` — YAML file format (libnomadim) datatypes, printer, and bridges
+
+The libnomadim on-disk format (a YAML block map: an `execution:` doc with `n_procs` + `syncs`, or a `poset:` doc with `n_vertices` + cover `edges`). This slice provides the in-memory datatypes, a byte-faithful serializer (`dump`), and bridges from each document kind to the existing model: executions become `Schedule`s, posets become finite reachability posets. The string *parser* (read direction) is in `YamlParse.v` below; OCaml-extracted real file I/O is deferred to a later slice.
+
+| Name | Meaning |
+|------|---------|
+| `YamlExecution` / `YamlPoset` / `Document` | datatypes mirroring the two YAML document kinds |
+| `wf_yaml_execution` | sync endpoints in-range and distinct |
+| `wf_yaml_poset` | edges in-range + a strict rank witness (⇒ acyclic) |
+| `string_of_nat` / `dump` | decimal printer; `dump` is byte-faithful to `data/*.yaml` |
+| `schedule_of_yaml` | YAML execution ⇒ `Schedule` (each sync ⇒ a singleton frontier) |
+| `Vert` / `yaml_edge` / `yaml_order` | poset carrier `{n | n < n_verts}`, listed edges, refl-trans closure |
+| `yaml_order_IsPoset` | under `wf_yaml_poset`, `yaml_order` is an `IsPoset` (antisym via the rank witness) |
+| `yaml_vert_finite` | the vertex carrier is `Finite` |
+| `dump_*_eq` / `poset_s3_is_poset` | (test) byte-fidelity vs the real data files; S(3,1) as an actual poset |
+
+#### `execution/YamlLex.v` + `YamlParse.v` — YAML reader (lenient, read direction)
+
+A lenient parser `parse_document : string -> option Document` that reads real libnomadim YAML — not only our own canonical `dump` bytes, but also hand-edited / other-tool output with `#` comments, blank lines, varied indentation, flow (`[a, b]`) or compact (`[a,b]`) pairs, and extra spaces. `YamlLex.v` is the leniency layer (raw text → cleaned `Line` list); `YamlParse.v` parses fields/pairs and assembles the document. Correctness anchor: instance-level round-trip (`parse_document (dump d) = Some d`) on the three real data documents — *everything we emit, we read back exactly*. The *universal* round-trip theorem (`forall d, wf_document d -> …`) is deferred (needs `string_of_nat`↔`nat_of_digits` inversion + `split_lines`/`++` commutation).
+
+| Name | Meaning |
+|------|---------|
+| `clean_lines` / `Line` | raw string ⇒ cleaned logical lines (drop blanks/comments/`\r`/trailing spaces; record indent) |
+| `nat_of_digits` / `la_eqb` | lenient decimal parse; boolean `list ascii` equality |
+| `parse_key_value` / `match_key` / `parse_nat_field` | split a `key: value` line; recognize a section header; read a `key: N` field |
+| `parse_pair` / `parse_seq_item` | lenient `[a, b]`/`a, b`/`[a,b]` pair; a `- [a, b]` sequence item |
+| `parse_document` | dispatch on `execution:` / `poset:`; assemble a `Document` |
+| `roundtrip_*` / `accept_messy_*` | (test) read-back of `dump` output; acceptance of commented/re-spaced variants |

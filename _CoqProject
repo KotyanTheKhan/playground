@@ -78,6 +78,7 @@ execution/Schedule.v
 execution/FromEdges.v
 execution/Agreement.v
 execution/DimBridge.v
+execution/DimTwoGeneric.v
 execution/DimCriticalPairs.v
 execution/DimExamples.v
 execution/Examples.v
@@ -110,3 +111,11 @@ execution/TransformA.v
 execution/TransformAExamples.v
 execution/SyncShape.v
 execution/SyncShapeExamples.v
+execution/Yaml.v
+execution/YamlExamples.v
+execution/YamlLex.v
+execution/YamlParse.v
+execution/YamlParseExamples.v
+execution/ScheduleWf.v
+execution/ScheduleWfExamples.v
+execution/EminBlockDimExamples.v

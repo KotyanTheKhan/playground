@@ -13,6 +13,7 @@
   FromEdges
   Agreement
   DimBridge
+  DimTwoGeneric
   DimCriticalPairs
   DimExamples
   DimExampleN3
@@ -44,4 +45,12 @@
   TransformA
   TransformAExamples
   SyncShape
-  SyncShapeExamples))
+  SyncShapeExamples
+  Yaml
+  YamlExamples
+  YamlLex
+  YamlParse
+  YamlParseExamples
+  ScheduleWf
+  ScheduleWfExamples
+  EminBlockDimExamples))
