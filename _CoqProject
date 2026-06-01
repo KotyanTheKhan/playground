@@ -121,3 +121,5 @@ execution/ScheduleWfExamples.v
 execution/EminBlockDimExamples.v
 execution/ConnSync.v
 execution/ConnSyncExamples.v
+execution/WindowSync.v
+execution/WindowSyncExamples.v

@@ -55,4 +55,6 @@
   ScheduleWfExamples
   EminBlockDimExamples
   ConnSync
-  ConnSyncExamples))
+  ConnSyncExamples
+  WindowSync
+  WindowSyncExamples))

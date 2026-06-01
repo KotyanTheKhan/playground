@@ -452,6 +452,21 @@ Derives the `FullySynchronizing` barrier ordering (taken as a hypothesis in `Syn
 
 Honest note: `StepConnected` is only satisfiable when the per-transition matching structure supplies the witnesses (caps synced procs per single transition ≈≤4); the lemmas themselves are general.
 
+#### `execution/WindowSync.v` — thick (window) barrier (exported)
+
+Lifts the per-transition barrier of `ConnSync.v` to a *window* of consecutive frontiers: when all process pairs are reachable through the multi-hop edges of a width-`(b−a)` window, every event before index `a` precedes every event at/after index `b`, for **any** process count. `window_reach` chains `window_step` (stay, or a single frontier cross) across the window so a route may relay through intermediate processes over several frontiers — exceeding the ≤4-process reach of one transition. `WindowSyncExamples.v` discharges a 3-process gather/scatter window (`s_gs`, frontiers `[(0,1)];[(1,0)];[(2,0)];[(0,1)];[(0,2)]`) where procs 1,2 gather to coordinator 0 then 0 scatters to 1,2; the window `[1,5)` synchronizes all three processes (`s_gs_window_barrier`), which no single transition could.
+
+| Name | Meaning |
+|------|---------|
+| `window_step` | per-frontier forward step at level `k`: stay (`p=q`) or cross a frontier-`k` message pair |
+| `window_reach` | windowed reachability: an `m`-hop chain of `window_step`s from frontier `a` to frontier `a+m` |
+| `WindowConnected` | all process pairs window-reachable across `[a,b)` (the thick-barrier connectivity hypothesis) |
+| `prog_chain` | a process's own events are ordered along increasing local index (program edges) |
+| `window_reach_hb` | a `window_reach` route lifts to a happened-before ordering between its endpoints |
+| `window_connected_barrier` | `WindowConnected s a b` ⇒ events before index `a` precede events at/after `b`, for **any** `n` |
+
+Honest note: this records the consecutive-cut impossibility — a single transition reaches ≤4 processes (matchings + intra-frontier messages), so `FullySynchronizing` (the consecutive/adjacent barrier) is unattainable for `n>4`; a window of `b−a` frontiers lifts the cap by relaying through intermediate processes over several frontiers.
+
 #### `execution/Yaml.v` — YAML file format (libnomadim) datatypes, printer, and bridges
 
 The libnomadim on-disk format (a YAML block map: an `execution:` doc with `n_procs` + `syncs`, or a `poset:` doc with `n_vertices` + cover `edges`). This slice provides the in-memory datatypes, a byte-faithful serializer (`dump`), and bridges from each document kind to the existing model: executions become `Schedule`s, posets become finite reachability posets. The string *parser* (read direction) is in `YamlParse.v` below; OCaml-extracted real file I/O is deferred to a later slice.
