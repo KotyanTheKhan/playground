@@ -92,3 +92,11 @@ if(NOMADIM_BENCH)
   add_executable(nomadim_bench bench/bench_nomadim.cpp)
   target_link_libraries(nomadim_bench PRIVATE nomadim_core benchmark::benchmark)
 endif()
+
+# ---- compare.py regression-gate tests ----
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+  add_test(NAME compare_py
+    COMMAND ${Python3_EXECUTABLE} -m unittest discover
+            -s ${CMAKE_CURRENT_SOURCE_DIR}/tests -p "test_compare.py")
+endif()
