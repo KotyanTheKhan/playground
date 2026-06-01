@@ -13,6 +13,16 @@ diagrams and executions as process swimlanes, lets the user edit them, shows a
 live order-dimension-≤-2 verdict, and reads/writes the same YAML format as the
 `nomadim` CLI.
 
+## Implementation phasing
+
+This spec is delivered as **two implementation plans**, because the realizer is
+an independently useful libnomadim algorithm:
+
+1. **`find_realizer` in libnomadim** (§2) — pure C++, exhaustively tested,
+   reusable. Built and merged first.
+2. **The web editor** (§1, §3–7) — WASM bindings + Cytoscape UI + mise task,
+   consuming `find_realizer`.
+
 ## Core principle: one source of truth
 
 All *semantics* come from the existing `libnomadim` C++ code compiled to
@@ -40,32 +50,58 @@ An Embind wrapper compiled **only** in the Emscripten build (guarded by a
 | `expandExecution(exec)` | `ProcessGraph::build` → `Poset::from` | poset |
 | `isDim2(adjacency)` | `is_dim2` | bool |
 | `criticalPairs(adjacency)` | `find_critical_pairs` | `[{x,y}]` |
-| `realizer(adjacency)` | **new** `realizer()` (see below) | `{dim2: bool, linear_extensions: [[int],[int]]}` |
+| `findRealizer(adjacency)` | **new** `find_realizer()` (see §2) | `{dim_le_2: bool, l1: [int], l2: [int]}` |
 
 YAML parse/dump go through WASM too, so the editor's file format is byte-for-byte
 the CLI's format.
 
-### 2. New libnomadim function — `realizer()`
+### 2. New first-class libnomadim algorithm — `find_realizer()`
 
-v1 displays the **realizer**: the two linear extensions L₁, L₂ whose
-intersection is the poset, witnessing dim ≤ 2. This needs a new function in the
-core library (not just the WASM layer), built on the existing machinery:
+The realizer (the two linear extensions L₁, L₂ whose intersection is exactly the
+partial order) is a **first-class algorithm in libnomadim**, not an editor
+helper. It lives in its own `include/nomadim/realizer.hpp` + `src/realizer.cpp`,
+is reusable by future work, and is covered by exhaustive tests. The editor is
+just one consumer.
 
-- Reuse `find_critical_pairs` + the conflict (incompatibility) graph already
-  built inside `check_critical_pairs_graph`.
-- Extract the **2-coloring** of the conflict graph (refactor
-  `check_critical_pairs_graph` / `is_bipartite` to optionally return the coloring
-  instead of just a bool — keep the existing bool API intact).
-- Each color class orients its critical pairs; combined with the partial order,
-  produce two total orders (topological sorts respecting the partial order plus
-  the oriented critical pairs).
-- Returns `{dim2, linear_extensions}`; when not dim-2, `dim2=false` and the
-  extensions are empty.
+**API:**
+```cpp
+struct Realizer {
+    bool dim_le_2 = false;       // true iff a 2-realizer was found
+    std::vector<int> l1, l2;     // linear extensions (permutations, bottom→top)
+};
+Realizer find_realizer(const adjacency_list& g);  // {false,{},{}} when dim > 2
+```
 
-This is added to `include/nomadim/dimension.hpp` + `src/dimension.cpp` with its
-own GoogleTest cases (verify L₁ ∩ L₂ reproduces the input order on dim-2
-fixtures; empty on non-dim-2 fixtures). It must not change existing behaviour or
-the golden enumeration counts.
+**Algorithm — verified transitive orientation (backtracking).** A poset has
+order dimension ≤ 2 iff its incomparability graph admits a transitive
+orientation (Dushnik–Miller); any such orientation O gives the realizer
+`L₁ = P ∪ O`, `L₂ = P ∪ O⁻¹`. We find one by backtracking:
+
+1. Compute the strict reachability relation `base` of `g` (Warshall).
+2. List the incomparable unordered pairs (neither `base(u,v)` nor `base(v,u)`).
+3. Recursively orient each incomparable pair, maintaining two transitively-closed
+   strict relations R₁ (starts at `base`) and R₂ (starts at `base`): orienting a
+   pair `u<v` in R₁ forces `v<u` in R₂. After each addition, close transitively
+   and reject the branch on any cycle.
+4. When every incomparable pair is oriented, both R₁ and R₂ are total orders
+   extending P with opposite orientation on every incomparable pair, so
+   `R₁ ∩ R₂ = P` **by construction**. Emit `l1`, `l2` as the topological orders.
+5. If the search exhausts with no assignment, dim > 2 → `{false,{},{}}`.
+
+Correctness is structural (the two relations are complementary on incomparable
+pairs by construction) **and** re-verified at runtime in tests (`l1 ∩ l2 == P`).
+Backtracking is exponential in the worst case but fine for the small posets in
+scope; Golumbic's polynomial transitive-orientation is a noted future
+optimisation. Precondition: `g` is acyclic (callers use `Poset::validate`
+first). The existing `dimension.cpp` (and the golden enumeration counts) are
+**not** modified.
+
+**Tests (`tests/test_realizer.cpp`, exhaustive):** chains, antichains, empty/
+singleton, fences; S₃ and the canonical execution → `dim_le_2 == false`;
+single-sync execution → realizer found; for every fixture a property check that
+`l1`/`l2` are permutations, each respects all `base` edges (valid linear
+extensions), and `l1 ∩ l2 == base`; a brute-force cross-check that
+`find_realizer(g).dim_le_2 == is_dim2(g)` over **all** small DAGs (≤ 4 vertices).
 
 ### 3. Web app — `nomadim/editor/`
 
