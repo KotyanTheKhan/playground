@@ -7,22 +7,27 @@ the editor never diverges from the `nomadim` CLI.
 
 ## Status
 
-- **Phase 2a (this):** the WASM core + a headless Node faithfulness test harness.
-- **Phase 2b (next):** the browser UI (Cytoscape.js layered-Hasse / swimlane
-  views, an editable YAML panel, File System Access API load/save, and a
-  `mise run nomadim-editor` task that builds, serves, and opens the browser).
+- **Phase 2a (done):** the WASM core + a headless Node faithfulness test harness.
+- **Phase 2b-i (done):** browser viewer — load a YAML poset/execution, see the
+  layered Hasse diagram (Cytoscape + dagre), the live dimension-≤-2 verdict, and
+  an editable YAML panel. Node unit tests + a Playwright browser smoke suite.
+- **Phase 2b-ii (next):** interactive editing (drag-to-add edges with cycle
+  rejection, add/remove vertices), the execution swimlane view, critical-pair
+  highlighting, the realizer panel, and File System Access API in-place save.
 
-## Build & test (via mise)
+## Build, run & test (via mise)
 
 ```bash
+mise run nomadim-editor         # build WASM, serve the editor, open the browser
 mise run nomadim-editor-build   # build nomadim.js + nomadim.wasm into editor/public/
-mise run nomadim-editor-test    # build CLI + module, run the Node faithfulness harness
+mise run nomadim-editor-test    # build CLI + module, run Node faithfulness + unit tests
+mise run nomadim-editor-e2e     # build module, run the Playwright browser smoke suite
 mise run nomadim-editor-clean   # remove the wasm build dir and generated module
 ```
 
-Emscripten is provisioned automatically by the pinned mise `emsdk` tool (a ~1 GB
-one-time download on first build). Generated `public/nomadim.{js,wasm}` are
-gitignored.
+Emscripten is provisioned by the pinned mise `emsdk` tool (~1 GB one-time).
+Cytoscape/dagre are committed under `editor/vendor/`. Generated
+`public/nomadim.{js,wasm}` and `editor/node_modules/` are gitignored.
 
 ## JS API (Embind, all string-in/string-out)
 
