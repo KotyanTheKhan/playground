@@ -9,11 +9,11 @@ the editor never diverges from the `nomadim` CLI.
 
 - **Phase 2a (done):** the WASM core + a headless Node faithfulness test harness.
 - **Phase 2b-i (done):** browser viewer — load a YAML poset/execution, see the
-  layered Hasse diagram (Cytoscape + dagre), the live dimension-≤-2 verdict, and
-  an editable YAML panel. Node unit tests + a Playwright browser smoke suite.
-- **Phase 2b-ii (next):** interactive editing (drag-to-add edges with cycle
-  rejection, add/remove vertices), the execution swimlane view, critical-pair
-  highlighting, the realizer panel, and File System Access API in-place save.
+  layered Hasse diagram, the live dimension-≤-2 verdict, and an editable YAML panel.
+- **Phase 2b-ii (done):** poset editing — add/remove vertices and edges (cycles
+  rejected), critical-pair highlight toggle, the realizer panel (two linear
+  extensions when dim ≤ 2), and Save (File System Access API + download fallback).
+- **Phase 2b-iii (next):** the execution swimlane view and execution editing.
 
 ## Build, run & test (via mise)
 
