@@ -326,3 +326,17 @@
 | Name | Meaning |
 |------|---------|
 | `E_min_dim_le_2_via_barrier` | E_min is dim<=2 via the all-cases barrier lever on its bottom split |
+
+#### `execution/FinPosetDim*.v` — generic finite-poset dimension levers
+
+Carrier-generic versions of the ExecPoset levers (on any `(A,R)` with `IsPoset` + `Finite (Full_set A)`), needed for the n-way recursion where the lower part of a barrier split is a bare sub-poset, not an ExecPoset.
+
+| Name | Meaning |
+|------|---------|
+| `fin_sub_order` / `fin_global_min` / `fin_global_max` / `fin_is_barrier` | generic sub-poset, extrema, barrier |
+| `fin_dim_exists` | every finite poset has a dimension |
+| `fin_remove_min_dim2` / `fin_remove_max_dim2` | removing a global extremum preserves dim ≤ 2 |
+| `fin_block_dim0_global_min` / `fin_block_dim0_global_max` | a dimension-0 block is a single global extremum |
+| `fin_barrier_dimension` | `dim = max` of block dimensions (both > 0) |
+| `fin_barrier_dim_le2` | a barrier with both blocks dim ≤ 2 makes the whole dim ≤ 2 |
+| `fin_chain_reproduces_E_min` | (test) the generic chain reproduces E_min's dim ≤ 2 |
