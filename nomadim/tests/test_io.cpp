@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "nomadim/io.hpp"
+#include <filesystem>
 #include <stdexcept>
 
 using namespace nomadim;
@@ -76,4 +77,31 @@ TEST(Io, RejectsOutOfRangePosetEdgeTarget) {
 
 TEST(Io, RejectsDocumentWithNeitherKey) {
     EXPECT_THROW(parse_document("foo: 1\n"), std::runtime_error);
+}
+
+TEST(Io, FileRoundTripExecution) {
+    Execution e{4, {{0,1},{1,2},{2,3},{0,2}}};
+    auto path = std::filesystem::temp_directory_path() / "nomadim_test_exec.yaml";
+    save_file(path.string(), dump_execution(e));
+    Document d = load_file(path.string());
+    std::filesystem::remove(path);
+    ASSERT_TRUE(d.execution.has_value());
+    EXPECT_EQ(d.execution->n_procs, 4);
+    EXPECT_EQ(d.execution->syncs, e.syncs);
+}
+
+TEST(Io, FileRoundTripPoset) {
+    Poset p{3, {{1,2},{2},{}}};
+    auto path = std::filesystem::temp_directory_path() / "nomadim_test_poset.yaml";
+    save_file(path.string(), dump_poset(p));
+    Document d = load_file(path.string());
+    std::filesystem::remove(path);
+    ASSERT_TRUE(d.poset.has_value());
+    EXPECT_EQ(d.poset->n_vertices, 3);
+    EXPECT_EQ(d.poset->edges, p.edges);
+}
+
+TEST(Io, LoadNonexistentFileThrows) {
+    EXPECT_THROW(load_file("/nonexistent/nomadim/does_not_exist.yaml"),
+                 std::runtime_error);
 }
