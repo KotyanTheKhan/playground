@@ -25,3 +25,13 @@ TEST(Execution, RejectsSelfSync) {
     Execution e{3, {{1, 1}}};
     EXPECT_THROW(e.validate(), std::invalid_argument);
 }
+
+TEST(Execution, EmptySyncsValid) {
+    Execution e{3, {}};
+    EXPECT_NO_THROW(e.validate());
+}
+
+TEST(Execution, RejectsNegativeEndpoint) {
+    Execution e{2, {{-1, 0}}};
+    EXPECT_THROW(e.validate(), std::invalid_argument);
+}

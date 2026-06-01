@@ -26,3 +26,26 @@ TEST(Poset, FromProcessGraphMatchesGraph) {
     EXPECT_EQ(p.n_vertices, (int)g.graph.size());
     EXPECT_EQ(p.edges, g.graph);
 }
+
+TEST(Poset, EmptyPosetValid) {
+    Poset p{0, {}};
+    EXPECT_NO_THROW(p.validate());
+}
+
+TEST(Poset, RejectsEdgesSizeMismatch) {
+    Poset p{2, {{}}};
+    EXPECT_THROW(p.validate(), std::invalid_argument);
+}
+
+TEST(Poset, RejectsSelfLoopEdge) {
+    Poset p{1, {{0}}};
+    EXPECT_THROW(p.validate(), std::invalid_argument);
+}
+
+TEST(Poset, FromProcessGraphCopiesGraph) {
+    ProcessGraph g = ProcessGraph::build(Execution{4, {{0,1},{1,2},{2,3},{0,2}}});
+    Poset p = Poset::from(g);
+    EXPECT_EQ(p.n_vertices, (int)g.graph.size());
+    EXPECT_EQ(p.edges, g.graph);
+    EXPECT_NO_THROW(p.validate());
+}
