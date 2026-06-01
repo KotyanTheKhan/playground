@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #include "nomadim/enumerate.hpp"
+#include "nomadim/process_graph.hpp"
+#include "nomadim/execution.hpp"
 #include <thread>
 #include <algorithm>
 
@@ -20,6 +22,28 @@ TEST(Enumerate, GoldenCountsDefaultTier) {
 
 TEST(Enumerate, ThreadCountDoesNotChangeResult) {
     EXPECT_EQ(enumerate(4, 5, 1).count, enumerate(4, 5, 4).count);
+}
+
+TEST(Enumerate, IsFullSynchronized) {
+    ProcessGraph synced = ProcessGraph::build(Execution{2, {{0,1}}});
+    EXPECT_TRUE(is_full_synchronized(synced));
+    ProcessGraph partial = ProcessGraph::build(Execution{4, {{0,1}}});
+    EXPECT_FALSE(is_full_synchronized(partial));
+}
+
+TEST(Enumerate, ResultInvariants) {
+    EnumerateResult r = enumerate(3, 5, 1);
+    EXPECT_EQ(r.count, 12);
+    EXPECT_EQ((int)r.results.size(), r.count);
+    EXPECT_GE(r.isomorphic_hits, 0);
+}
+
+TEST(Enumerate, SmallExactCount) {
+    EXPECT_EQ(enumerate(2, 1, 1).count, 1);
+}
+
+TEST(Enumerate, ThreadInvarianceSecondConfig) {
+    EXPECT_EQ(enumerate(3, 5, 1).count, enumerate(3, 5, 4).count);
 }
 
 #ifdef NOMADIM_SLOW_TESTS
