@@ -18,8 +18,7 @@ int cmd_check(const std::string& path) {
     }
     std::vector<int> m = make_graph_matrix(adj);
     int n = (int)adj.size();
-    floyd(m.data(), n);
-    auto cps = find_critical_pairs(m.data(), n);
+    auto cps = find_critical_pairs(m.data(), n);  // closes the matrix internally
     bool dim2 = check_critical_pairs_graph(adj, cps);
 
     std::cout << "Vertices: " << n << "\n";

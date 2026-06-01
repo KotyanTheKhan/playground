@@ -66,12 +66,18 @@ std::vector<critical_pair> find_critical_pairs(int* matrix, int n) {
 bool check_critical_pairs_graph(const adjacency_list& poset_graph,
                                 const std::vector<critical_pair>& cps) {
     adjacency_list icg(cps.size());
+    // Reuse a single working copy of the poset graph: add the two reversal
+    // edges, test for a cycle, then pop them (reverse push order) to restore.
+    // Avoids an O(V+E) deep copy for every one of the O(cps^2) pairs.
+    adjacency_list lg = poset_graph;
     for (size_t i = 0; i < cps.size(); ++i)
         for (size_t j = i + 1; j < cps.size(); ++j) {
-            adjacency_list lg = poset_graph;
             lg[cps[i].y].push_back(cps[i].x);
             lg[cps[j].y].push_back(cps[j].x);
-            if (have_cycle(lg)) {
+            bool cyc = have_cycle(lg);
+            lg[cps[j].y].pop_back();
+            lg[cps[i].y].pop_back();
+            if (cyc) {
                 icg[i].push_back((int)j);
                 icg[j].push_back((int)i);
             }
@@ -82,7 +88,7 @@ bool check_critical_pairs_graph(const adjacency_list& poset_graph,
 bool is_dim2(const adjacency_list& g) {
     std::vector<int> matrix = make_graph_matrix(g);
     int n = (int)g.size();
-    floyd(matrix.data(), n);
+    // find_critical_pairs closes the matrix itself, so no pre-floyd here.
     auto cps = find_critical_pairs(matrix.data(), n);
     return check_critical_pairs_graph(g, cps);
 }

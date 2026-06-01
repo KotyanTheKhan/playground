@@ -35,6 +35,12 @@ public:
     PEHash proc_sync_name;                      // per-process synchronization signature
 
     void init(int process_num);
+    // Record a synchronization between two processes. NOTE: the per-process
+    // signature `proc_sync_name` encodes each sync index as a single char
+    // ((char)(index) + '0'), so distinct syncs only map to distinct bytes while
+    // the total sync count stays small (well within the enumeration's K range).
+    // Beyond ~70 syncs the bytes collide / overflow, which would corrupt the
+    // signature used as the enumeration prune key (silently dropping results).
     void sync(int proc1, int proc2);
 
     // Convenience: init(e.n_procs) then replay e.syncs.

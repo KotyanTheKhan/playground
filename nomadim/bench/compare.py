@@ -38,12 +38,19 @@ def main():
     print("{:<28} {:>14} {:>14} {:>9}  {}".format(
         "benchmark", "baseline", "current", "delta", "verdict"))
     regressions = []
+    missing = []
     for n in names:
         if n not in base:
+            # New benchmark not in the baseline — informational, not a failure.
             print("{:<28} {:>14} {:>14.1f} {:>9}  warn".format(n, "-", cur[n], "NEW"))
             continue
         if n not in cur:
-            print("{:<28} {:>14.1f} {:>14} {:>9}  warn".format(n, base[n], "-", "MISSING"))
+            # A baseline benchmark has no median in the current run. This happens
+            # when a benchmark errored out (e.g. an enumerate count assertion via
+            # SkipWithError suppresses its aggregates) — treat it as a failure so
+            # a correctness regression cannot slip through the gate.
+            print("{:<28} {:>14.1f} {:>14} {:>9}  FAIL".format(n, base[n], "-", "MISSING"))
+            missing.append(n)
             continue
         b, c = base[n], cur[n]
         delta = (c - b) / b if b else 0.0
@@ -55,9 +62,13 @@ def main():
             verdict = "faster"
         print("{:<28} {:>14.1f} {:>14.1f} {:>+8.1f}%  {}".format(n, b, c, delta * 100, verdict))
 
-    if regressions:
-        print("\nFAIL: {} regression(s) over {:.0f}%: {}".format(
-            len(regressions), args.threshold * 100, ", ".join(regressions)))
+    if regressions or missing:
+        if regressions:
+            print("\nFAIL: {} regression(s) over {:.0f}%: {}".format(
+                len(regressions), args.threshold * 100, ", ".join(regressions)))
+        if missing:
+            print("FAIL: {} baseline benchmark(s) missing/errored in current run: {}".format(
+                len(missing), ", ".join(missing)))
         return 1
     print("\nOK: no regression over {:.0f}% threshold".format(args.threshold * 100))
     return 0
