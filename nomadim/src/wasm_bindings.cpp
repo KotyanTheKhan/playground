@@ -30,6 +30,18 @@ adjacency_list parse_adjacency(const std::string& json) {
     return g;
 }
 
+// Build an adjacency_list from JSON and validate it as a poset (endpoint bounds
+// + acyclicity), matching the CLI, which never runs an algorithm on an
+// unvalidated poset. Throws std::invalid_argument on malformed input.
+adjacency_list parse_validated_adjacency(const std::string& json) {
+    adjacency_list g = parse_adjacency(json);
+    Poset p;
+    p.n_vertices = (int)g.size();
+    p.edges = g;
+    p.validate();
+    return g;
+}
+
 std::string ints_to_json(const std::vector<int>& xs) {
     std::ostringstream os;
     os << '[';
@@ -67,11 +79,11 @@ std::string syncs_to_json(const std::vector<std::pair<int,int>>& syncs) {
 }
 
 bool is_dim2_json(const std::string& adj_json) {
-    return is_dim2(parse_adjacency(adj_json));
+    return is_dim2(parse_validated_adjacency(adj_json));
 }
 
 std::string find_realizer_json(const std::string& adj_json) {
-    Realizer r = find_realizer(parse_adjacency(adj_json));
+    Realizer r = find_realizer(parse_validated_adjacency(adj_json));
     std::ostringstream os;
     os << "{\"dim_le_2\":" << (r.dim_le_2 ? "true" : "false")
        << ",\"l1\":" << ints_to_json(r.l1)
@@ -80,7 +92,7 @@ std::string find_realizer_json(const std::string& adj_json) {
 }
 
 std::string critical_pairs_json(const std::string& adj_json) {
-    adjacency_list g = parse_adjacency(adj_json);
+    adjacency_list g = parse_validated_adjacency(adj_json);
     int n = (int)g.size();
     std::vector<int> m = make_graph_matrix(g);
     auto cps = find_critical_pairs(m.data(), n);
