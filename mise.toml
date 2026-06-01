@@ -249,3 +249,35 @@ ctest --test-dir nomadim/build --output-on-failure
 [tasks.nomadim-clean]
 description = "Remove nomadim CMake build directories"
 run = "rm -rf nomadim/build nomadim/build-bench && echo '✅ nomadim build dirs removed'"
+
+[tasks.nomadim-bench]
+description = "Run nomadim benchmarks and compare to the committed baseline (fails on regression)"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+cmake -S nomadim -B nomadim/build-bench -DCMAKE_BUILD_TYPE=Release -DNOMADIM_BENCH=ON
+cmake --build nomadim/build-bench -j --target nomadim_bench
+./nomadim/build-bench/nomadim_bench \
+  --benchmark_repetitions=3 \
+  --benchmark_report_aggregates_only=true \
+  --benchmark_format=json \
+  --benchmark_out=nomadim/build-bench/bench_current.json \
+  --benchmark_out_format=json
+python3 nomadim/bench/compare.py nomadim/bench/baseline.json nomadim/build-bench/bench_current.json
+'''
+
+[tasks.nomadim-bench-baseline]
+description = "Regenerate the committed nomadim benchmark baseline"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+cmake -S nomadim -B nomadim/build-bench -DCMAKE_BUILD_TYPE=Release -DNOMADIM_BENCH=ON
+cmake --build nomadim/build-bench -j --target nomadim_bench
+./nomadim/build-bench/nomadim_bench \
+  --benchmark_repetitions=3 \
+  --benchmark_report_aggregates_only=true \
+  --benchmark_format=json \
+  --benchmark_out=nomadim/bench/baseline.json \
+  --benchmark_out_format=json
+echo "✅ baseline written to nomadim/bench/baseline.json"
+'''
