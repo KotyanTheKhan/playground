@@ -2,3 +2,7 @@ build/
 build-slow/
 build-bench/
 tests/__pycache__/
+build-wasm/
+editor/public/nomadim.js
+editor/public/nomadim.wasm
+editor/node_modules/

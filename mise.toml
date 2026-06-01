@@ -281,3 +281,27 @@ cmake --build nomadim/build-bench -j --target nomadim_bench
   --benchmark_out_format=json
 echo "✅ baseline written to nomadim/bench/baseline.json"
 '''
+
+[tasks.nomadim-editor-build]
+description = "Build the libnomadim WebAssembly module (Emscripten via mise emsdk)"
+tools = { emsdk = "4.0.23" }
+run = "bash nomadim/editor/build-wasm.sh"
+
+[tasks.nomadim-editor-test]
+description = "Build the WASM module + native CLI, run the Node faithfulness harness"
+tools = { emsdk = "4.0.23", node = "22" }
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+# Native CLI is the faithfulness oracle.
+cmake -S nomadim -B nomadim/build -DCMAKE_BUILD_TYPE=Release
+cmake --build nomadim/build -j --target nomadim
+# WASM module under test.
+bash nomadim/editor/build-wasm.sh
+# Headless cross-check.
+node --test nomadim/editor/test/
+'''
+
+[tasks.nomadim-editor-clean]
+description = "Remove the editor WASM build dir and generated module"
+run = "rm -rf nomadim/build-wasm nomadim/editor/public/nomadim.js nomadim/editor/public/nomadim.wasm && echo '✅ editor wasm artifacts removed'"
