@@ -6,8 +6,9 @@ import { initPosetView, renderPoset, setCriticalOverlay, clearCriticalOverlay } 
 import { emptyPoset, addVertex, removeVertex, addEdge, removeEdge } from './edits.mjs';
 import { realizerColumns } from './realizer.mjs';
 import { saveText } from './file-save.mjs';
-import { emptyExecution, setNProcs, appendSync, removeLastSync } from './execution-edits.mjs';
+import { emptyExecution, setNProcs, appendSync, removeLastSync, moveSync, removeSyncAt, reorderProcess } from './execution-edits.mjs';
 import { renderExecution, clearExecution } from './execution-view.mjs';
+import { attachDrag } from './execution-drag.mjs';
 
 async function main() {
   const client = await makeClient(window.createNomadim);
@@ -75,6 +76,7 @@ async function main() {
       if (els.critical.checked) setCriticalOverlay(cy, client.criticalPairs(adj));
     } else if (v === 'execution' && model.execution) {
       renderExecution(els.exec, model.execution);
+      attachExecDrag();
       els.verdict.textContent = `Execution: ${model.execution.n_procs} processes, ${model.execution.syncs.length} syncs`;
       els.realizer.textContent = '';
     } else {
@@ -130,6 +132,19 @@ async function main() {
       setView('poset');
       refresh();
     } catch (e) { showError('Expand failed: ' + (e && e.message ? e.message : e)); }
+  }
+
+  // Wire drag editing onto the freshly rendered swimlane. Each drag routes
+  // through editExec, so it re-renders + re-attaches (no listener leak).
+  function attachExecDrag() {
+    const svg = els.exec.querySelector('svg');
+    if (!svg || !model.execution) return;
+    attachDrag(svg, model.execution, {
+      onNewSync: (a, b) => editExec((e) => appendSync(e, a, b)),
+      onReorderProcess: (from, to) => editExec((e) => reorderProcess(e, from, to)),
+      onMoveSync: (from, to) => editExec((e) => moveSync(e, from, to)),
+      onDeleteSync: (i) => editExec((e) => removeSyncAt(e, i)),
+    });
   }
 
   els['tab-poset'].addEventListener('click', () => { setView('poset'); refresh(); });
@@ -199,6 +214,7 @@ async function main() {
     syncCount: () => els.exec.querySelectorAll('.sync').length,
     realizerText: () => els.realizer.textContent,
     currentYaml: () => currentYaml(),
+    currentExecution: () => model.execution,
     nodeCount: () => cy.nodes().length,
     criticalCount: () => cy.$('edge.critical').length,
     verdictText: () => els.verdict.textContent,

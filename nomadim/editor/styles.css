@@ -29,3 +29,14 @@ header .tabs button.active { background: #4f8cff; color: #fff; }
 .exec-svg .proc-label { fill: #555; font: 12px system-ui; }
 .exec-svg .sync-label { fill: #999; font: 11px ui-monospace, monospace; }
 #toolbar .grp { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.exec-svg .lane-hit { cursor: crosshair; }
+.exec-svg .lane-hit.hot { fill: rgba(79, 140, 255, 0.12); }
+.exec-svg .proc-label { cursor: grab; }
+.exec-svg .sync, .exec-svg .event { cursor: grab; }
+.exec-svg .sync.hot { stroke-width: 4; }
+.exec-svg .drag-overlay { stroke: #4f8cff; stroke-width: 2; stroke-dasharray: 4 3; pointer-events: none; }
+.exec-svg .delete-zone { display: none; }
+.exec-svg .delete-zone.active { display: block; }
+.exec-svg .delete-zone rect { fill: #e0457b; opacity: 0.12; }
+.exec-svg .delete-zone.hot rect { opacity: 0.32; }
+.exec-svg .delete-zone text { fill: #e0457b; font: 11px system-ui; opacity: 0.7; pointer-events: none; }
