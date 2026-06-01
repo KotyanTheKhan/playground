@@ -6,30 +6,40 @@ import { initPosetView, renderPoset, setCriticalOverlay, clearCriticalOverlay } 
 import { emptyPoset, addVertex, removeVertex, addEdge, removeEdge } from './edits.mjs';
 import { realizerColumns } from './realizer.mjs';
 import { saveText } from './file-save.mjs';
+import { emptyExecution, setNProcs, appendSync, removeLastSync } from './execution-edits.mjs';
+import { renderExecution, clearExecution } from './execution-view.mjs';
 
 async function main() {
   const client = await makeClient(window.createNomadim);
   const cy = initPosetView(document.getElementById('cy'));
   let model = emptyModel();
+  let view = 'poset'; // 'poset' | 'execution'
 
+  const ids = ['version', 'verdict', 'yaml', 'apply', 'file', 'error',
+               'new', 'addv', 'adde', 'del', 'edge-u', 'edge-v', 'critical', 'realizer', 'save',
+               'tab-poset', 'tab-exec', 'poset-pane', 'exec-pane', 'exec',
+               'nprocs', 'sync-a', 'sync-b', 'addsync', 'delsync', 'derive'];
   const els = {};
-  for (const id of ['version', 'verdict', 'yaml', 'apply', 'file', 'error',
-                    'new', 'addv', 'adde', 'del', 'edge-u', 'edge-v',
-                    'critical', 'realizer', 'save']) {
-    els[id] = document.getElementById(id);
-  }
+  for (const id of ids) els[id] = document.getElementById(id);
   els.version.textContent = 'libnomadim ' + client.version();
 
   const showError = (msg) => { els.error.textContent = msg || ''; };
 
-  // Render the realizer panel (two linear extensions) for the current poset.
-  function renderRealizer(adj) {
-    const cols = realizerColumns(client, adj);
-    if (!cols) { els.realizer.textContent = ''; return; }
-    els.realizer.textContent = `realizer  L1: [${cols.l1.join(', ')}]   L2: [${cols.l2.join(', ')}]`;
+  function setView(v) {
+    view = v;
+    els['poset-pane'].style.display = v === 'poset' ? '' : 'none';
+    els['exec-pane'].style.display = v === 'execution' ? '' : 'none';
+    els['tab-poset'].classList.toggle('active', v === 'poset');
+    els['tab-exec'].classList.toggle('active', v === 'execution');
+    if (v === 'poset') cy.resize();
   }
 
-  // Render everything from the current model.
+  function renderRealizer(adj) {
+    const cols = realizerColumns(client, adj);
+    els.realizer.textContent = cols
+      ? `realizer  L1: [${cols.l1.join(', ')}]   L2: [${cols.l2.join(', ')}]` : '';
+  }
+
   function refresh({ syncYaml = true } = {}) {
     showError('');
     if (hasPoset(model)) {
@@ -38,34 +48,39 @@ async function main() {
       els.verdict.textContent = verdictText(computeVerdict(client, adj));
       renderRealizer(adj);
       if (els.critical.checked) setCriticalOverlay(cy, client.criticalPairs(adj));
+    } else if (model.execution) {
+      renderExecution(els.exec, model.execution);
+      els.verdict.textContent = `Execution: ${model.execution.n_procs} processes, ${model.execution.syncs.length} syncs`;
+      els.realizer.textContent = '';
     } else {
       cy.elements().remove();
+      clearExecution(els.exec);
+      els.verdict.textContent = 'No document loaded.';
       els.realizer.textContent = '';
-      els.verdict.textContent = model.execution
-        ? 'Execution loaded — apply the YAML panel to expand it; the swimlane editor is Phase 2b-iii.'
-        : 'No document loaded.';
     }
     if (syncYaml) els.yaml.value = modelToYaml(client, model);
   }
 
-  // Apply a pure poset edit (fn: poset -> poset) to the model, with error surfacing.
-  function edit(fn) {
+  function editPoset(fn) {
     if (!hasPoset(model)) { showError('Create or load a poset first (New poset).'); return; }
-    try {
-      model = { poset: fn(model.poset), execution: null };
-      refresh();
-    } catch (e) {
-      showError(e && e.message ? e.message : String(e));
-    }
+    try { model = { poset: fn(model.poset), execution: null }; setView('poset'); refresh(); }
+    catch (e) { showError(e && e.message ? e.message : String(e)); }
+  }
+
+  function editExec(fn) {
+    if (!model.execution) { showError('Create or load an execution first (New execution).'); return; }
+    try { model = { poset: null, execution: fn(model.execution) }; setView('execution'); refresh(); }
+    catch (e) { showError(e && e.message ? e.message : String(e)); }
   }
 
   function loadText(text) {
-    try { model = yamlToModel(client, text); refresh(); }
-    catch (e) { showError('Could not load document: ' + (e && e.message ? e.message : e)); }
+    try {
+      model = yamlToModel(client, text);
+      setView(model.execution && !model.poset ? 'execution' : 'poset');
+      refresh();
+    } catch (e) { showError('Could not load document: ' + (e && e.message ? e.message : e)); }
   }
 
-  // Delete currently-selected nodes (descending, so renumbering stays valid),
-  // then any selected overlay-free edges.
   function deleteSelected() {
     if (!hasPoset(model)) return;
     const nodeIdx = cy.$('node:selected').map((n) => parseInt(n.id().slice(1), 10));
@@ -78,13 +93,25 @@ async function main() {
     refresh();
   }
 
-  // --- wiring ---
-  els.new.addEventListener('click', () => { model = { poset: emptyPoset(), execution: null }; refresh(); });
-  els.addv.addEventListener('click', () => edit(addVertex));
+  function derivePoset() {
+    if (!model.execution) { showError('Load or build an execution first.'); return; }
+    try {
+      const poset = client.expandExecution(model.execution);
+      model = { poset, execution: null };
+      setView('poset');
+      refresh();
+    } catch (e) { showError('Expand failed: ' + (e && e.message ? e.message : e)); }
+  }
+
+  els['tab-poset'].addEventListener('click', () => setView('poset'));
+  els['tab-exec'].addEventListener('click', () => setView('execution'));
+
+  els.new.addEventListener('click', () => { model = { poset: emptyPoset(), execution: null }; setView('poset'); refresh(); });
+  els.addv.addEventListener('click', () => editPoset(addVertex));
   els.adde.addEventListener('click', () => {
     const u = parseInt(els['edge-u'].value, 10), v = parseInt(els['edge-v'].value, 10);
     if (Number.isNaN(u) || Number.isNaN(v)) { showError('Enter source and target vertex numbers.'); return; }
-    edit((p) => addEdge(p, u, v));
+    editPoset((p) => addEdge(p, u, v));
   });
   els.del.addEventListener('click', deleteSelected);
   els.critical.addEventListener('change', () => {
@@ -92,29 +119,54 @@ async function main() {
     if (els.critical.checked) setCriticalOverlay(cy, client.criticalPairs(posetAdjacency(model)));
     else clearCriticalOverlay(cy);
   });
+
+  els.nprocs.addEventListener('change', () => {
+    const n = parseInt(els.nprocs.value, 10);
+    if (Number.isNaN(n) || n < 0) { showError('Process count must be a non-negative integer.'); return; }
+    if (!model.execution) { model = { poset: null, execution: emptyExecution(n) }; setView('execution'); refresh(); }
+    else editExec((e) => setNProcs(e, n));
+  });
+  els.addsync.addEventListener('click', () => {
+    const a = parseInt(els['sync-a'].value, 10), b = parseInt(els['sync-b'].value, 10);
+    if (Number.isNaN(a) || Number.isNaN(b)) { showError('Enter two process numbers for the sync.'); return; }
+    editExec((e) => appendSync(e, a, b));
+  });
+  els.delsync.addEventListener('click', () => editExec(removeLastSync));
+  els.derive.addEventListener('click', derivePoset);
+
   els.save.addEventListener('click', async () => {
-    try { await saveText(modelToYaml(client, model) || '', 'poset.yaml'); }
+    try { await saveText(modelToYaml(client, model) || '', model.execution ? 'execution.yaml' : 'poset.yaml'); }
     catch (e) { if (e && e.name !== 'AbortError') showError('Save failed: ' + (e.message || e)); }
   });
   els.apply.addEventListener('click', () => {
-    try { model = yamlToModel(client, els.yaml.value); refresh({ syncYaml: false }); }
-    catch (e) { showError('Invalid YAML: ' + (e && e.message ? e.message : e)); }
+    try {
+      model = yamlToModel(client, els.yaml.value);
+      setView(model.execution && !model.poset ? 'execution' : 'poset');
+      refresh({ syncYaml: false });
+    } catch (e) { showError('Invalid YAML: ' + (e && e.message ? e.message : e)); }
   });
   els.file.addEventListener('change', async (ev) => {
     const f = ev.target.files[0];
     if (f) loadText(await f.text());
   });
 
+  setView('poset');
   refresh();
 
-  // Test hook: deterministic drivers for Playwright (bypass DOM selection).
   window.__editor = {
     loadText,
-    newPoset: () => { model = { poset: emptyPoset(), execution: null }; refresh(); },
-    addVertex: () => edit(addVertex),
-    addEdge: (u, v) => edit((p) => addEdge(p, u, v)),
-    removeVertex: (i) => edit((p) => removeVertex(p, i)),
+    newPoset: () => { model = { poset: emptyPoset(), execution: null }; setView('poset'); refresh(); },
+    addVertex: () => editPoset(addVertex),
+    addEdge: (u, v) => editPoset((p) => addEdge(p, u, v)),
+    removeVertex: (i) => editPoset((p) => removeVertex(p, i)),
     setCritical: (on) => { els.critical.checked = on; els.critical.dispatchEvent(new Event('change')); },
+    newExecution: (n) => { model = { poset: null, execution: emptyExecution(n) }; setView('execution'); refresh(); },
+    appendSync: (a, b) => editExec((e) => appendSync(e, a, b)),
+    removeLastSync: () => editExec(removeLastSync),
+    derivePoset,
+    currentView: () => view,
+    laneCount: () => els.exec.querySelectorAll('.lane').length,
+    syncCount: () => els.exec.querySelectorAll('.sync').length,
     realizerText: () => els.realizer.textContent,
     currentYaml: () => modelToYaml(client, model),
     nodeCount: () => cy.nodes().length,
