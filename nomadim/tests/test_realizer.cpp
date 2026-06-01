@@ -85,3 +85,40 @@ TEST(Realizer, EmptyAndSingleton) {
     EXPECT_TRUE(r1.dim_le_2);
     expect_valid_realizer(one, r1);
 }
+
+// The standard example S_3 has order dimension 3 — no 2-realizer exists.
+TEST(Realizer, StandardExampleS3HasNoRealizer) {
+    adjacency_list s3(6);
+    s3[0] = {4, 5}; s3[1] = {3, 5}; s3[2] = {3, 4};
+    Realizer r = find_realizer(s3);
+    EXPECT_FALSE(r.dim_le_2);
+    EXPECT_TRUE(r.l1.empty());
+    EXPECT_TRUE(r.l2.empty());
+    EXPECT_EQ(r.dim_le_2, is_dim2(s3));   // agrees with the existing checker
+}
+
+// The canonical 4-process execution is NOT 2-dimensional (25 critical pairs).
+TEST(Realizer, CanonicalExecutionHasNoRealizer) {
+    ProcessGraph g = ProcessGraph::build(Execution{4, {{0,1},{1,2},{2,3},{0,2}}});
+    Realizer r = find_realizer(g.graph);
+    EXPECT_FALSE(r.dim_le_2);
+    EXPECT_EQ(r.dim_le_2, is_dim2(g.graph));
+}
+
+// A single synchronization between two processes expands to a 2-dimensional poset.
+TEST(Realizer, SingleSyncExecutionHasRealizer) {
+    ProcessGraph g = ProcessGraph::build(Execution{2, {{0,1}}});
+    Realizer r = find_realizer(g.graph);
+    EXPECT_TRUE(r.dim_le_2);
+    EXPECT_EQ(r.dim_le_2, is_dim2(g.graph));
+    expect_valid_realizer(g.graph, r);
+}
+
+// The "N" poset (0<2, 1<2, 1<3) has dimension 2.
+TEST(Realizer, NPosetHasRealizer) {
+    adjacency_list n_poset = {{2}, {2, 3}, {}, {}};
+    Realizer r = find_realizer(n_poset);
+    EXPECT_TRUE(r.dim_le_2);
+    EXPECT_EQ(r.dim_le_2, is_dim2(n_poset));
+    expect_valid_realizer(n_poset, r);
+}
