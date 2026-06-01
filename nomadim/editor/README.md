@@ -8,12 +8,17 @@ the editor never diverges from the `nomadim` CLI.
 ## Status
 
 - **Phase 2a (done):** the WASM core + a headless Node faithfulness test harness.
-- **Phase 2b-i (done):** browser viewer — load a YAML poset/execution, see the
-  layered Hasse diagram, the live dimension-≤-2 verdict, and an editable YAML panel.
-- **Phase 2b-ii (done):** poset editing — add/remove vertices and edges (cycles
-  rejected), critical-pair highlight toggle, the realizer panel (two linear
-  extensions when dim ≤ 2), and Save (File System Access API + download fallback).
-- **Phase 2b-iii (next):** the execution swimlane view and execution editing.
+- **Phase 2b-i (done):** browser viewer — load a YAML poset/execution, layered
+  Hasse diagram, live dimension-≤-2 verdict, editable YAML panel.
+- **Phase 2b-ii (done):** poset editing — add/remove vertices & edges (cycles
+  rejected), critical-pair highlight, realizer panel, and Save.
+- **Phase 2b-iii (done):** execution view — process swimlanes with ordered sync
+  connectors, execution editing (process count, append/remove-last sync), and
+  "Show derived poset" (expands via the WASM module into the poset view).
+
+Sync editing is append / remove-last; arbitrary reorder/insert is not yet
+supported. The swimlane shows the abstract execution; the full event-structure
+poset is produced by "Show derived poset".
 
 ## Build, run & test (via mise)
 
