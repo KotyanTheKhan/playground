@@ -64,7 +64,7 @@ TEST(Realizer, ChainHasRealizer) {
     expect_valid_realizer(chain, r);
 }
 
-// A 3-element antichain has dimension 2: the realizer is any order and its
+// A 3-element antichain has dimension 2: one valid realizer is any order and its
 // reverse, so the intersection is empty (all pairs incomparable).
 TEST(Realizer, AntichainHasRealizer) {
     adjacency_list a3(3);   // no edges
@@ -102,6 +102,8 @@ TEST(Realizer, CanonicalExecutionHasNoRealizer) {
     ProcessGraph g = ProcessGraph::build(Execution{4, {{0,1},{1,2},{2,3},{0,2}}});
     Realizer r = find_realizer(g.graph);
     EXPECT_FALSE(r.dim_le_2);
+    EXPECT_TRUE(r.l1.empty());
+    EXPECT_TRUE(r.l2.empty());
     EXPECT_EQ(r.dim_le_2, is_dim2(g.graph));
 }
 
