@@ -55,10 +55,20 @@ Out of scope (cut from the original): the grouped generators
 | File format | YAML, supporting **both** an `execution` document and a general `poset` document |
 | CLI shape | Single multi-command binary (`nomadim <subcommand>`) |
 | Scope | **check** dimension-2 + **enumerate by N** (isomorphic). Grouped and flat-grid generators dropped. |
-| Concurrency | Multithreaded **and** multifibered (boost::fiber work-stealing, as upstream) |
+| Concurrency | Multithreaded `std::thread` work-pool (see note). Originally boost::fiber, but it was dropped — work_stealing crashes on this platform and round-robin fibers got no speedup under the problem's symmetry. |
 | Testing | GoogleTest + golden regression data |
 | Location | New top-level `nomadim/` directory, independent of the Coq/dune build |
-| Dependencies | CMake `FetchContent` for yaml-cpp + GoogleTest + CLI11; `find_package(Boost REQUIRED fiber context)` |
+| Dependencies | CMake `FetchContent` for yaml-cpp + GoogleTest + CLI11. **No Boost.** |
+
+> **Concurrency note (implementation outcome):** the enumerator is a fine-grained
+> `std::thread` work-pool — a shared task deque of `(ProcessGraph, sync_num)`
+> nodes; workers pop tasks, queue shallow children / inline deep ones, with
+> duplicates pruned via a 64-shard cache before queuing and results bucketed by a
+> cheap isomorphism invariant. This gives real multicore speedup (~5.6x j=1→j=8).
+> boost::fiber was tried first (per the original) but abandoned: its
+> `work_stealing` scheduler SIGBUS-crashes across repeated `enumerate()` calls,
+> and the per-branch round-robin alternative collapses to one core under the
+> first-level symmetry. The user approved replacing fibers.
 
 ## 4. Architecture
 
@@ -98,10 +108,10 @@ internals that can change without breaking consumers.
   and `is_bipartite` helpers. The headline algorithm.
 - **`isomorphism`** — `is_isomorphic`, `generate_all_isomorphic`, and sync-name
   canonicalization (sorted `proc_sync_name`).
-- **`enumerate`** — the multithreaded + multifibered work-stealing enumerator
-  (boost::fiber), with the sorted-sync-name cache for pruning. Returns the set of
-  non-isomorphic, fully-synchronized, dim-2 executions and the isomorphic-hit
-  count. Parameters: `N` (processes), optional `K` (max sync count), and
+- **`enumerate`** — the multithreaded `std::thread` work-pool enumerator (see the
+  concurrency note in §3), with a sharded sorted-sync-name cache for pruning.
+  Returns the set of non-isomorphic, fully-synchronized, dim-2 executions and the
+  isomorphic-hit count. Parameters: `N` (processes), optional `K` (max sync count), and
   `threads` (worker-thread count, default `hardware_concurrency()`; `1` =
   single-threaded). Results are deduplicated to be deterministic regardless of
   thread count.
@@ -153,7 +163,7 @@ validation, or usage errors. `enumerate` writes the found executions as YAML
 matched to `N` if omitted (documented in `--help`).
 
 `-j` / `--threads THREADS` sets the number of worker threads for the
-boost::fiber work-stealing enumerator. It defaults to
+`std::thread` work-pool enumerator. It defaults to
 `std::thread::hardware_concurrency()`; a value of `1` runs single-threaded
 (useful for deterministic debugging). The value is validated to be `>= 1`.
 

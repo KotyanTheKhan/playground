@@ -1200,15 +1200,23 @@ deduplicated by isomorphism. The returned **count** is deterministic regardless
 of thread count.
 
 > **IMPLEMENTATION NOTE (supersedes the boost::fiber work-stealing code shown
-> below):** On macOS/arm64 the boost::fiber `work_stealing` scheduler SIGBUS-
-> crashes when its threads are created/destroyed across repeated `enumerate()`
-> calls (process-global scheduler state; confirmed via the macOS `.ips` crash
-> report, not a stack overflow). The shipped design instead partitions the
-> first-level branches across `threads` `std::thread`s and, within each thread,
-> runs its branches as `boost::fiber`s on the **default round-robin** scheduler
-> (no global state). Shared cache/results use `std::mutex`; fibers get an 8 MiB
-> stack. This is multithreaded + multifibered and reproduces the golden counts.
-> See the committed `nomadim/src/enumerate.cpp` for the authoritative code.
+> below):** boost::fiber was dropped entirely (the user authorized replacing it
+> if it failed, and it did). Two boost::fiber dead-ends: (1) the `work_stealing`
+> scheduler SIGBUS-crashes when its threads are created/destroyed across repeated
+> `enumerate()` calls (process-global state; confirmed via the macOS `.ips` crash
+> report, not a stack overflow); (2) the default round-robin scheduler with one
+> fiber per first-level branch is correct but gets no speedup — by symmetry the
+> first-level syncs are all isomorphic, so the cache collapses them to one active
+> branch (one core).
+>
+> The shipped design is a plain **std::thread work-pool** (no Boost): a shared
+> work deque of `(ProcessGraph, sync_num)` tasks; `threads` workers pop tasks,
+> process the node, and queue shallow children / inline deep ones. Duplicates are
+> pruned via a 64-shard cache BEFORE queuing, so distinct subtrees spread across
+> cores (measured ~5.6x j=1→j=8). Results are bucketed by a cheap isomorphism
+> invariant (vertex count + sorted per-process event counts) so `is_isomorphic`
+> only compares within a bucket. Counts are deterministic regardless of thread
+> count. Boost is NOT a dependency. See the committed `nomadim/src/enumerate.cpp`.
 
 **Files:**
 - Create: `nomadim/include/nomadim/enumerate.hpp`
