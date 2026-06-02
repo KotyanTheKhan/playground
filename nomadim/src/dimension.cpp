@@ -117,7 +117,8 @@ Coloring make_coloring(const StrictRel& base, const std::vector<critical_pair>& 
 
 } // namespace
 
-DimensionResult analyze_dimension(const adjacency_list& g, const Caps& caps) {
+DimensionResult analyze_dimension(const adjacency_list& g, const Caps& caps,
+                                  bool with_colorings) {
     int n = (int)g.size();
     if (n > caps.max_vertices)
         throw std::runtime_error("poset too large: vertices (" + std::to_string(n) +
@@ -131,10 +132,16 @@ DimensionResult analyze_dimension(const adjacency_list& g, const Caps& caps) {
     if (dr.critical_pairs.empty()) {
         // No incomparable pairs -> a chain. dim 1 (or 0 for the empty poset).
         dr.dimension = (n == 0) ? 0 : 1;
-        if (n > 0) {
+        if (n > 0 && with_colorings) {
             Coloring c; c.realizer.push_back(topo_order(base));
             dr.colorings.push_back(std::move(c));
         }
+        return dr;
+    }
+
+    if (!with_colorings) {
+        // Fast path: dimension only, skip the costly hyperedge / coloring work.
+        dr.dimension = chromatic_number(base, dr.critical_pairs, caps);
         return dr;
     }
 
@@ -147,7 +154,19 @@ DimensionResult analyze_dimension(const adjacency_list& g, const Caps& caps) {
 }
 
 int dimension(const adjacency_list& g, const Caps& caps) {
-    return analyze_dimension(g, caps).dimension;
+    return analyze_dimension(g, caps, /*with_colorings=*/false).dimension;
+}
+
+bool dimension_at_most(const adjacency_list& g, int k, const Caps& caps) {
+    int n = (int)g.size();
+    if (n > caps.max_vertices)
+        throw std::runtime_error("poset too large: vertices (" + std::to_string(n) +
+            ") exceed cap (" + std::to_string(caps.max_vertices) + ")");
+    std::vector<int> matrix = make_graph_matrix(g);
+    std::vector<critical_pair> cps = find_critical_pairs(matrix.data(), n);
+    if (cps.empty()) return k >= 1;        // chain: dimension <= 1
+    StrictRel base = base_order(g);
+    return colorable_with(base, cps, k, caps);
 }
 
 } // namespace nomadim

@@ -41,6 +41,13 @@ enumerate_hyperedges(const StrictRel& base, const std::vector<critical_pair>& cp
 int chromatic_number(const StrictRel& base, const std::vector<critical_pair>& cps,
                      const Caps& caps);
 
+// True iff the critical pairs admit a proper k-coloring (i.e. dimension <= k).
+// Early-exits on the first valid coloring, so it is far cheaper than
+// chromatic_number when the answer is "yes" -- it does not first prove that
+// fewer colors are impossible. Throws if cps exceed caps.max_critical_pairs.
+bool colorable_with(const StrictRel& base, const std::vector<critical_pair>& cps,
+                    int k, const Caps& caps);
+
 // All distinct proper k-colorings using exactly k colors, each as a color-per-
 // critical-pair vector, canonicalized (colors numbered by first appearance) so
 // permutation-equivalent colorings are reported once. Capped at caps.max_results.

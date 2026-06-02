@@ -10,7 +10,8 @@ namespace nomadim {
 // out_path is non-empty, write the document with meta (dimension, realizers,
 // source_hash) filled in, preserving any existing notes.
 int cmd_dimension(const std::string& path, bool show_realizers, bool show_all,
-                  int max_vertices, const std::string& out_path);
+                  int max_vertices, const std::string& out_path, bool quick = false,
+                  int max_cpairs = 64, int le_k = 0);
 
 } // namespace nomadim
 

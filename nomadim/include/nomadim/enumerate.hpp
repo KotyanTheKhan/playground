@@ -16,10 +16,13 @@ struct EnumerateResult {
 // from every process' start (fully synchronized execution).
 bool is_full_synchronized(const ProcessGraph& g);
 
-// Enumerate non-isomorphic, fully-synchronized, dimension-2 executions of
-// n_procs processes using up to max_sync syncs, with `threads` worker threads
-// (>= 1; 1 = single-threaded). The .count is independent of `threads`.
-EnumerateResult enumerate(int n_procs, int max_sync, unsigned threads);
+// Enumerate non-isomorphic, fully-synchronized executions of n_procs processes
+// using up to max_sync syncs, with `threads` worker threads (>= 1; 1 =
+// single-threaded). The .count is independent of `threads`. When keep_all_dims
+// is false (default) only dimension-<=2 executions are kept (the original
+// behavior); when true, executions of every dimension are returned.
+EnumerateResult enumerate(int n_procs, int max_sync, unsigned threads,
+                          bool keep_all_dims = false);
 
 } // namespace nomadim
 

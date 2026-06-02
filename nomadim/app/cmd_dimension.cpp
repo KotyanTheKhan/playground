@@ -19,13 +19,31 @@ void print_realizer(const std::vector<std::vector<int>>& realizer) {
 } // namespace
 
 int cmd_dimension(const std::string& path, bool show_realizers, bool show_all,
-                  int max_vertices, const std::string& out_path) {
+                  int max_vertices, const std::string& out_path, bool quick, int max_cpairs,
+                  int le_k) {
     Document d = load_file(path);
     adjacency_list adj;
     if (d.poset) adj = d.poset->edges;
     else         adj = ProcessGraph::build(*d.execution).graph;
 
-    Caps caps; caps.max_vertices = max_vertices;
+    Caps caps; caps.max_vertices = max_vertices; caps.max_critical_pairs = max_cpairs;
+
+    if (le_k > 0) {
+        // "Is dimension <= K?" -- cheap when yes (early-exit K-coloring).
+        bool ok = dimension_at_most(adj, le_k, caps);
+        std::cout << "Vertices: " << adj.size() << "\n";
+        std::cout << "Dimension <= " << le_k << ": " << (ok ? "yes" : "no") << "\n";
+        return ok ? 0 : 2;
+    }
+
+    if (quick) {
+        // Fast path: dimension only, no hyperedge/coloring enumeration.
+        DimensionResult dr = analyze_dimension(adj, caps, /*with_colorings=*/false);
+        std::cout << "Vertices: " << adj.size() << "\n";
+        std::cout << "Dimension: " << dr.dimension << "\n";
+        return 0;
+    }
+
     DimensionResult dr = analyze_dimension(adj, caps);
 
     std::cout << "Vertices: " << adj.size() << "\n";

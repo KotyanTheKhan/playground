@@ -64,6 +64,7 @@ struct CacheShard {
 struct EnumState {
     int max_sync = 0;
     int parallel_cutoff = 0;   // queue children of nodes shallower than this
+    bool keep_all_dims = false; // if false, keep only dimension-<=2 executions
     std::array<CacheShard, NSHARD> cache;
     std::mutex rp_mut;
     std::map<IsoKey, std::vector<ProcessGraph>> buckets;
@@ -85,7 +86,7 @@ bool cache_insert(EnumState& st, const ProcessGraph& g) {
 
 // A fully-synchronized node: test dimension-2 and dedup by isomorphism.
 void handle_full_sync(EnumState& st, const ProcessGraph& g) {
-    if (!is_dim2(g.graph)) return;
+    if (!st.keep_all_dims && !is_dim2(g.graph)) return;
     IsoKey key = iso_key(g);
     bool iso = false;
     {
@@ -157,11 +158,13 @@ void expand(EnumState& st, Pool& pool, const ProcessGraph& g, int sync_num) {
 
 } // namespace
 
-EnumerateResult enumerate(int n_procs, int max_sync, unsigned threads) {
+EnumerateResult enumerate(int n_procs, int max_sync, unsigned threads,
+                          bool keep_all_dims) {
     if (threads < 1) threads = 1;
 
     EnumState st;
     st.max_sync = max_sync;
+    st.keep_all_dims = keep_all_dims;
     // Queue children for the shallow levels (where, after symmetry dedup, enough
     // distinct subtrees exist to keep all threads busy); inline deeper levels.
     st.parallel_cutoff = std::min(max_sync, 5);

@@ -46,10 +46,20 @@ struct DimensionResult {
 // Compute the dimension, critical pairs, hyperedges, and all minimum colorings
 // (each with its induced realizer) of the poset given by adjacency `g`.
 // Precondition: `g` is acyclic. Throws std::runtime_error if `g` exceeds the caps.
-DimensionResult analyze_dimension(const adjacency_list& g, const Caps& caps = Caps{});
+// When `with_colorings` is false, only the dimension (and critical pairs) are
+// computed -- the costly hyperedge and minimum-coloring enumeration is skipped,
+// so `hyperedges` and `colorings` are left empty. Use for fast classification.
+DimensionResult analyze_dimension(const adjacency_list& g, const Caps& caps = Caps{},
+                                  bool with_colorings = true);
 
 // Convenience: just the dimension number.
 int dimension(const adjacency_list& g, const Caps& caps = Caps{});
+
+// True iff the poset has order dimension <= k. Tests k-colorability of the
+// critical-pair hypergraph directly (early-exit), so when the answer is "yes" it
+// is far cheaper than computing the exact dimension -- it never pays the cost of
+// proving fewer colors impossible. Throws if `g` exceeds the caps.
+bool dimension_at_most(const adjacency_list& g, int k, const Caps& caps = Caps{});
 
 } // namespace nomadim
 

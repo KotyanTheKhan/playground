@@ -136,6 +136,17 @@ int chromatic_number(const StrictRel& base, const std::vector<critical_pair>& cp
     return m;   // every singleton its own color (unreachable for valid posets)
 }
 
+bool colorable_with(const StrictRel& base, const std::vector<critical_pair>& cps,
+                    int k, const Caps& caps) {
+    int m = (int)cps.size();
+    if (m > caps.max_critical_pairs)
+        throw std::runtime_error("hypergraph too large: critical pairs (" +
+            std::to_string(m) + ") exceed cap (" +
+            std::to_string(caps.max_critical_pairs) + ")");
+    Colorer col{base, cps, k, m, caps.max_results, std::vector<int>(m, -1), {}, false};
+    return col.rec(0, 0);
+}
+
 std::vector<std::vector<int>>
 enumerate_min_colorings(const StrictRel& base, const std::vector<critical_pair>& cps,
                         int k, const Caps& caps) {
