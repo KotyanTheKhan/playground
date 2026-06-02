@@ -66,3 +66,13 @@ Proof.
   rewrite stamp_le_stamp.
   exact (blo_iff_stamp s Hwf Hnp x y).
 Qed.
+
+(* A Send/Local event contributes no cross-process clock datum (comp = own pid). *)
+Lemma local_stamp_send_eq_local :
+  forall N p i t tg, local_stamp N p i (Send t tg) = local_stamp N p i Local.
+Proof. reflexivity. Qed.
+
+(* A Recv uses only its sender id, never the tag: the only cross-process datum is src. *)
+Lemma local_stamp_recv_tag_irrel :
+  forall N p i src tg tg', local_stamp N p i (Recv src tg) = local_stamp N p i (Recv src tg').
+Proof. reflexivity. Qed.
