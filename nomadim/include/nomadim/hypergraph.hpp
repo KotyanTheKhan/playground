@@ -25,6 +25,16 @@ bool reverse_set(const StrictRel& base, const std::vector<critical_pair>& cps,
 bool is_reversible(const StrictRel& base, const std::vector<critical_pair>& cps,
                    const std::vector<int>& idxs);
 
+// Minimal non-reversible subsets of the critical pairs (alternating cycles):
+// the edges of the dimension hypergraph. Each edge is a sorted list of indices
+// into `cps`. Enumerated by increasing size; a set is an edge iff it is
+// non-reversible but every proper subset is reversible. Throws
+// std::runtime_error if cps.size() exceeds caps.max_critical_pairs, and stops
+// after caps.max_results edges.
+std::vector<std::vector<int>>
+enumerate_hyperedges(const StrictRel& base, const std::vector<critical_pair>& cps,
+                     const Caps& caps);
+
 } // namespace nomadim
 
 #endif // NOMADIM_HYPERGRAPH_HPP
