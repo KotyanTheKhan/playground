@@ -467,6 +467,34 @@ Lifts the per-transition barrier of `ConnSync.v` to a *window* of consecutive fr
 
 Honest note: this records the consecutive-cut impossibility — a single transition reaches ≤4 processes (matchings + intra-frontier messages), so `FullySynchronizing` (the consecutive/adjacent barrier) is unattainable for `n>4`; a window of `b−a` frontiers lifts the cap by relaying through intermediate processes over several frontiers.
 
+#### `execution/DisjointChainsDim.v` — disjoint-union-of-chains ⟹ dim ≤ 2 (exported)
+
+Closes **critical-review finding 2**: `fully_sync_dim_le2`'s per-block `dim ≤ 2` hypothesis is now *discharged* for frontier blocks. A poset that is a disjoint union of chains (a component label `comp` with `R x y ⟹ comp x = comp y` and same-component ⟹ comparable) has dim ≤ 2 — proved by an explicit 2-realizer (lexicographic on `(comp, R)`, component order forward in `L1`, reversed in `L2`); **no width or finiteness needed**, so it applies where `two_chain_cover_dim_le2` (width ≤ 2) cannot. A frontier block's comparability is exactly the message matching (within one frontier, `hb` between distinct events is a single sender→receiver message — proved via the rank `2·index + c`), so every frontier block of a well-formed schedule is a disjoint union of chains, hence dim ≤ 2 *unconditionally*. `DisjointChainsDimExamples.v` discharges a width-3 antichain block (3 processes, empty frontier) where the width≤2 route fails.
+
+| Name | Meaning |
+|------|---------|
+| `disjoint_chains_dim_le2` | a disjoint union of chains (component label + same-comp-chain) has dim ≤ 2 (explicit 2-realizer; no width/finiteness) |
+| `hb_same_index_msg` | within one frontier, `hb` between two distinct events is a direct sender→receiver message (rank argument) |
+| `fb_comp` | frontier-block component label: a receiver maps to its sender, else to itself |
+| `frontier_block_dim_le2` | every frontier block of a well-formed schedule has dim ≤ 2 (discharges the per-block hypothesis) |
+| `fully_sync_frontier_dim_le2` | `wf_schedule` + `IsFullySync` (frontier blocks) ⟹ execution dim ≤ 2 — the per-block bound is now automatic |
+
+Honest note: this closes the **per-block** half of the gap (finding 2). It does **not** address **finding 1** — `fully_sync_frontier_dim_le2` still assumes `IsFullySync`, whose barrier ordering is unsatisfiable for `n>4` (matching frontiers). Admit-free (only standard classical/choice axioms).
+
+#### `execution/BarrierExecDim.v` — true N-way barriers ⟹ dim ≤ 2 for any N (exported)
+
+**Addresses critical-review finding 1.** The pairwise-message `hb` cannot order all of layer `k` before all of layer `k+1` for N>4 (a single transition reaches ≤4 processes), so `FullySynchronizing`/`IsFullySync` are unsatisfiable for N>4 — limiting the earlier dim≤2 story to N≤4. This module models a **true barrier**: the fully-synchronized order `blo` where *every index is a full barrier* (all of layer `i` precedes all of layer `j` for `i<j`), with the real intra-layer message matching as the within-layer order. `blo ⊇ hb` (it strengthens `hb` with the barrier edges — synchronization *reduces* dimension). We prove `dim (blo s) ≤ 2` for **arbitrary N**, formalizing the paper's general dim-2 claim for genuinely synchronized executions.
+
+| Name | Meaning |
+|------|---------|
+| `layered_chains_dim_le2` | a layered poset (full barriers between layers + disjoint chains within each) has dim ≤ 2 — one explicit 2-realizer (lex `(layer, comp, R)`, component fwd/rev); no finiteness/width. Generalizes `disjoint_chains_dim_le2`. |
+| `blo` | the fully-synchronized (true-barrier) order: `idx x < idx y`, or same index with the intra-layer `hb` order |
+| `hb_idx_le` | `hb` respects the index (from the rank `2·idx + c`) |
+| `blo_IsPoset` | `blo` is a partial order |
+| `barrier_execution_dim_le2` | `wf_schedule s` ⟹ `dim (blo s) ≤ 2`, for **any** process count |
+
+Honest scope: this models the *barrier* synchronization primitive (the paper's "synchronization"), not arbitrary pairwise-message executions (which are not dim ≤ 2). The pairwise `hb` model and its N>4 `FullySynchronizing` limitation remain on record alongside `blo`. `BarrierExecDimExamples.v` exhibits an **N=5** barrier execution with dim ≤ 2 — the regime finding 1 excluded. Admit-free (standard classical/proof-irrelevance axioms only).
+
 #### `execution/TransformB.v` — Transformation B (2-process block dim ≤ 2) (exported)
 
 The NomaDB paper's second reduction: *"two processes between synchronizations form at most 2 critical pairs,"* simplified to "one local modification," preserving the dimension property. The faithful core: a block spanned by 2 processes is covered by 2 chains (each process's events are a chain under program order), so its **width ≤ 2**, hence **dim ≤ 2** (`dimension_le_width`). Being a per-block property, it is preserved under any 2-process block replacement (mirroring how Transformation A used block replacement). `TransformBExamples.v` exhibits the equal-bound (`B2` and its simplification `B2s` both ≤ 2) that drives the transformation.

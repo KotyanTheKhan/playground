@@ -59,4 +59,8 @@
   WindowSync
   WindowSyncExamples
   TransformB
-  TransformBExamples))
+  TransformBExamples
+  DisjointChainsDim
+  DisjointChainsDimExamples
+  BarrierExecDim
+  BarrierExecDimExamples))

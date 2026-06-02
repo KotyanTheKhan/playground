@@ -3,7 +3,7 @@
 From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts Arith Lia Classical
                            ProofIrrelevance.
 From Posets Require Import PosetClasses FinitePoset.
-From Dimension Require Import DimDefs Theorems WidthBound WidthExists.
+From Dimension Require Import DimDefs Theorems WidthBound WidthExists CriticalPairs.
 From Dilworth Require Import Definitions WidthLowerBound.
 From Execution Require Import Op Event Edges Rank Poset DimBridge Ordinal
                               FullySync FullySyncDim2 DimTwoGeneric ChainDim.
@@ -219,6 +219,82 @@ Lemma B2s_dim_le2 : forall d, PosetDimension B2s_R d -> d <= 2.
 Proof.
   apply (two_chain_cover_dim_le2 B2s_R B2s_C0 B2s_C1 2
            B2s_Hfin B2s_inhab B2s_C0_chain B2s_C1_chain B2s_cover).
+Qed.
+
+(* ---- Critical pairs of the 2-process block B2 ----
+
+   The NomaDB paper's claim "two processes between synchronizations form at
+   most 2 critical pairs" is made precise here: B2 has *exactly* two critical
+   pairs, [(a0,b1)] and [(b0,a1)].  (IsCriticalPair takes only the order [B2_R]
+   and the two elements; the finiteness hypothesis [HfinA] of the enclosing
+   section of [CriticalPairs] is not a parameter of the class itself, so no
+   finiteness witness is needed in the statements below.) *)
+
+Lemma B2_critical_pair_iff :
+  forall x y, IsCriticalPair B2_R x y <-> ((x = a0 /\ y = b1) \/ (x = b0 /\ y = a1)).
+Proof.
+  intros x y. split.
+  - intros Hcp. destruct Hcp as [Hinc Hdown Hup].
+    unfold Incomparable, Strict in *.
+    destruct x, y;
+      (* equal / comparable pairs: Hinc is contradicted *)
+      try (exfalso; apply Hinc; unfold B2_R; tauto).
+    (* surviving genuinely-incomparable pairs: a0b0 a0b1 a1b0 a1b1 (and swaps) *)
+    + (* a0,b0 : critical_up at b1 demands R a0 b1 *)
+      exfalso. specialize (Hup b1 ltac:(split; [unfold B2_R; tauto | discriminate])).
+      unfold B2_R in Hup. destruct Hup as [E|[[E1 E2]|[E1 E2]]]; discriminate.
+    + (* a0,b1 : GOOD *)
+      left; split; reflexivity.
+    + (* a1,b0 : critical_down at a0 demands R a0 b0 *)
+      exfalso. specialize (Hdown a0 ltac:(split; [unfold B2_R; tauto | discriminate])).
+      unfold B2_R in Hdown. destruct Hdown as [E|[[E1 E2]|[E1 E2]]]; discriminate.
+    + (* a1,b1 : critical_down at a0 demands R a0 b1 *)
+      exfalso. specialize (Hdown a0 ltac:(split; [unfold B2_R; tauto | discriminate])).
+      unfold B2_R in Hdown. destruct Hdown as [E|[[E1 E2]|[E1 E2]]]; discriminate.
+    + (* b0,a0 : critical_up at a1 demands R b0 a1 *)
+      exfalso. specialize (Hup a1 ltac:(split; [unfold B2_R; tauto | discriminate])).
+      unfold B2_R in Hup. destruct Hup as [E|[[E1 E2]|[E1 E2]]]; discriminate.
+    + (* b0,a1 : GOOD *)
+      right; split; reflexivity.
+    + (* b1,a0 : critical_down at b0 demands R b0 a0 *)
+      exfalso. specialize (Hdown b0 ltac:(split; [unfold B2_R; tauto | discriminate])).
+      unfold B2_R in Hdown. destruct Hdown as [E|[[E1 E2]|[E1 E2]]]; discriminate.
+    + (* b1,a1 : critical_down at b0 demands R b0 a1 *)
+      exfalso. specialize (Hdown b0 ltac:(split; [unfold B2_R; tauto | discriminate])).
+      unfold B2_R in Hdown. destruct Hdown as [E|[[E1 E2]|[E1 E2]]]; discriminate.
+  - intros [[-> ->] | [-> ->]]; constructor;
+      unfold Incomparable, Strict, B2_R in *.
+    + (* a0 || b1 *)
+      intro Hc; destruct Hc as [H|H];
+        destruct H as [E|[[E1 E2]|[E1 E2]]]; discriminate.
+    + (* nothing strictly below a0 *)
+      intros a [HR Hne]. destruct HR as [E|[[E1 E2]|[E1 E2]]];
+        [ contradiction (Hne E) | discriminate | discriminate ].
+    + (* nothing strictly above b1 *)
+      intros b [HR Hne]. destruct HR as [E|[[E1 E2]|[E1 E2]]];
+        [ contradiction (Hne E) | discriminate | discriminate ].
+    + (* b0 || a1 *)
+      intro Hc; destruct Hc as [H|H];
+        destruct H as [E|[[E1 E2]|[E1 E2]]]; discriminate.
+    + (* nothing strictly below b0 *)
+      intros a [HR Hne]. destruct HR as [E|[[E1 E2]|[E1 E2]]];
+        [ contradiction (Hne E) | discriminate | discriminate ].
+    + (* nothing strictly above a1 *)
+      intros b [HR Hne]. destruct HR as [E|[[E1 E2]|[E1 E2]]];
+        [ contradiction (Hne E) | discriminate | discriminate ].
+Qed.
+
+(* "At most 2 critical pairs": every critical pair is one of the two distinct
+   witnesses [(a0,b1)] and [(b0,a1)].  Together with [B2_dim_le2] this is the
+   faithful rendering of the paper's "<= 2 critical pairs ==> the inter-sync
+   block stays 2-dimensional." *)
+Lemma B2_at_most_two_critical_pairs :
+  forall x y, IsCriticalPair B2_R x y ->
+    (x, y) = (a0, b1) \/ (x, y) = (b0, a1).
+Proof.
+  intros x y Hcp.
+  apply B2_critical_pair_iff in Hcp.
+  destruct Hcp as [[-> ->] | [-> ->]]; [ left | right ]; reflexivity.
 Qed.
 
 Lemma transform_B_preserves_dim2 :

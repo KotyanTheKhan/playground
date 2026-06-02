@@ -125,3 +125,7 @@ execution/WindowSync.v
 execution/WindowSyncExamples.v
 execution/TransformB.v
 execution/TransformBExamples.v
+execution/DisjointChainsDim.v
+execution/DisjointChainsDimExamples.v
+execution/BarrierExecDim.v
+execution/BarrierExecDimExamples.v
