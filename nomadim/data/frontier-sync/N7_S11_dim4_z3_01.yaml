@@ -1,0 +1,17 @@
+execution:
+  n_procs: 7
+  syncs:
+    - [5, 6]
+    - [0, 4]
+    - [2, 4]
+    - [0, 5]
+    - [2, 6]
+    - [1, 3]
+    - [1, 2]
+    - [3, 4]
+    - [3, 6]
+    - [1, 5]
+    - [0, 4]
+  meta:
+    notes: "Minimum-S dimension-4 fully frontier-synchronized execution found for N=7. S=11 synchronizations; every process start is seen by every process last event. Order dimension = 4, verified by the z3 SMT oracle (t=3 UNSAT, t=4 SAT => dim exactly 4). This is one above the gossip minimum S = 2N-4 = 10: an extensive search of optimal S=10 schemes (3000+ diverse constructive core/fan schemes plus efficient-walk samples) found ONLY dimension 3, so dimension 4 does NOT appear at the gossip minimum and first appears at S=11. (Not an exhaustive proof for S=10 -- N=7 cannot be enumerated -- but heavily sampled.) Reproduce: data/frontier-sync/min_s_dim4.py and constructive_s10.py."
+    dimension: 4

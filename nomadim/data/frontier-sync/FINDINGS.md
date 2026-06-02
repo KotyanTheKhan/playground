@@ -43,10 +43,18 @@ t = 3 is UNSAT (no 3 linear extensions intersect to it -> dim > 3) and t = 4 is
 SAT, so dim = 4 exactly. The oracle was validated on the standard examples S_3
 (dim 3) and S_4 (dim 4). N = 7 cannot be enumerated (OOM), so this was found by
 randomized memory-light walks that stop at first full synchronization
-(`hunt_n7.py`); structured gossip-optimal S = 10 schemes are all dimension 3, and
-the dimension-4 examples were seen at S = 12-13. The minimum S that yields a
-dimension-4 N = 7 execution (and whether one exists at the gossip minimum S = 10)
-is open.
+(`hunt_n7.py`, `min_s_dim4.py`).
+
+**Minimum S for an N = 7 dimension-4 execution is 11** -- one above the gossip
+minimum S = 2N-4 = 10. Evidence: 3000+ diverse *optimal* S = 10 schemes
+(constructive core/fan-in/cross/fan-out, `constructive_s10.py`) plus
+efficiency-biased S = 10 samples are **all dimension 3**, while dimension 4 does
+occur at S = 11 (e.g. `(5,6)(0,4)(2,4)(0,5)(2,6)(1,3)(1,2)(3,4)(3,6)(1,5)(0,4)`,
+saved as `N7_S11_dim4_z3_01.yaml`; z3 t = 3 UNSAT, t = 4 SAT). So unlike N = 4,
+5, 6 -- where the maximum dimension is attained at the minimum-sync layer --
+N = 7's gossip-minimum executions are only dimension 3, and dimension 4 needs one
+extra sync. (Not an exhaustive proof for S = 10, since N = 7 cannot be
+enumerated, but a large diverse sample.)
 
 For N <= 6, **every fully frontier-synchronized execution classified has
 dimension 2 or 3 -- never 4 or more.** Concretely:
