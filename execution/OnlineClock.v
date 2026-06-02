@@ -84,3 +84,40 @@ Proof.
       by (apply (op_for_recv_iff (sch_nprocs s) _ src px k Hfr); exact Eop).
     destruct Hfr as [Hrange _]. apply (Hrange src px) in Hin. tauto.
 Qed.
+
+(* within one layer, blo reduces to the real hb order *)
+Lemma blo_same_layer :
+  forall s (x y : ep_carrier (exec_of_schedule s)),
+    clk_lay s x = clk_lay s y ->
+    (blo s x y <-> ep_order (exec_of_schedule s) x y).
+Proof.
+  intros s x y Hl. unfold clk_lay in Hl. unfold blo. split.
+  - intros [Hlt | [_ Hhb]]; [lia | exact Hhb].
+  - intro Hhb. right. split; [exact Hl | exact Hhb].
+Qed.
+
+(* within one layer, a real hb edge between distinct events runs sender(step 0) -> receiver(step 1) *)
+Lemma hb_layer_step :
+  forall s, wf_schedule s -> forall x y : ep_carrier (exec_of_schedule s),
+    clk_lay s x = clk_lay s y ->
+    ep_order (exec_of_schedule s) x y -> x <> y ->
+    clk_step s x = 0 /\ clk_step s y = 1.
+Proof.
+  intros s Hwf x y Hl Hhb Hne. unfold clk_lay in Hl.
+  pose proof (hb_same_index_msg s Hwf x y Hl Hhb Hne) as Hin.
+  pose (px := fst (proj1_sig x)). pose (py := fst (proj1_sig y)).
+  pose (k := snd (proj1_sig x)).
+  assert (Hpx : px < sch_nprocs s) by (apply event_pid_lt).
+  assert (Hpy : py < sch_nprocs s) by (apply event_pid_lt).
+  assert (Hk  : k < length (sch_frontiers s)) by (apply event_index_lt).
+  assert (Hfr : wf_frontier (sch_nprocs s) (nth k (sch_frontiers s) []))
+    by (apply Hwf; apply nth_In; exact Hk).
+  fold px py k in Hin.
+  pose proof (proj2 (op_for_send_iff (sch_nprocs s) _ px py k Hfr) Hin) as Hsend.
+  pose proof (proj2 (op_for_recv_iff (sch_nprocs s) _ px py k Hfr) Hin) as Hrecv.
+  assert (Hky : snd (proj1_sig y) = k) by (symmetry; exact Hl).
+  unfold clk_step.
+  rewrite (block_op_for s x). fold px k. rewrite Hsend.
+  split; [reflexivity|].
+  rewrite (block_op_for s y). fold py. rewrite Hky. rewrite Hrecv. reflexivity.
+Qed.
