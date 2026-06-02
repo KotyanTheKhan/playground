@@ -141,7 +141,7 @@ Theorem rhb_iff_rclock :
 ```
 `rhb_iff_rclock` proof: `rclock S p r = local_stamp (nprocs) p r (rop S p r)`, whose
 three coordinates are exactly `rlay`/`rcomp`/`rstep` of the event `(p,r)` (by a
-`rclock_components` lemma, `destruct (rop …)`); then `stamp_le (rclock x) (rclock y)`
+`rclock_is_stamp` lemma, `destruct (rop …)`); then `stamp_le (rclock x) (rclock y)`
 unfolds to `le_prod …` (as in `stamp_le_stamp`), and `rhb_iff_stamp` closes it.
 
 **W-2 closed:** `rclock S p r` reads only `rs_nprocs S`, `p`, `r`, and
@@ -169,14 +169,14 @@ A concrete `RSys`: `nprocs := 3`, `nrounds := 1`, programs `prog 0 = [Send 1 0]`
   `execution/DIM2_CLOCK.md` §6: record that an operational primitive-state model now
   carries the clock (W-2 closed for the round model), narrowing the open item.
 - All builds via the wrapper; **zero `Admitted`**; each file < 500 lines; fast `Qed`s.
-- `Print Assumptions rhb_iff_rclock` recorded (expect the four standard axioms via
-  `stamp_iff`; the round model itself adds none).
+- `Print Assumptions rhb_iff_rclock` recorded (actual: only `proof_irrelevance` —
+  the round model is otherwise constructive; cleaner than the `Schedule`-based path).
 
 ## Acceptance criteria
 
 1. `RSys`/`rop`/`rvalid`/`rwf`, `rhb`/`rhb_sub`/`rhb_IsPoset`. Zero admits.
 2. `rlay`/`rcomp`/`rstep`, the five structural lemmas, `rhb_iff_stamp`. Zero admits.
-3. `rclock`, `rclock_components`, `rhb_iff_rclock` (causality via the schedule-free
+3. `rclock`, `rclock_is_stamp`, `rhb_iff_rclock` (causality via the schedule-free
    local clock). Zero admits.
 4. Examples (`rwf`, `rclock` literals, a message edge + an incomparable pair).
    Whole-project green; `INDEX.md` + `DIM2_CLOCK.md` updated.
