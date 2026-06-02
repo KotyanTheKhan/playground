@@ -37,3 +37,11 @@ Example msg3_local_e00_le_e10 :
     (local_stamp (sch_nprocs s_msg3) (fst (proj1_sig e10)) (snd (proj1_sig e10))
                  (local_obs s_msg3 (fst (proj1_sig e10)) (snd (proj1_sig e10)))).
 Proof. apply (blo_iff_local_stamp s_msg3 wf_s_msg3 msg3_pos e00 e10). exact msg3_blo_e00_e10. Qed.
+
+(* the isolated event e20 and the sender e00 are stamp_le-incomparable (false case) *)
+Example msg3_local_e00_e20_incomp :
+  ~ stamp_le (local_stamp 3 0 0 (local_obs s_msg3 0 0))
+             (local_stamp 3 2 0 (local_obs s_msg3 2 0))
+  /\ ~ stamp_le (local_stamp 3 2 0 (local_obs s_msg3 2 0))
+                (local_stamp 3 0 0 (local_obs s_msg3 0 0)).
+Proof. unfold stamp_le, local_stamp, local_obs, le_lex3. vm_compute. intuition lia. Qed.
