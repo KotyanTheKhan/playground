@@ -1,0 +1,14 @@
+execution:
+  n_procs: 6
+  syncs:
+    - [0, 1]
+    - [2, 3]
+    - [0, 2]
+    - [4, 5]
+    - [1, 4]
+    - [0, 1]
+    - [2, 5]
+    - [3, 4]
+  meta:
+    notes: "N=6 minimum-synchronization fully frontier-synchronized execution. S=8 = gossip minimum 2N-4; every process start is seen by every process last event. Order dimension = 3 (z3-verified: t=2 UNSAT, t=3 SAT). Representative of the full N=6 minimum layer (107 non-isomorphic shapes, all dimension 3). Also a cautionary example: this poset has 65+ critical pairs and nomadim's brute-force colorer does NOT 3-color it within minutes -- it *looked* like a dimension-4 candidate -- yet z3 finds a 3-realizer instantly. 'Slow to brute-force-color' is not evidence of high dimension."
+    dimension: 3

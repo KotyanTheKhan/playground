@@ -1,0 +1,16 @@
+execution:
+  n_procs: 7
+  syncs:
+    - [4, 0]
+    - [5, 0]
+    - [6, 0]
+    - [0, 1]
+    - [2, 3]
+    - [0, 2]
+    - [1, 3]
+    - [0, 6]
+    - [0, 5]
+    - [0, 4]
+  meta:
+    notes: "N=7 gossip-OPTIMAL fully frontier-synchronized execution: S=10 = the minimum 2N-4. Structure: extras 4,5,6 deposit into hub 0, the 4-node core {0,1,2,3} runs its dimension-3 cross-exchange, then hub 0 broadcasts back to 4,5,6. Order dimension = 3 (z3-verified: t=2 UNSAT, t=3 SAT). Key contrast: N=7's gossip-minimum (S=10) executions are only dimension 3 -- a diverse search of 3000+ optimal S=10 schemes found NONE of dimension 4. Dimension 4 first appears one sync later, at S=11 (see N7_S11_dim4_z3_01.yaml). This is unlike N=4,5,6, whose maximum dimension is attained at the minimum-sync layer."
+    dimension: 3
