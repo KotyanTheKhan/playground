@@ -65,4 +65,5 @@
   BarrierExecDim
   BarrierExecDimExamples
   OnlineClock
-  OnlineClockExamples))
+  OnlineClockExamples
+  OnlineClockLocal))
