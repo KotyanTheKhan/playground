@@ -32,3 +32,37 @@ Proof.
                    (fst (proj1_sig x)) (snd (proj1_sig x)));
     reflexivity.
 Qed.
+
+(* product of the two lex orders, on (triple, triple) stamp pairs *)
+Definition stamp_le (st1 st2 : (nat * nat * nat) * (nat * nat * nat)) : Prop :=
+  let '((a1,a2,a3),(b1,b2,b3)) := st1 in
+  let '((c1,c2,c3),(d1,d2,d3)) := st2 in
+  le_lex3 a1 a2 a3 c1 c2 c3 /\ le_lex3 b1 b2 b3 d1 d2 d3.
+
+(* stamp_le on the offline stamp wrapper is exactly le_prod on the clk fields *)
+Lemma stamp_le_stamp :
+  forall s (x y : ep_carrier (exec_of_schedule s)),
+    stamp_le (stamp s x) (stamp s y) <->
+    le_prod (sch_nprocs s - 1)
+      (clk_lay s x)(clk_comp s x)(clk_step s x)
+      (clk_lay s y)(clk_comp s y)(clk_step s y).
+Proof.
+  intros s x y. unfold stamp_le, stamp, le_prod. cbn. tauto.
+Qed.
+
+(* The headline online clock: blo characterized purely via the schedule-blind local_stamp. *)
+Corollary blo_iff_local_stamp :
+  forall s, wf_schedule s -> 0 < sch_nprocs s ->
+  forall x y : ep_carrier (exec_of_schedule s),
+    blo s x y <->
+    stamp_le
+      (local_stamp (sch_nprocs s) (fst (proj1_sig x)) (snd (proj1_sig x))
+                   (local_obs s (fst (proj1_sig x)) (snd (proj1_sig x))))
+      (local_stamp (sch_nprocs s) (fst (proj1_sig y)) (snd (proj1_sig y))
+                   (local_obs s (fst (proj1_sig y)) (snd (proj1_sig y)))).
+Proof.
+  intros s Hwf Hnp x y.
+  rewrite (local_stamp_correct s x). rewrite (local_stamp_correct s y).
+  rewrite stamp_le_stamp.
+  exact (blo_iff_stamp s Hwf Hnp x y).
+Qed.
