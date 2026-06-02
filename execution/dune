@@ -63,4 +63,5 @@
   DisjointChainsDim
   DisjointChainsDimExamples
   BarrierExecDim
-  BarrierExecDimExamples))
+  BarrierExecDimExamples
+  OnlineClock))
