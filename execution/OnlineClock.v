@@ -46,3 +46,41 @@ Proof.
       exact (proj2 (Hrank x y Heq Hce) Hsle).
     + exfalso. destruct H1 as [Hl1 | [He1 _]]; lia.
 Qed.
+
+From Stdlib Require Import List Classical.
+From Posets Require Import FinitePoset.
+From Execution Require Import Op Event Edges Rank Poset Schedule ScheduleWf
+                             SyncShape Ordinal DisjointChainsDim BarrierExecDim.
+Import ListNotations.
+
+Definition clk_lay  (s : Schedule) (x : ep_carrier (exec_of_schedule s)) : nat :=
+  snd (proj1_sig x).
+Definition clk_comp (s : Schedule) (x : ep_carrier (exec_of_schedule s)) : nat :=
+  fb_comp s (proj1_sig x).
+Definition clk_step (s : Schedule) (x : ep_carrier (exec_of_schedule s)) : nat :=
+  match op_at (desugar_prog s) (fst (proj1_sig x)) (snd (proj1_sig x)) with
+  | Some (Recv _ _) => 1 | _ => 0 end.
+
+(* fb_comp is always a valid pid, hence < sch_nprocs s *)
+Lemma fb_comp_lt_nprocs :
+  forall s, wf_schedule s -> forall x : ep_carrier (exec_of_schedule s),
+    clk_comp s x < sch_nprocs s.
+Proof.
+  intros s Hwf x. unfold clk_comp, fb_comp.
+  rewrite (block_op_for s x).            (* op_at = Some (op_for (nth k ..) px k) *)
+  set (px := fst (proj1_sig x)). set (k := snd (proj1_sig x)).
+  assert (Hpx : px < sch_nprocs s) by (unfold px; apply event_pid_lt).
+  assert (Hk  : k < length (sch_frontiers s)) by (unfold k; apply event_index_lt).
+  destruct (op_for (nth k (sch_frontiers s) []) px k) as [|q t|src t] eqn:Eop.
+  - exact Hpx.                            (* Local : pid *)
+  - exact Hpx.                            (* Send  : pid *)
+  - (* Recv src t : src is an in-range frontier endpoint *)
+    assert (Hfr : wf_frontier (sch_nprocs s) (nth k (sch_frontiers s) []))
+      by (apply Hwf; apply nth_In; exact Hk).
+    assert (Htk : t = k)
+      by (apply (proj2 (op_for_tag (nth k (sch_frontiers s) []) px k src t)); exact Eop).
+    subst t.
+    assert (Hin : List.In (src, px) (nth k (sch_frontiers s) []))
+      by (apply (op_for_recv_iff (sch_nprocs s) _ src px k Hfr); exact Eop).
+    destruct Hfr as [Hrange _]. apply (Hrange src px) in Hin. tauto.
+Qed.
