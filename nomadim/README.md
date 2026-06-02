@@ -1,9 +1,12 @@
 # nomadim
 
 C++ port of the [NomaDimension](https://github.com/DePizzottri/NomaDimension)
-poset dimension-2 tooling: a `libnomadim` core plus a `nomadim` CLI that
-reads/writes posets as YAML, checks whether a poset has order dimension ≤ 2, and
-enumerates non-isomorphic dimension-2 executions of *N* processes.
+poset dimension tooling: a `libnomadim` core plus a `nomadim` CLI that
+reads/writes posets as YAML, checks whether a poset has order dimension ≤ 2,
+computes the **general order dimension** (any ≥ 1) by coloring the hypergraph of
+critical pairs, finds **realizers** (one or all minimum realizers), and
+enumerates non-isomorphic dimension-2 executions of *N* processes. A browser
+editor (`editor/`, WASM core) visualizes posets, dimension, and realizers.
 
 This project builds with CMake and is **independent of the repository's Coq/dune
 build** (the `.claude/scripts/timed-build.sh` wrapper does not apply here).
@@ -80,6 +83,9 @@ timings. Regenerate the baseline after an intentional performance change.
 # Report whether a poset/execution has dimension <= 2 (exit 0 = yes, 2 = no).
 nomadim check poset.yaml
 
+# Report order dimension (any >= 1); optionally print realizers, write meta.
+nomadim dimension poset.yaml [--realizers] [--all] [--max-vertices N] [-o out.yaml]
+
 # Enumerate non-isomorphic, fully-synchronized, dimension-2 executions of N
 # processes using up to K syncs, on J worker threads (default: all cores).
 nomadim enumerate -n 4 -k 5 [-j 8] [-o results.yaml]
@@ -112,6 +118,21 @@ poset:
     - [0, 2]
     - [1, 2]
     - [2, 4]
+```
+
+A document may also carry a `meta` block. `notes` is free user-authored text;
+`dimension`/`realizers` are cached computed results keyed by `source_hash` (a
+hash of the poset edges) — they are recomputed if the hash no longer matches the
+poset, so they are never trusted blindly:
+```yaml
+meta:
+  notes: "free text"
+  dimension: 3
+  source_hash: "…"
+  realizers:
+    - - [0, 1, 2, 3]
+      - [3, 2, 1, 0]
+      - [2, 0, 3, 1]
 ```
 
 ## Concurrency

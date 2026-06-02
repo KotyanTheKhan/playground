@@ -1,8 +1,11 @@
 #include "nomadim/dimension.hpp"
 #include "nomadim/floyd.hpp"
+#include "nomadim/hypergraph.hpp"
+#include "nomadim/order_relation.hpp"
 #include <functional>
 #include <vector>
 #include <cstring>
+#include <stdexcept>
 
 namespace nomadim {
 
@@ -91,6 +94,60 @@ bool is_dim2(const adjacency_list& g) {
     // find_critical_pairs closes the matrix itself, so no pre-floyd here.
     auto cps = find_critical_pairs(matrix.data(), n);
     return check_critical_pairs_graph(g, cps);
+}
+
+namespace {
+
+// Build the realizer induced by a coloring: for each color class, reverse its
+// pairs on top of the base order and read off a deterministic linear extension.
+Coloring make_coloring(const StrictRel& base, const std::vector<critical_pair>& cps,
+                       const std::vector<int>& colors, int k) {
+    Coloring out;
+    out.classes.assign(k, {});
+    for (size_t i = 0; i < cps.size(); ++i) out.classes[colors[i]].push_back(cps[i]);
+    for (int c = 0; c < k; ++c) {
+        std::vector<int> idxs;
+        for (size_t i = 0; i < cps.size(); ++i) if (colors[i] == c) idxs.push_back((int)i);
+        StrictRel cls(base.n);
+        reverse_set(base, cps, idxs, cls);     // valid coloring => always succeeds
+        out.realizer.push_back(topo_order(cls));
+    }
+    return out;
+}
+
+} // namespace
+
+DimensionResult analyze_dimension(const adjacency_list& g, const Caps& caps) {
+    int n = (int)g.size();
+    if (n > caps.max_vertices)
+        throw std::runtime_error("poset too large: vertices (" + std::to_string(n) +
+            ") exceed cap (" + std::to_string(caps.max_vertices) + ")");
+
+    DimensionResult dr;
+    std::vector<int> matrix = make_graph_matrix(g);
+    dr.critical_pairs = find_critical_pairs(matrix.data(), n);   // closes matrix
+    StrictRel base = base_order(g);
+
+    if (dr.critical_pairs.empty()) {
+        // No incomparable pairs -> a chain. dim 1 (or 0 for the empty poset).
+        dr.dimension = (n == 0) ? 0 : 1;
+        if (n > 0) {
+            Coloring c; c.realizer.push_back(topo_order(base));
+            dr.colorings.push_back(std::move(c));
+        }
+        return dr;
+    }
+
+    dr.hyperedges = enumerate_hyperedges(base, dr.critical_pairs, caps);
+    dr.dimension = chromatic_number(base, dr.critical_pairs, caps);
+    auto colorings = enumerate_min_colorings(base, dr.critical_pairs, dr.dimension, caps);
+    for (const auto& colors : colorings)
+        dr.colorings.push_back(make_coloring(base, dr.critical_pairs, colors, dr.dimension));
+    return dr;
+}
+
+int dimension(const adjacency_list& g, const Caps& caps) {
+    return analyze_dimension(g, caps).dimension;
 }
 
 } // namespace nomadim

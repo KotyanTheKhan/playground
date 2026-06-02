@@ -3,6 +3,8 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <cstdint>
+#include <set>
 
 namespace nomadim {
 
@@ -49,6 +51,27 @@ Document parse_document(const std::string& text) {
         p.validate();
         doc.poset = std::move(p);
     }
+    if (root["meta"]) {
+        const YAML::Node& mn = root["meta"];
+        Meta meta;
+        if (mn["notes"])       meta.notes = mn["notes"].as<std::string>();
+        if (mn["dimension"])   meta.dimension = mn["dimension"].as<int>();
+        if (mn["source_hash"]) meta.source_hash = mn["source_hash"].as<std::string>();
+        if (mn["realizers"]) {
+            std::vector<std::vector<std::vector<int>>> rs;
+            for (const auto& r : mn["realizers"]) {
+                std::vector<std::vector<int>> realizer;
+                for (const auto& ext : r) {
+                    std::vector<int> e;
+                    for (const auto& v : ext) e.push_back(v.as<int>());
+                    realizer.push_back(std::move(e));
+                }
+                rs.push_back(std::move(realizer));
+            }
+            meta.realizers = std::move(rs);
+        }
+        doc.meta = std::move(meta);
+    }
     if (!doc.execution && !doc.poset)
         throw std::runtime_error("document must contain an 'execution' or 'poset' key");
     return doc;
@@ -82,6 +105,69 @@ std::string dump_poset(const Poset& p) {
         for (int v : p.edges[u])
             out << YAML::Flow << YAML::BeginSeq << u << v << YAML::EndSeq;
     out << YAML::EndSeq << YAML::EndMap << YAML::EndMap;
+    return out.c_str();
+}
+
+std::string poset_hash(const adjacency_list& edges) {
+    // FNV-1a over a canonical "u>v;" edge list (each adjacency sorted), so the
+    // hash depends only on the relation, not on edge ordering.
+    uint64_t h = 1469598103934665603ULL;
+    auto mix = [&](uint64_t x) {
+        for (int b = 0; b < 8; ++b) { h ^= (x & 0xff); h *= 1099511628211ULL; x >>= 8; }
+    };
+    for (int u = 0; u < (int)edges.size(); ++u) {
+        std::set<int> sorted(edges[u].begin(), edges[u].end());
+        for (int v : sorted) { mix((uint64_t)u); mix((uint64_t)v); mix('|'); }
+    }
+    static const char* hex = "0123456789abcdef";
+    std::string out;
+    for (int s = 60; s >= 0; s -= 4) out.push_back(hex[(h >> s) & 0xf]);
+    return out;
+}
+
+static void emit_meta(YAML::Emitter& out, const Meta& m) {
+    out << YAML::Key << "meta" << YAML::Value << YAML::BeginMap;
+    if (m.notes)       out << YAML::Key << "notes" << YAML::Value << *m.notes;
+    if (m.dimension)   out << YAML::Key << "dimension" << YAML::Value << *m.dimension;
+    if (m.source_hash) out << YAML::Key << "source_hash" << YAML::Value << *m.source_hash;
+    if (m.realizers) {
+        out << YAML::Key << "realizers" << YAML::Value << YAML::BeginSeq;
+        for (const auto& realizer : *m.realizers) {
+            out << YAML::BeginSeq;
+            for (const auto& ext : realizer) {
+                out << YAML::Flow << YAML::BeginSeq;
+                for (int v : ext) out << v;
+                out << YAML::EndSeq;
+            }
+            out << YAML::EndSeq;
+        }
+        out << YAML::EndSeq;
+    }
+    out << YAML::EndMap;
+}
+
+std::string dump_document(const Document& d) {
+    YAML::Emitter out;
+    out << YAML::BeginMap;
+    if (d.execution) {
+        out << YAML::Key << "execution" << YAML::Value << YAML::BeginMap;
+        out << YAML::Key << "n_procs" << YAML::Value << d.execution->n_procs;
+        out << YAML::Key << "syncs" << YAML::Value << YAML::BeginSeq;
+        for (auto const& s : d.execution->syncs)
+            out << YAML::Flow << YAML::BeginSeq << s.first << s.second << YAML::EndSeq;
+        out << YAML::EndSeq << YAML::EndMap;
+    }
+    if (d.poset) {
+        out << YAML::Key << "poset" << YAML::Value << YAML::BeginMap;
+        out << YAML::Key << "n_vertices" << YAML::Value << d.poset->n_vertices;
+        out << YAML::Key << "edges" << YAML::Value << YAML::BeginSeq;
+        for (int u = 0; u < d.poset->n_vertices; ++u)
+            for (int v : d.poset->edges[u])
+                out << YAML::Flow << YAML::BeginSeq << u << v << YAML::EndSeq;
+        out << YAML::EndSeq << YAML::EndMap;
+    }
+    if (d.meta) emit_meta(out, *d.meta);
+    out << YAML::EndMap;
     return out.c_str();
 }
 

@@ -105,3 +105,42 @@ TEST(Io, LoadNonexistentFileThrows) {
     EXPECT_THROW(load_file("/nonexistent/nomadim/does_not_exist.yaml"),
                  std::runtime_error);
 }
+
+TEST(Io, PosetHashIsStableAndOrderInsensitive) {
+    adjacency_list a = {{2}, {2}, {}};
+    adjacency_list b = {{2}, {2}, {}};
+    EXPECT_EQ(poset_hash(a), poset_hash(b));
+    adjacency_list c = {{1}, {2}, {}};
+    EXPECT_NE(poset_hash(a), poset_hash(c));
+}
+
+TEST(Io, MetaRoundTrips) {
+    Document d;
+    Poset p; p.n_vertices = 3; p.edges = {{2}, {2}, {}};
+    p.validate();
+    d.poset = p;
+    Meta meta;
+    meta.notes = "hello world";
+    meta.dimension = 2;
+    meta.realizers = std::vector<std::vector<std::vector<int>>>{{{0,1,2},{1,0,2}}};
+    meta.source_hash = poset_hash(p.edges);
+    d.meta = meta;
+
+    std::string text = dump_document(d);
+    Document d2 = parse_document(text);
+    ASSERT_TRUE(d2.meta.has_value());
+    EXPECT_EQ(d2.meta->notes.value_or(""), "hello world");
+    EXPECT_EQ(d2.meta->dimension.value_or(-1), 2);
+    ASSERT_TRUE(d2.meta->realizers.has_value());
+    EXPECT_EQ((*d2.meta->realizers)[0][1], (std::vector<int>{1,0,2}));
+    EXPECT_EQ(d2.meta->source_hash.value_or(""), poset_hash(p.edges));
+}
+
+TEST(Io, NotesOnlyDocumentParses) {
+    Document d = parse_document(
+        "poset:\n  n_vertices: 2\n  edges:\n    - [0, 1]\n"
+        "meta:\n  notes: just a note\n");
+    ASSERT_TRUE(d.meta.has_value());
+    EXPECT_EQ(d.meta->notes.value_or(""), "just a note");
+    EXPECT_FALSE(d.meta->dimension.has_value());
+}

@@ -126,6 +126,53 @@ TEST(Realizer, NPosetHasRealizer) {
     expect_valid_realizer(n_poset, r);
 }
 
+// Validate a general realizer: each extension is a permutation extending the
+// order, and the intersection of all of them is exactly the order.
+static void expect_valid_general_realizer(const adjacency_list& g,
+                                          const std::vector<std::vector<int>>& realizer) {
+    int n = (int)g.size();
+    ASSERT_FALSE(realizer.empty());
+    auto base = reach(g);
+    std::vector<std::vector<int>> pos;
+    for (const auto& le : realizer) {
+        ASSERT_EQ((int)le.size(), n);
+        std::vector<char> seen(n, 0);
+        for (int x : le) { ASSERT_GE(x, 0); ASSERT_LT(x, n); ASSERT_FALSE(seen[x]); seen[x] = 1; }
+        pos.push_back(positions(le));
+    }
+    for (int a = 0; a < n; ++a)
+        for (int b = 0; b < n; ++b) {
+            if (a == b) continue;
+            bool in_all = true;
+            for (auto& p : pos) if (!(p[a] < p[b])) { in_all = false; break; }
+            EXPECT_EQ(in_all, (bool)base[(size_t)a * n + b]);
+        }
+}
+
+TEST(Realizer, FindOneRealizerS3HasThreeExtensions) {
+    adjacency_list s3(6); s3[0] = {4,5}; s3[1] = {3,5}; s3[2] = {3,4};
+    auto r = find_one_realizer(s3, Caps{});
+    EXPECT_EQ((int)r.size(), 3);
+    expect_valid_general_realizer(s3, r);
+}
+
+TEST(Realizer, FindAllRealizersAreValidAndDistinct) {
+    adjacency_list a3(3);   // dimension 2 antichain
+    auto all = find_all_realizers(a3, Caps{});
+    ASSERT_FALSE(all.empty());
+    for (const auto& col : all) {
+        EXPECT_EQ((int)col.realizer.size(), 2);
+        expect_valid_general_realizer(a3, col.realizer);
+    }
+}
+
+TEST(Realizer, FindOneRealizerChainIsSingleExtension) {
+    adjacency_list chain = {{1}, {2}, {3}, {}};
+    auto r = find_one_realizer(chain, Caps{});
+    ASSERT_EQ((int)r.size(), 1);
+    expect_valid_general_realizer(chain, r);
+}
+
 // For every acyclic directed graph on up to 4 vertices, find_realizer must agree
 // with is_dim2, and whenever it claims dim <= 2 it must produce a verified
 // realizer. This exercises thousands of distinct posets (including ones with

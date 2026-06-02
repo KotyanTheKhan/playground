@@ -1,13 +1,14 @@
 #include "cmd_check.hpp"
 #include "cmd_enumerate.hpp"
 #include "cmd_convert.hpp"
+#include "cmd_dimension.hpp"
 #include "nomadim/types.hpp"
 #include <CLI/CLI.hpp>
 #include <thread>
 #include <iostream>
 
 int main(int argc, char** argv) {
-    CLI::App app{"nomadim: poset dimension-2 tooling"};
+    CLI::App app{"nomadim: poset order-dimension tooling"};
     app.set_version_flag("--version", std::string(nomadim::version()));
     app.require_subcommand(1);
 
@@ -29,6 +30,16 @@ int main(int argc, char** argv) {
     conv->add_option("input", conv_in, "Input execution YAML")->required();
     conv->add_option("output", conv_out, "Output poset YAML")->required();
 
+    std::string dim_path, dim_out;
+    bool dim_realizers = false, dim_all = false;
+    int dim_max_vertices = 16;
+    auto* dim = app.add_subcommand("dimension", "Report order dimension (any >= 1), with optional realizers");
+    dim->add_option("file", dim_path, "YAML poset/execution file")->required();
+    dim->add_flag("--realizers", dim_realizers, "Print one realizer");
+    dim->add_flag("--all", dim_all, "Print all minimum colorings + realizers");
+    dim->add_option("--max-vertices", dim_max_vertices, "Vertex cap (default 16)");
+    dim->add_option("-o,--out", dim_out, "Write document with computed meta to this file");
+
     CLI11_PARSE(app, argc, argv);
 
     try {
@@ -38,6 +49,9 @@ int main(int argc, char** argv) {
             return nomadim::cmd_enumerate(n_procs, max_sync, threads, enum_out);
         }
         if (*conv)   return nomadim::cmd_convert(conv_in, conv_out);
+        if (*dim)
+            return nomadim::cmd_dimension(dim_path, dim_realizers, dim_all,
+                                          dim_max_vertices, dim_out);
     } catch (const std::exception& e) {
         std::cerr << "error: " << e.what() << "\n";
         return 1;

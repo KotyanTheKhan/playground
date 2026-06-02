@@ -29,6 +29,7 @@ if(NOMADIM_WASM)
     src/process_graph.cpp
     src/floyd.cpp
     src/dimension.cpp
+    src/hypergraph.cpp
     src/poset.cpp
     src/realizer.cpp
     src/io.cpp
@@ -67,6 +68,7 @@ else()
     src/process_graph.cpp
     src/floyd.cpp
     src/dimension.cpp
+    src/hypergraph.cpp
     src/poset.cpp
     src/realizer.cpp
     src/isomorphism.cpp
@@ -76,12 +78,12 @@ else()
   target_include_directories(nomadim_core PUBLIC include)
   target_link_libraries(nomadim_core PUBLIC yaml-cpp Threads::Threads)
 
-  add_executable(nomadim app/main.cpp app/cmd_check.cpp app/cmd_enumerate.cpp app/cmd_convert.cpp)
+  add_executable(nomadim app/main.cpp app/cmd_check.cpp app/cmd_enumerate.cpp app/cmd_convert.cpp app/cmd_dimension.cpp)
   target_link_libraries(nomadim PRIVATE nomadim_core CLI11::CLI11)
 
   enable_testing()
   include(GoogleTest)
-  add_executable(nomadim_tests tests/test_smoke.cpp tests/test_execution.cpp tests/test_process_graph.cpp tests/test_floyd.cpp tests/test_dimension.cpp tests/test_realizer.cpp tests/test_poset.cpp tests/test_isomorphism.cpp tests/test_enumerate.cpp tests/test_io.cpp)
+  add_executable(nomadim_tests tests/test_smoke.cpp tests/test_execution.cpp tests/test_process_graph.cpp tests/test_floyd.cpp tests/test_dimension.cpp tests/test_realizer.cpp tests/test_poset.cpp tests/test_isomorphism.cpp tests/test_enumerate.cpp tests/test_io.cpp tests/test_order_relation.cpp tests/test_hypergraph.cpp tests/test_oracle.cpp src/oracle.cpp)
   target_link_libraries(nomadim_tests PRIVATE nomadim_core GTest::gtest_main)
   if(NOMADIM_SLOW_TESTS)
     target_compile_definitions(nomadim_tests PRIVATE NOMADIM_SLOW_TESTS=1)
@@ -102,6 +104,16 @@ else()
     COMMAND nomadim check ${CMAKE_CURRENT_SOURCE_DIR}/data/exec_4_canonical.yaml)
   set_tests_properties(cli_check_canonical_not_dim2 PROPERTIES
     PASS_REGULAR_EXPRESSION "Dimension <= 2: NO")
+
+  add_test(NAME cli_dimension_s3
+    COMMAND nomadim dimension ${CMAKE_CURRENT_SOURCE_DIR}/data/poset_s3.yaml)
+  set_tests_properties(cli_dimension_s3 PROPERTIES
+    PASS_REGULAR_EXPRESSION "Dimension: 3")
+
+  add_test(NAME cli_dimension_s4_realizers
+    COMMAND nomadim dimension ${CMAKE_CURRENT_SOURCE_DIR}/data/poset_s4.yaml --realizers)
+  set_tests_properties(cli_dimension_s4_realizers PROPERTIES
+    PASS_REGULAR_EXPRESSION "Dimension: 4")
 
   add_test(NAME cli_enumerate_4_5
     COMMAND nomadim enumerate -n 4 -k 5 -j 1)
