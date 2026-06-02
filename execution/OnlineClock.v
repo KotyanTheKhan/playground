@@ -121,3 +121,28 @@ Proof.
   split; [reflexivity|].
   rewrite (block_op_for s y). fold py. rewrite Hky. rewrite Hrecv. reflexivity.
 Qed.
+
+(* rank axiom (hyp 4 of stamp_iff) specialized to blo:
+   within a fixed layer and component, the online step counter linearizes hb *)
+Lemma blo_rank :
+  forall s, wf_schedule s -> forall x y : ep_carrier (exec_of_schedule s),
+    clk_lay s x = clk_lay s y -> clk_comp s x = clk_comp s y ->
+    (blo s x y <-> clk_step s x <= clk_step s y).
+Proof.
+  intros s Hwf x y Hl Hc. split.
+  - (* blo -> step <= step *)
+    intro Hb. apply (blo_same_layer s x y Hl) in Hb.
+    destruct (event_eq_dec (desugar s) x y) as [He | Hne].
+    + subst y. lia.
+    + destruct (hb_layer_step s Hwf x y Hl Hb Hne) as [Hsx Hsy]. rewrite Hsx, Hsy. lia.
+  - (* step <= step -> blo *)
+    intro Hs. apply (blo_same_layer s x y Hl).
+    assert (Hidx : snd (proj1_sig x) = snd (proj1_sig y)) by exact Hl.
+    assert (Hcc  : fb_comp s (proj1_sig x) = fb_comp s (proj1_sig y)) by exact Hc.
+    destruct (hb_or_of_fb_comp_eq s Hwf x y Hidx Hcc) as [Hxy | Hyx].
+    + exact Hxy.
+    + destruct (event_eq_dec (desugar s) y x) as [He | Hne].
+      * subst x. apply poset_refl.
+      * destruct (hb_layer_step s Hwf y x (eq_sym Hl) Hyx Hne) as [Hsy Hsx].
+        rewrite Hsx, Hsy in Hs. lia.
+Qed.
