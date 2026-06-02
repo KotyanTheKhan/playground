@@ -68,3 +68,37 @@ TEST(Hypergraph, StandardExampleS3HasThreePairwiseHyperedges) {
     ASSERT_EQ(edges.size(), 3u);
     for (const auto& e : edges) EXPECT_EQ(e.size(), 2u);
 }
+
+TEST(Hypergraph, ChromaticNumberAntichainIsTwo) {
+    adjacency_list a3(3);
+    auto cps = cps_of(a3);
+    StrictRel base = base_order(a3);
+    EXPECT_EQ(chromatic_number(base, cps, Caps{}), 2);
+}
+
+TEST(Hypergraph, ChromaticNumberS3IsThree) {
+    adjacency_list s3(6); s3[0] = {4,5}; s3[1] = {3,5}; s3[2] = {3,4};
+    auto cps = cps_of(s3);
+    StrictRel base = base_order(s3);
+    EXPECT_EQ(chromatic_number(base, cps, Caps{}), 3);
+}
+
+TEST(Hypergraph, MinColoringsAreProperAndCover) {
+    adjacency_list s3(6); s3[0] = {4,5}; s3[1] = {3,5}; s3[2] = {3,4};
+    auto cps = cps_of(s3);
+    StrictRel base = base_order(s3);
+    auto colorings = enumerate_min_colorings(base, cps, 3, Caps{});
+    ASSERT_FALSE(colorings.empty());
+    for (const auto& col : colorings) {
+        ASSERT_EQ(col.size(), cps.size());
+        std::vector<int> seen(3, 0);
+        for (int c : col) { ASSERT_GE(c, 0); ASSERT_LT(c, 3); seen[c] = 1; }
+        EXPECT_EQ(seen[0] + seen[1] + seen[2], 3);   // exactly 3 colors used
+        for (int c = 0; c < 3; ++c) {
+            std::vector<int> idxs;
+            for (size_t i = 0; i < col.size(); ++i) if (col[i] == c) idxs.push_back((int)i);
+            EXPECT_TRUE(is_reversible(base, cps, idxs));
+        }
+        EXPECT_EQ(col[0], 0);                        // canonical: first pair is color 0
+    }
+}

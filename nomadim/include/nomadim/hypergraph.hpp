@@ -35,6 +35,19 @@ std::vector<std::vector<int>>
 enumerate_hyperedges(const StrictRel& base, const std::vector<critical_pair>& cps,
                      const Caps& caps);
 
+// Smallest k>=2 for which the critical pairs admit a proper coloring (each color
+// class reversible). Precondition: cps non-empty (callers handle the chain case
+// dim<=1 separately). Throws if cps exceed caps.max_critical_pairs.
+int chromatic_number(const StrictRel& base, const std::vector<critical_pair>& cps,
+                     const Caps& caps);
+
+// All distinct proper k-colorings using exactly k colors, each as a color-per-
+// critical-pair vector, canonicalized (colors numbered by first appearance) so
+// permutation-equivalent colorings are reported once. Capped at caps.max_results.
+std::vector<std::vector<int>>
+enumerate_min_colorings(const StrictRel& base, const std::vector<critical_pair>& cps,
+                        int k, const Caps& caps);
+
 } // namespace nomadim
 
 #endif // NOMADIM_HYPERGRAPH_HPP
