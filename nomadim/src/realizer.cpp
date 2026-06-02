@@ -55,4 +55,14 @@ Realizer find_realizer(const adjacency_list& g) {
     return Realizer{false, {}, {}};
 }
 
+GeneralRealizer find_one_realizer(const adjacency_list& g, const Caps& caps) {
+    DimensionResult dr = analyze_dimension(g, caps);
+    if (dr.colorings.empty()) return {};
+    return dr.colorings.front().realizer;
+}
+
+std::vector<Coloring> find_all_realizers(const adjacency_list& g, const Caps& caps) {
+    return analyze_dimension(g, caps).colorings;
+}
+
 } // namespace nomadim

@@ -2,6 +2,7 @@
 #define NOMADIM_REALIZER_HPP
 
 #include "nomadim/types.hpp"
+#include "nomadim/dimension.hpp"
 #include <vector>
 
 namespace nomadim {
@@ -19,6 +20,17 @@ struct Realizer {
 // adjacency list `g` (edge u->v means u < v). Precondition: `g` is acyclic
 // (callers validate with Poset::validate first).
 Realizer find_realizer(const adjacency_list& g);
+
+// A general realizer: `dimension` linear extensions whose intersection is the
+// order. For a chain this is a single extension; for the empty poset, empty.
+using GeneralRealizer = std::vector<std::vector<int>>;
+
+// One minimum realizer (the first minimum coloring's induced extensions).
+GeneralRealizer find_one_realizer(const adjacency_list& g, const Caps& caps = Caps{});
+
+// Every minimum coloring with its induced realizer ("both, labeled"). Capped by
+// caps.max_results.
+std::vector<Coloring> find_all_realizers(const adjacency_list& g, const Caps& caps = Caps{});
 
 } // namespace nomadim
 
