@@ -1,5 +1,19 @@
 # CLAUDE.md
 
+## Project goal (north star)
+
+**Find logical clocks with memory complexity lower than vector clocks.** Vector
+clocks cost Θ(N) per event for N processes; the open question is whether some
+execution admits a strictly cheaper clock that still characterizes the
+happened-before order. Our approach: **analyse the order dimension of execution
+posets.** The dimension of an execution's causal poset bounds the number of
+coordinates a clock needs to capture the order, so a poset of dimension d < N
+implies a clock using d (rather than N) coordinates — i.e. sub-vector-clock
+memory. Every formalization task on this project should connect back to this:
+*does it move us toward establishing (or refuting) low-dimensional clocks for
+real execution posets?* When a result is a means to that end, say how; when it
+is a detour, flag it.
+
 ## Git
 
 Do not add `Co-Authored-By` or any other AI watermarks to commit messages.
