@@ -496,6 +496,22 @@ Honest note: this closes the **per-block** half of the gap (finding 2). It does 
 
 Honest scope: this models the *barrier* synchronization primitive (the paper's "synchronization"), not arbitrary pairwise-message executions (which are not dim ≤ 2). The pairwise `hb` model and its N>4 `FullySynchronizing` limitation remain on record alongside `blo`. `BarrierExecDimExamples.v` exhibits an **N=5** barrier execution with dim ≤ 2 — the regime finding 1 excluded. Admit-free (standard classical/proof-irrelevance axioms only).
 
+#### `execution/OnlineClock.v` — computable 2-coordinate clock (`blo` = product order) (exported)
+
+Turns the abstract `L1`/`L2` realizer into a concrete computable timestamp. A generic theorem `stamp_iff` (any poset with integer `lay`/`comp`/`step` + bound `B` satisfying barrier/resp-lay/resp-comp/rank/bound ⟹ `R x y ↔ stamp x ≤_prod stamp y`, the product of two lexicographic orders, comparison on emitted integers only), instantiated for `blo` as `blo_iff_stamp` (**any N**). This is the soundness/characterization half of the "online dim-2 clock"; online *locality* is argued in `execution/DIM2_CLOCK.md`, not in Coq. Admit-free (`classic`, `proof_irrelevance`, `constructive_definite_description`, `Extensionality_Ensembles`).
+
+| Name | Meaning |
+|------|---------|
+| `le_lex3` / `le_prod` | lexicographic ≤ on a nat triple (6-scalar form); product of the two lex orders (`T2` uses `B − comp`) |
+| `stamp_iff` | generic: 5 structural hypotheses ⟹ `R x y ↔ le_prod …` (no finiteness; integer-only test) |
+| `clk_lay` / `clk_comp` / `clk_step` | barrier index `snd`; `fb_comp`; `Recv?1:0` |
+| `fb_comp_lt_nprocs` | `clk_comp < sch_nprocs` (the bound `B = nprocs−1`) |
+| `blo_same_layer` / `hb_layer_step` / `blo_rank` | within-layer reductions discharging the rank hypothesis |
+| `blo_iff_stamp` | `wf_schedule` ⟹ `blo s x y ↔ le_prod (nprocs−1) …`, for any process count |
+| `stamp` | readable `(nat³ × nat³)` timestamp for `vm_compute` |
+
+`OnlineClockExamples.v` (test): `s_bar5` (N=5 barrier, incomparable stamps), `s_msg3` (literal `vm_compute`d stamps for a sender/receiver/isolated triple), and an abstract length-3 chain exercising the generic `stamp_iff` with `step ∈ {0,1,2}`.
+
 #### `execution/TransformB.v` — Transformation B (2-process block dim ≤ 2) (exported)
 
 The NomaDB paper's second reduction: *"two processes between synchronizations form at most 2 critical pairs,"* simplified to "one local modification," preserving the dimension property. The faithful core: a block spanned by 2 processes is covered by 2 chains (each process's events are a chain under program order), so its **width ≤ 2**, hence **dim ≤ 2** (`dimension_le_width`). Being a per-block property, it is preserved under any 2-process block replacement (mirroring how Transformation A used block replacement). `TransformBExamples.v` exhibits the equal-bound (`B2` and its simplification `B2s` both ≤ 2) that drives the transformation.

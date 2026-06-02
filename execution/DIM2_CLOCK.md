@@ -184,9 +184,14 @@ ones are. Planarity is a consequence of this construction, not of dim 2 alone.)
 
 ## 6. The clock, as an algorithm — and the open online question
 
-**Offline (proven).** Given a finished barrier execution, assign each event the
-pair `(T₁, T₂)` of §2. Causality is the componentwise ≤ test. Memory: **2
-integers per event, for any N** — strictly below the vector clock's N for `N ≥ 3`.
+**Offline (proven, and now *computable*).** Given a barrier execution, assign each
+event the pair `(T₁, T₂)` of §2. Causality is the componentwise ≤ test. Memory:
+**2 integers per event, for any N** — strictly below the vector clock's N for
+`N ≥ 3`. This is no longer just the abstract realizer: `OnlineClock.v` gives a
+concrete `stamp : event → (nat³ × nat³)` and proves `blo s x y ↔ stamp x ≤_prod
+stamp y` (`blo_iff_stamp`, **any N**, admit-free), with the comparison on emitted
+integers only — never peeking at `hb`. The generic core `stamp_iff` states the
+rule abstractly (5 hypotheses: barrier/resp-lay/resp-comp/rank/bound).
 
 **Online (the next research step).** A vector clock earns its Θ(N) by being
 *maintainable on the fly*: each process updates its own entry and merges
@@ -202,9 +207,12 @@ is:
 > barrier-grammar executions.
 
 If solved, synchronized workloads get a constant-coordinate causal clock where
-the classical bound says vector clocks need N. The Coq realizers in this folder
-already prove the *characterization* half; the online maintenance proof is what
-remains.
+the classical bound says vector clocks need N. The **characterization** half is
+now machine-checked end to end (`blo_iff_stamp`, a computable stamp); what remains
+open is only the **online maintenance** proof — an operational model where each
+process derives `(barrier, comp, step)` from local history + message payloads
+(`barrier` a counter incremented at each full rendezvous), proven to reproduce
+the same stamps.
 
 ---
 
@@ -221,3 +229,4 @@ remains.
 | barrier execution has dim exactly 2 for any N | `blo_dim_eq_2` (`BarrierExecDim.v:187`) |
 | explicit N=5 barrier is dim 2 | `bar5_dim_eq_2` (`BarrierExecDimExamples.v:61`) |
 | any fully-sync schedule's execution is dim ≤ 2 | `fully_sync_frontier_dim_le2` (`DisjointChainsDim.v:582`) |
+| **barrier order = a computable product-of-lex clock (any N)** | **`blo_iff_stamp`** (`OnlineClock.v`); generic rule `stamp_iff` |
