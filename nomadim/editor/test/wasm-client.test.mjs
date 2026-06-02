@@ -26,3 +26,27 @@ test('client marshals adjacency and document calls to/from the module', async ()
   const expanded = c.expandExecution(exec.execution);
   assert.ok(expanded.n_vertices > 0 && Array.isArray(expanded.edges));
 });
+
+test('client exposes general dimension, realizers, and document meta', async () => {
+  const c = await makeClient(factory);
+  // S_3: dimension 3.
+  const s3 = [[4, 5], [3, 5], [3, 4], [], [], []];
+  const dim = c.dimension(s3);
+  assert.strictEqual(dim.dimension, 3);
+  assert.ok(Array.isArray(dim.hyperedges));
+
+  const one = c.findOneRealizer(s3);
+  assert.strictEqual(one.dimension, 3);
+  assert.strictEqual(one.realizer.length, 3);
+
+  const all = c.allRealizers(s3);
+  assert.ok(all.colorings.length >= 1);
+  assert.strictEqual(all.colorings[0].realizer.length, 3);
+
+  // Round-trip a document with meta through dumpDocument + parseDocument.
+  const yaml = c.dumpDocument({ poset: { n_vertices: 3, edges: [[2], [2], []] },
+                               meta: { notes: 'hi', dimension: 2 } });
+  const parsed = c.parseDocument(yaml);
+  assert.strictEqual(parsed.meta.notes, 'hi');
+  assert.strictEqual(parsed.meta.dimension, 2);
+});
