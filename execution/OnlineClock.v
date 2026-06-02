@@ -146,3 +146,28 @@ Proof.
       * destruct (hb_layer_step s Hwf y x (eq_sym Hl) Hyx Hne) as [Hsy Hsx].
         rewrite Hsx, Hsy in Hs. lia.
 Qed.
+
+Theorem blo_iff_stamp :
+  forall s, wf_schedule s -> 0 < sch_nprocs s ->
+  forall x y : ep_carrier (exec_of_schedule s),
+    blo s x y <->
+    le_prod (sch_nprocs s - 1)
+      (clk_lay s x)(clk_comp s x)(clk_step s x)
+      (clk_lay s y)(clk_comp s y)(clk_step s y).
+Proof.
+  intros s Hwf Hnp x y.
+  apply (stamp_iff (blo s) (clk_lay s) (clk_comp s) (clk_step s) (sch_nprocs s - 1)).
+  - (* 1 barrier *) intros a b Hlt. left. exact Hlt.
+  - (* 2 resp-lay *) intros a b [Hlt | [He _]]; unfold clk_lay; lia.
+  - (* 3 resp-comp *) intros a b Hb Hl.
+    apply (blo_same_layer s a b Hl) in Hb.
+    exact (fb_comp_eq_of_hb s Hwf a b Hl Hb).
+  - (* 4 rank *) intros a b Hl Hc. exact (blo_rank s Hwf a b Hl Hc).
+  - (* 5 bound *) intro e. pose proof (fb_comp_lt_nprocs s Hwf e). lia.
+Qed.
+
+(* Readable timestamp: a pair of nat triples, for vm_compute in examples. *)
+Definition stamp (s : Schedule) (x : ep_carrier (exec_of_schedule s))
+  : (nat * nat * nat) * (nat * nat * nat) :=
+  let l := clk_lay s x in let c := clk_comp s x in let st := clk_step s x in
+  ((l, c, st), (l, (sch_nprocs s - 1) - c, st)).
