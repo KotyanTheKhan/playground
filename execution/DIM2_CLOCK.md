@@ -208,16 +208,24 @@ is:
 
 If solved, synchronized workloads get a constant-coordinate causal clock where
 the classical bound says vector clocks need N. Two pieces are now machine-checked:
-the **characterization** (`blo_iff_stamp`, a computable stamp) and the **locality**
-(`OnlineClockLocal.v`) — `local_stamp (N p i : nat) (o : Op)` takes only local data
-(own pid, index, op, and a `Recv`'s sender id) and *cannot* consult the global
-schedule (it is not an argument); `local_stamp_correct` proves it reproduces the
-global stamp, and `blo_iff_local_stamp` restates causality through it. Two
-`reflexivity` interface lemmas confirm the only cross-process datum is a `Recv`'s
-sender id — **no clock-value piggybacking** (vs the vector clock's N entries per
-message), per-process state `(pid, a local counter)`. What remains open is only a
-**full operational distributed-semantics** model (per-process states + message
-channels + a global run relation) — everything below that level is proven.
+the **characterization** (`blo_iff_stamp`, a computable stamp) and the **stamp
+formula's locality** (`OnlineClockLocal.v`) — `local_stamp (N p i : nat) (o : Op)`
+takes only `(N, pid, index, op)`, so by its very type it *cannot* consult the
+global schedule; `local_stamp_correct` proves it reproduces the global stamp, and
+`blo_iff_local_stamp` restates causality through it. Two `reflexivity` interface
+lemmas confirm the only cross-process datum the formula reads is a `Recv`'s sender
+id — **no clock-value piggybacking** (vs the vector clock's N entries per message),
+per-process state `(pid, a local counter)`.
+
+Be precise about what is *not* yet proven: the bridge `local_obs s p i` that feeds
+`local_stamp` the process's op still takes the schedule `s`, and "each process can
+determine its own op and maintain the layer counter `i` from purely local state"
+holds **by construction of the `blo` barrier model** (one op per process per
+frontier index), *noted but not separately formalized*. So what is proven is that
+the stamp *formula* is schedule-blind and correct; what remains is a **full
+operational distributed-semantics** model (per-process states + message channels +
+a global run relation) in which `local_obs` and the counter are primitive local
+state rather than projections of `s`.
 
 ---
 
