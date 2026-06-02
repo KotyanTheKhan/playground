@@ -11,14 +11,30 @@ const POSET_S3 = `poset:
     - [2, 4]
 `;
 
-test('shows dimension 3 and a 3-extension realizer for S_3', async ({ page }) => {
+test('dimension is blank until Compute, then shows 3 and a 3-extension realizer', async ({ page }) => {
   await page.goto('/index.html');
   await page.waitForFunction(() => window.__editor !== undefined);
   await page.evaluate((yaml) => window.__editor.loadText(yaml), POSET_S3);
+  // Before compute: hint, no realizer lines.
+  await expect(page.locator('#dimension')).toHaveText('Dimension: press Compute');
+  expect(await page.evaluate(() => window.__editor.realizerLineCount())).toBe(0);
+  // After compute: dimension 3 and 3 linear extensions.
+  await page.click('#compute-dim');
   await expect.poll(() => page.evaluate(() => window.__editor.dimensionText()))
     .toContain('Dimension: 3');
-  const lines = await page.evaluate(() => window.__editor.realizerLineCount());
-  expect(lines).toBe(3);
+  expect(await page.evaluate(() => window.__editor.realizerLineCount())).toBe(3);
+});
+
+test('editing the poset after Compute marks the dimension stale', async ({ page }) => {
+  await page.goto('/index.html');
+  await page.waitForFunction(() => window.__editor !== undefined);
+  await page.evaluate((yaml) => window.__editor.loadText(yaml), POSET_S3);
+  await page.click('#compute-dim');
+  await expect.poll(() => page.evaluate(() => window.__editor.dimensionText()))
+    .toContain('Dimension: 3');
+  await page.evaluate(() => window.__editor.addVertex());
+  await expect.poll(() => page.evaluate(() => window.__editor.dimensionText()))
+    .toContain('(stale');
 });
 
 test('notes round-trip into saved YAML', async ({ page }) => {
