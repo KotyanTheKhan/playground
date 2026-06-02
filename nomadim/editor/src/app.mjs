@@ -1,10 +1,10 @@
 import { makeClient } from './wasm-client.mjs';
-import { emptyModel, hasPoset, posetAdjacency } from './model.mjs';
-import { yamlToModel } from './yaml-sync.mjs';
+import { emptyModel, hasPoset, posetAdjacency, getMeta, setNotes } from './model.mjs';
+import { yamlToModel, modelToYaml } from './yaml-sync.mjs';
 import { computeVerdict, verdictText } from './verdict.mjs';
+import { dimensionText, realizerLines } from './dimension.mjs';
 import { initPosetView, renderPoset, setCriticalOverlay, clearCriticalOverlay } from './poset-view.mjs';
 import { emptyPoset, addVertex, removeVertex, addEdge, removeEdge } from './edits.mjs';
-import { realizerColumns } from './realizer.mjs';
 import { saveText } from './file-save.mjs';
 import { emptyExecution, setNProcs, appendSync, removeLastSync, moveSync, removeSyncAt, reorderProcess } from './execution-edits.mjs';
 import { renderExecution, clearExecution } from './execution-view.mjs';
@@ -16,8 +16,9 @@ async function main() {
   let model = emptyModel();
   let view = 'poset'; // 'poset' | 'execution'
 
-  const ids = ['version', 'verdict', 'yaml', 'apply', 'file', 'error',
-               'new', 'addv', 'adde', 'del', 'edge-u', 'edge-v', 'critical', 'realizer', 'save',
+  const ids = ['version', 'verdict', 'dimension', 'yaml', 'apply', 'file', 'error',
+               'new', 'addv', 'adde', 'del', 'edge-u', 'edge-v', 'critical', 'realizer',
+               'realizers-all', 'notes', 'save',
                'tab-poset', 'tab-exec', 'poset-pane', 'exec-pane', 'exec',
                'nprocs', 'sync-a', 'sync-b', 'addsync', 'delsync', 'derive',
                'poset-tools', 'exec-tools'];
@@ -38,10 +39,14 @@ async function main() {
     if (v === 'poset') cy.resize();
   }
 
-  function renderRealizer(adj) {
-    const cols = realizerColumns(client, adj);
-    els.realizer.textContent = cols
-      ? `realizer  L1: [${cols.l1.join(', ')}]   L2: [${cols.l2.join(', ')}]` : '';
+  function renderDimension(adj) {
+    const result = client.dimension(adj);
+    els.dimension.textContent = dimensionText(result);
+    if (result.error) { els.realizer.textContent = ''; els['realizers-all'].textContent = ''; return; }
+    const one = client.findOneRealizer(adj);
+    els.realizer.textContent = one.error ? '' : 'realizer  ' + realizerLines(one.realizer).join('   ');
+    const all = client.allRealizers(adj);
+    els['realizers-all'].textContent = all.error ? '' : `${all.colorings.length} minimum realizer(s)`;
   }
 
   // The model may hold a poset, an execution, or BOTH (after "Show derived
@@ -59,7 +64,7 @@ async function main() {
   function currentYaml() {
     const v = effectiveView();
     if (v === 'execution' && model.execution) return client.dumpExecution(model.execution);
-    if (model.poset) return client.dumpPoset(model.poset);
+    if (model.poset) return modelToYaml(client, model);
     if (model.execution) return client.dumpExecution(model.execution);
     return '';
   }
@@ -72,18 +77,23 @@ async function main() {
       const adj = posetAdjacency(model);
       renderPoset(cy, model.poset);
       els.verdict.textContent = verdictText(computeVerdict(client, adj));
-      renderRealizer(adj);
+      renderDimension(adj);
+      els.notes.value = getMeta(model).notes ?? '';
       if (els.critical.checked) setCriticalOverlay(cy, client.criticalPairs(adj));
     } else if (v === 'execution' && model.execution) {
       renderExecution(els.exec, model.execution);
       attachExecDrag();
       els.verdict.textContent = `Execution: ${model.execution.n_procs} processes, ${model.execution.syncs.length} syncs`;
+      els.dimension.textContent = '';
       els.realizer.textContent = '';
+      els['realizers-all'].textContent = '';
     } else {
       cy.elements().remove();
       clearExecution(els.exec);
       els.verdict.textContent = 'No document loaded.';
+      els.dimension.textContent = '';
       els.realizer.textContent = '';
+      els['realizers-all'].textContent = '';
     }
     if (syncYaml) els.yaml.value = currentYaml();
   }
@@ -163,6 +173,7 @@ async function main() {
     if (els.critical.checked) setCriticalOverlay(cy, client.criticalPairs(posetAdjacency(model)));
     else clearCriticalOverlay(cy);
   });
+  els.notes.addEventListener('input', () => { model = setNotes(model, els.notes.value); });
 
   els.nprocs.addEventListener('change', () => {
     const n = parseInt(els.nprocs.value, 10);
@@ -213,6 +224,9 @@ async function main() {
     laneCount: () => els.exec.querySelectorAll('.lane').length,
     syncCount: () => els.exec.querySelectorAll('.sync').length,
     realizerText: () => els.realizer.textContent,
+    dimensionText: () => els.dimension.textContent,
+    realizerLineCount: () => (els.realizer.textContent.match(/L\d+:/g) || []).length,
+    setNotes: (s) => { els.notes.value = s; els.notes.dispatchEvent(new Event('input')); },
     currentYaml: () => currentYaml(),
     currentExecution: () => model.execution,
     nodeCount: () => cy.nodes().length,

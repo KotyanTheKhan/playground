@@ -3,7 +3,10 @@ import { loadFromDocument } from './model.mjs';
 // Serialize the current model back to YAML text (poset takes precedence if both
 // are present, matching what the viewer renders).
 export function modelToYaml(client, model) {
-  if (model.poset) return client.dumpPoset(model.poset);
+  if (model.poset) {
+    const meta = { ...(model.meta ?? {}) };
+    return client.dumpDocument({ poset: model.poset, meta });
+  }
   if (model.execution) return client.dumpExecution(model.execution);
   return '';
 }
