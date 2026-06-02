@@ -1,0 +1,11 @@
+build/
+build-slow/
+build-bench/
+tests/__pycache__/
+build-wasm/
+editor/public/nomadim.js
+editor/public/nomadim.wasm
+editor/node_modules/
+editor/package-lock.json
+editor/test-results/
+editor/playwright-report/

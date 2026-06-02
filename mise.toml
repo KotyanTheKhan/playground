@@ -12,6 +12,7 @@
 [tools]
 opam   = "2.4.1"
 ocaml  = "5.1.0"
+cmake  = "3.31.1"
 
 [env]
 OPAMSWITCH = "."
@@ -196,4 +197,143 @@ echo "opam:         $(opam --version 2>/dev/null || echo MISSING)"
 echo "dune:         $(dune --version 2>/dev/null || echo MISSING)"
 echo "coqc:         $(coqc --version 2>/dev/null | head -1 || echo MISSING)"
 echo "coq-hammer:   $(opam show -f version coq-hammer 2>/dev/null || echo MISSING)"
+'''
+
+# ============================================================================
+# nomadim (C++ subproject) — independent of the Coq/dune build
+# ============================================================================
+
+[tasks.nomadim-deps]
+description = "Show the C++ toolchain for the nomadim subproject"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "cmake:    $(cmake --version | head -1)"
+echo "compiler: $(c++ --version | head -1)"
+echo "(yaml-cpp, CLI11, GoogleTest, Google Benchmark are fetched by CMake — nothing to install)"
+'''
+
+[tasks.nomadim-configure]
+description = "Configure the nomadim CMake build (Release)"
+run = "cmake -S nomadim -B nomadim/build -DCMAKE_BUILD_TYPE=Release"
+
+[tasks.nomadim-build]
+description = "Build the nomadim C++ project"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+cmake -S nomadim -B nomadim/build -DCMAKE_BUILD_TYPE=Release
+cmake --build nomadim/build -j
+'''
+
+[tasks.nomadim-test]
+description = "Build and run nomadim tests (default tier)"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+cmake -S nomadim -B nomadim/build -DCMAKE_BUILD_TYPE=Release
+cmake --build nomadim/build -j
+ctest --test-dir nomadim/build --output-on-failure
+'''
+
+[tasks.nomadim-test-slow]
+description = "Build and run nomadim tests including the heavy golden-count tier"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+cmake -S nomadim -B nomadim/build -DCMAKE_BUILD_TYPE=Release -DNOMADIM_SLOW_TESTS=ON
+cmake --build nomadim/build -j
+ctest --test-dir nomadim/build --output-on-failure
+'''
+
+[tasks.nomadim-clean]
+description = "Remove nomadim CMake build directories"
+run = "rm -rf nomadim/build nomadim/build-bench && echo '✅ nomadim build dirs removed'"
+
+[tasks.nomadim-bench]
+description = "Run nomadim benchmarks and compare to the committed baseline (fails on regression)"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+cmake -S nomadim -B nomadim/build-bench -DCMAKE_BUILD_TYPE=Release -DNOMADIM_BENCH=ON
+cmake --build nomadim/build-bench -j --target nomadim_bench
+./nomadim/build-bench/nomadim_bench \
+  --benchmark_repetitions=3 \
+  --benchmark_report_aggregates_only=true \
+  --benchmark_format=json \
+  --benchmark_out=nomadim/build-bench/bench_current.json \
+  --benchmark_out_format=json
+python3 nomadim/bench/compare.py nomadim/bench/baseline.json nomadim/build-bench/bench_current.json
+'''
+
+[tasks.nomadim-bench-baseline]
+description = "Regenerate the committed nomadim benchmark baseline"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+cmake -S nomadim -B nomadim/build-bench -DCMAKE_BUILD_TYPE=Release -DNOMADIM_BENCH=ON
+cmake --build nomadim/build-bench -j --target nomadim_bench
+./nomadim/build-bench/nomadim_bench \
+  --benchmark_repetitions=3 \
+  --benchmark_report_aggregates_only=true \
+  --benchmark_format=json \
+  --benchmark_out=nomadim/bench/baseline.json \
+  --benchmark_out_format=json
+echo "✅ baseline written to nomadim/bench/baseline.json"
+'''
+
+[tasks.nomadim-editor-build]
+description = "Build the libnomadim WebAssembly module (Emscripten via mise emsdk)"
+tools = { emsdk = "4.0.23" }
+run = "bash nomadim/editor/build-wasm.sh"
+
+[tasks.nomadim-editor-test]
+description = "Build the WASM module + native CLI, run the Node faithfulness + unit tests"
+tools = { emsdk = "4.0.23", node = "22" }
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+# Native CLI is the faithfulness oracle.
+cmake -S nomadim -B nomadim/build -DCMAKE_BUILD_TYPE=Release
+cmake --build nomadim/build -j --target nomadim
+# WASM module under test.
+bash nomadim/editor/build-wasm.sh
+# Headless cross-check + pure-logic unit tests.
+node --test nomadim/editor/test/*.test.cjs nomadim/editor/test/*.test.mjs
+'''
+
+[tasks.nomadim-editor-clean]
+description = "Remove the editor WASM build dir and generated module"
+run = "rm -rf nomadim/build-wasm nomadim/editor/public/nomadim.js nomadim/editor/public/nomadim.wasm && echo '✅ editor wasm artifacts removed'"
+
+[tasks.nomadim-editor]
+description = "Build the WASM module, serve the editor, and open it in the browser"
+tools = { emsdk = "4.0.23" }
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+bash nomadim/editor/build-wasm.sh
+PORT="${NOMADIM_EDITOR_PORT:-8731}"
+URL="http://localhost:${PORT}/index.html"
+# Open the browser once the server is up (macOS `open`, Linux `xdg-open`).
+( sleep 1
+  if command -v open >/dev/null 2>&1; then open "$URL"
+  elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL"
+  else echo "Open $URL in your browser."; fi ) &
+echo "Serving nomadim editor at ${URL} (Ctrl-C to stop)"
+exec python3 -m http.server "$PORT" --directory nomadim/editor
+'''
+
+[tasks.nomadim-editor-e2e]
+description = "Build the WASM module and run the Playwright browser smoke suite"
+tools = { emsdk = "4.0.23", node = "22" }
+dir = "nomadim/editor"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+# Build the module the page loads (paths are relative to repo root, so cd back).
+( cd ../.. && bash nomadim/editor/build-wasm.sh )
+npm install --no-audit --no-fund
+npx playwright install chromium
+npx playwright test
 '''

@@ -1,0 +1,8 @@
+{
+  "name": "nomadim-editor",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "1.48.2"
+  }
+}

@@ -1,0 +1,41 @@
+# nomadim editor
+
+A browser visualiser/editor for nomadim posets and executions. The poset math
+(YAML I/O, execution→poset expansion, dimension-≤-2 check, critical pairs, and
+the 2-realizer) runs as the exact `libnomadim` C++ compiled to WebAssembly, so
+the editor never diverges from the `nomadim` CLI.
+
+## Status
+
+- **Phase 2a (done):** the WASM core + a headless Node faithfulness test harness.
+- **Phase 2b-i (done):** browser viewer — load a YAML poset/execution, layered
+  Hasse diagram, live dimension-≤-2 verdict, editable YAML panel.
+- **Phase 2b-ii (done):** poset editing — add/remove vertices & edges (cycles
+  rejected), critical-pair highlight, realizer panel, and Save.
+- **Phase 2b-iii (done):** execution view — process swimlanes with ordered sync
+  connectors, execution editing (process count, append/remove-last sync), and
+  "Show derived poset". **Drag editing:** drag lane→lane to create a sync, drag a
+  process header to reorder processes, drag a sync connector to reorder it, and
+  drag a connector onto the delete strip to remove it (the toolbar still works too).
+
+## Build, run & test (via mise)
+
+```bash
+mise run nomadim-editor         # build WASM, serve the editor, open the browser
+mise run nomadim-editor-build   # build nomadim.js + nomadim.wasm into editor/public/
+mise run nomadim-editor-test    # build CLI + module, run Node faithfulness + unit tests
+mise run nomadim-editor-e2e     # build module, run the Playwright browser smoke suite
+mise run nomadim-editor-clean   # remove the wasm build dir and generated module
+```
+
+Emscripten is provisioned by the pinned mise `emsdk` tool (~1 GB one-time).
+Cytoscape/dagre are committed under `editor/vendor/`. Generated
+`public/nomadim.{js,wasm}` and `editor/node_modules/` are gitignored.
+
+## JS API (Embind, all string-in/string-out)
+
+`isDim2(adjJson) -> bool`, `findRealizer(adjJson) -> {dim_le_2,l1,l2} JSON`,
+`criticalPairs(adjJson) -> [[x,y]] JSON`, `expandExecution(execJson) -> poset JSON`,
+`parseDocument(yamlText) -> {execution?,poset?} JSON`, `dumpPoset(posetJson) -> YAML`,
+`dumpExecution(execJson) -> YAML`, `version() -> string`. Adjacency JSON is
+array-of-arrays in adjacency form (`edges[u]` lists `v` with `u < v`).

@@ -1,0 +1,12 @@
+execution:
+  n_procs: 2
+  syncs:
+    - [0, 1]
+meta:
+  notes: "Fully frontier-synchronized execution (every process start is seen by every process last event), minimal for its dimension. N=2 processes, S=1 synchronizations = the minimum number of syncs that fully synchronizes 2 processes into an order of dimension 2. Number of minimum realizers (colorings) = 2. One example realizer is recorded below; all 2 minimum realizer(s) share this dimension."
+  dimension: 2
+  source_hash: "cfa284500cc58ec5"
+  realizers:
+    -
+      - [1, 0, 2, 4, 3]
+      - [0, 1, 2, 3, 4]

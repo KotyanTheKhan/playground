@@ -538,3 +538,48 @@ A lenient parser `parse_document : string -> option Document` that reads real li
 | `parse_pair` / `parse_seq_item` | lenient `[a, b]`/`a, b`/`[a,b]` pair; a `- [a, b]` sequence item |
 | `parse_document` | dispatch on `execution:` / `poset:`; assemble a `Document` |
 | `roundtrip_*` / `accept_messy_*` | (test) read-back of `dump` output; acceptance of commented/re-spaced variants |
+
+---
+
+## nomadim (C++ tool, `nomadim/`)
+
+A standalone C++17 port of the [NomaDimension](https://github.com/DePizzottri/NomaDimension)
+tool: enumerate distributed executions of *N* processes and decide whether their
+happened-before poset has order dimension ≤ 2. It is the **computational
+counterpart** of the Coq `execution/` dimension theory (it does not build through
+dune; see `nomadim/README.md`). Build/test/benchmark via mise:
+`mise run nomadim-test` · `nomadim-test-slow` · `nomadim-bench`.
+
+### Core library (`nomadim/include/nomadim/`, `nomadim/src/`)
+
+| Module | Key functions / types | Meaning |
+|--------|-----------------------|---------|
+| `execution` | `Execution{n_procs, syncs}`, `validate()` | distributed execution = processes + ordered sync pairs |
+| `process_graph` | `ProcessGraph`, `init`, `sync`, `build(Execution)` | event-structure DAG; reachability = happened-before poset |
+| `floyd` | `make_graph_matrix`, `floyd`, `floyd_advance_vertex` | transitive-closure distance matrix (Floyd–Warshall) |
+| `order_relation` | `StrictRel{add_and_close, less}`, `base_order`, `linearize`, `topo_order` | dense transitive-closure strict order; shared by realizer + hypergraph |
+| `dimension` | `is_dim2`, `analyze_dimension`/`dimension` (→ `DimensionResult{dimension, critical_pairs, hyperedges, colorings}`, `Coloring`), `find_critical_pairs`, `check_if_critical`, `check_critical_pairs_graph`, `have_cycle`, `is_bipartite` | dim ≤ 2 ⇔ critical-pair incompatibility graph bipartite; general dim = χ of the critical-pair hypergraph (color classes are reversible sets) |
+| `hypergraph` | `Caps`, `reverse_set`, `is_reversible`, `enumerate_hyperedges`, `chromatic_number`, `enumerate_min_colorings` | reversible sets, minimal alternating-cycle hyperedges, and chromatic-number coloring of the critical-pair hypergraph |
+| `realizer` | `find_realizer(adjacency_list)`, `find_one_realizer`, `find_all_realizers` (→ `Coloring` list) | 2-realizer (dim ≤ 2) via incomparability orientation; general one/all minimum realizers induced by the minimum colorings of the hypergraph |
+| `oracle` (test-only) | `oracle_dimension` | brute-force dimension (enumerate linear extensions → minimum realizing subset); cross-validates `analyze_dimension`; not linked into CLI/WASM |
+| `wasm_bindings` | Embind module `nomadim.{js,wasm}` (`isDim2`, `findRealizer`, `criticalPairs`, `dimension`, `findOneRealizer`, `allRealizers`, `expandExecution`, `parseDocument`, `dumpPoset`, `dumpExecution`, `dumpDocument`) | JSON/YAML bridge over libnomadim for the browser editor; built with `-DNOMADIM_WASM=ON` via `mise run nomadim-editor-build`; consumed by the browser editor (`nomadim/editor/`, `mise run nomadim-editor`) (viewer + poset editing: add/remove vertices & edges, critical-pair highlight, dimension + realizers panel, notes, save) + execution swimlane view & expand-to-poset (incl. drag editing) |
+| `poset` | `Poset{n_vertices, edges}`, `validate()`, `from(ProcessGraph)` | general poset by cover/adjacency relation |
+| `isomorphism` | `is_isomorphic`, `generate_all_isomorphic`, `canonical_sync_name` | process-permutation isomorphism + canonical prune key |
+| `enumerate` | `enumerate(n,k,threads) -> EnumerateResult`, `is_full_synchronized` | multithreaded `std::thread` work-pool enumeration of non-isomorphic dim-2 executions |
+| `io` | `parse_document`, `load_file`, `dump_execution`, `dump_poset`, `dump_document`, `poset_hash`, `save_file`, `Document`, `Meta` | YAML read/write for `execution`/`poset`/`meta` documents (`meta` = notes + cached dimension/realizers keyed by `source_hash`) |
+
+### CLI (`nomadim/app/`, binary `nomadim`)
+
+| Subcommand | Meaning |
+|------------|---------|
+| `check <file.yaml>` | report whether a poset/execution has dimension ≤ 2 (exit 0 = yes, 2 = no) |
+| `dimension <file.yaml> [--realizers] [--all] [--max-vertices N] [-o out]` | report general order dimension; optionally print one realizer / all minimum colorings + realizers; `-o` writes a document with computed `meta` |
+| `enumerate -n N [-k K] [-j threads] [-o out]` | enumerate non-isomorphic, fully-synchronized, dim-2 executions of N processes |
+| `convert <in.yaml> <out.yaml>` | expand an execution document into its poset document |
+
+### Tests & benchmarks (`nomadim/tests/`, `nomadim/bench/`)
+
+GoogleTest unit tests for every public function plus golden enumeration counts
+(N=4,K=5 → 10; K=6 → 102; K=7 → 634; N=5,K=7 → 40; …); `bench/bench_nomadim.cpp`
+(Google Benchmark) with `bench/compare.py` gating regressions against
+`bench/baseline.json`.

@@ -1,0 +1,44 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+header { padding: 8px 12px; background: #1f2430; color: #fff; display: flex; align-items: center; gap: 16px; }
+header h1 { font-size: 16px; margin: 0; }
+#version { font-size: 12px; opacity: 0.8; }
+#verdict { padding: 6px 12px; background: #eef; font-weight: 600; }
+#error { padding: 0 12px; color: #b00; min-height: 18px; font-size: 13px; }
+main { flex: 1; display: flex; min-height: 0; }
+#cy { flex: 2; min-width: 0; background: #fff; }
+#side { flex: 1; display: flex; flex-direction: column; border-left: 1px solid #ddd; min-width: 280px; }
+#side textarea { flex: 1; width: 100%; border: 0; padding: 8px; font-family: ui-monospace, monospace; font-size: 13px; resize: none; }
+#side .controls { padding: 8px; display: flex; gap: 8px; align-items: center; border-top: 1px solid #ddd; }
+button { padding: 6px 12px; cursor: pointer; }
+#toolbar { padding: 6px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #f5f5f8; border-bottom: 1px solid #ddd; font-size: 13px; }
+#toolbar .sep { width: 1px; align-self: stretch; background: #ccc; margin: 0 4px; }
+#toolbar .vnum { width: 48px; }
+#realizer { padding: 2px 12px; font-family: ui-monospace, monospace; font-size: 12px; color: #225; min-height: 16px; }
+header .tabs { margin-left: auto; }
+header .tabs button { background: #2a3140; color: #cfd6e4; border: 1px solid #3a4357; }
+header .tabs button.active { background: #4f8cff; color: #fff; }
+#view { flex: 2; min-width: 0; display: flex; }
+#poset-pane, #exec-pane { flex: 1; min-width: 0; }
+#cy { width: 100%; height: 100%; background: #fff; }
+#exec-pane { overflow: auto; background: #fff; }
+#exec { padding: 8px; }
+.exec-svg .lane { stroke: #ccd; stroke-width: 1; }
+.exec-svg .lane { pointer-events: none; }
+.exec-svg .sync { stroke: #ff7043; stroke-width: 2; stroke-dasharray: 5 3; }
+.exec-svg .event { fill: #2ca06c; }
+.exec-svg .proc-label { fill: #555; font: 12px system-ui; }
+.exec-svg .sync-label { fill: #999; font: 11px ui-monospace, monospace; }
+#toolbar .grp { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.exec-svg .lane-hit { cursor: crosshair; }
+.exec-svg .lane-hit.hot { fill: rgba(79, 140, 255, 0.12); }
+.exec-svg .proc-label { cursor: grab; }
+.exec-svg .sync, .exec-svg .event { cursor: grab; }
+.exec-svg .sync.hot { stroke-width: 4; }
+.exec-svg .drag-overlay { stroke: #4f8cff; stroke-width: 2; stroke-dasharray: 4 3; pointer-events: none; }
+.exec-svg .delete-zone { display: none; }
+.exec-svg .delete-zone.active { display: block; }
+.exec-svg .delete-zone rect { fill: #e0457b; opacity: 0.12; }
+.exec-svg .delete-zone.hot rect { opacity: 0.32; }
+.exec-svg .delete-zone text { fill: #e0457b; font: 11px system-ui; opacity: 0.7; pointer-events: none; }
+.stale { opacity: 0.5; }

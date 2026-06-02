@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>nomadim editor</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="vendor/cytoscape.min.js"></script>
+  <script src="vendor/dagre.min.js"></script>
+  <script src="vendor/cytoscape-dagre.js"></script>
+  <script src="public/nomadim.js"></script>
+</head>
+<body>
+  <header>
+    <h1>nomadim editor</h1>
+    <span id="version"></span>
+    <label>Load <input id="file" type="file" accept=".yaml,.yml" /></label>
+    <button id="save">Save</button>
+    <span class="tabs"><button id="tab-poset" class="active">Poset</button><button id="tab-exec">Execution</button></span>
+  </header>
+  <div id="toolbar">
+    <span class="grp" id="poset-tools">
+      <button id="new">New poset</button>
+      <button id="addv">Add vertex</button>
+      <label>edge <input id="edge-u" type="number" min="0" class="vnum" /> &rarr;
+        <input id="edge-v" type="number" min="0" class="vnum" /></label>
+      <button id="adde">Add edge</button>
+      <button id="del">Delete selected</button>
+      <label><input id="critical" type="checkbox" /> critical pairs</label>
+      <button id="compute-dim">Compute dimension</button>
+    </span>
+    <span class="grp" id="exec-tools">
+      procs <input id="nprocs" type="number" min="0" class="vnum" />
+      <label>sync <input id="sync-a" type="number" min="0" class="vnum" /> &harr;
+        <input id="sync-b" type="number" min="0" class="vnum" /></label>
+      <button id="addsync">Add sync</button>
+      <button id="delsync">Remove last sync</button>
+      <button id="derive">Show derived poset</button>
+    </span>
+  </div>
+  <div id="verdict">No document loaded.</div>
+  <div id="dimension"></div>
+  <div id="realizer"></div>
+  <div id="realizers-all"></div>
+  <div id="notes-bar"><label>Notes <input id="notes" type="text" placeholder="notes / comments" size="40" /></label></div>
+  <div id="error"></div>
+  <main>
+    <div id="view">
+      <div id="poset-pane"><div id="cy"></div></div>
+      <div id="exec-pane" style="display:none"><div id="exec"></div></div>
+    </div>
+    <div id="side">
+      <textarea id="yaml" spellcheck="false" placeholder="poset / execution YAML"></textarea>
+      <div class="controls"><button id="apply">Apply YAML</button></div>
+    </div>
+  </main>
+  <script type="module" src="src/app.mjs"></script>
+</body>
+</html>
