@@ -512,6 +512,21 @@ Turns the abstract `L1`/`L2` realizer into a concrete computable timestamp. A ge
 
 `OnlineClockExamples.v` (test): `s_bar5` (N=5 barrier, incomparable stamps), `s_msg3` (literal `vm_compute`d stamps for a sender/receiver/isolated triple), and an abstract length-3 chain exercising the generic `stamp_iff` with `step ∈ {0,1,2}`.
 
+#### `execution/OnlineClockLocal.v` — online maintenance: the locality theorem (exported)
+
+`local_stamp (N p i : nat) (o : Op)` computes the clock from purely local data — the schedule `s` is **not** an argument, so the function cannot consult a global view; that signature *is* the locality. `local_stamp_correct` proves it equals the offline `stamp` at every valid event (near-definitional via `block_op_for`), and `blo_iff_local_stamp` restates the causality characterization `blo ⟺ stamp_le` purely through it. Two `reflexivity` interface lemmas pin the minimal interface: the only cross-process datum the clock reads is a `Recv`'s sender id (no clock-value piggybacking; per-process state is `(pid, a local counter)`). Admit-free (the four standard axioms, inherited from `blo_iff_stamp`).
+
+| Name | Meaning |
+|------|---------|
+| `local_stamp` | schedule-blind clock: `(N,p,i,op) → (nat³ × nat³)` |
+| `local_obs` | the op a process observes at its event (`op_for …`) |
+| `local_stamp_correct` | `local_stamp … = stamp s x` for every valid event |
+| `stamp_le` / `stamp_le_stamp` | product order on stamp pairs; bridge to `le_prod` |
+| `blo_iff_local_stamp` | `blo s x y ↔ stamp_le (local_stamp x) (local_stamp y)` |
+| `local_stamp_send_eq_local` / `local_stamp_recv_tag_irrel` | Send carries no clock data; Recv uses only its sender |
+
+`OnlineClockLocalExamples.v` (test): `s_msg3`'s local observations and stamps match the offline literals; a `local_stamp_correct` instance; causality via the local clock.
+
 #### `execution/TransformB.v` — Transformation B (2-process block dim ≤ 2) (exported)
 
 The NomaDB paper's second reduction: *"two processes between synchronizations form at most 2 critical pairs,"* simplified to "one local modification," preserving the dimension property. The faithful core: a block spanned by 2 processes is covered by 2 chains (each process's events are a chain under program order), so its **width ≤ 2**, hence **dim ≤ 2** (`dimension_le_width`). Being a per-block property, it is preserved under any 2-process block replacement (mirroring how Transformation A used block replacement). `TransformBExamples.v` exhibits the equal-bound (`B2` and its simplification `B2s` both ≤ 2) that drives the transformation.

@@ -207,12 +207,17 @@ is:
 > barrier-grammar executions.
 
 If solved, synchronized workloads get a constant-coordinate causal clock where
-the classical bound says vector clocks need N. The **characterization** half is
-now machine-checked end to end (`blo_iff_stamp`, a computable stamp); what remains
-open is only the **online maintenance** proof — an operational model where each
-process derives `(barrier, comp, step)` from local history + message payloads
-(`barrier` a counter incremented at each full rendezvous), proven to reproduce
-the same stamps.
+the classical bound says vector clocks need N. Two pieces are now machine-checked:
+the **characterization** (`blo_iff_stamp`, a computable stamp) and the **locality**
+(`OnlineClockLocal.v`) — `local_stamp (N p i : nat) (o : Op)` takes only local data
+(own pid, index, op, and a `Recv`'s sender id) and *cannot* consult the global
+schedule (it is not an argument); `local_stamp_correct` proves it reproduces the
+global stamp, and `blo_iff_local_stamp` restates causality through it. Two
+`reflexivity` interface lemmas confirm the only cross-process datum is a `Recv`'s
+sender id — **no clock-value piggybacking** (vs the vector clock's N entries per
+message), per-process state `(pid, a local counter)`. What remains open is only a
+**full operational distributed-semantics** model (per-process states + message
+channels + a global run relation) — everything below that level is proven.
 
 ---
 
@@ -230,3 +235,4 @@ the same stamps.
 | explicit N=5 barrier is dim 2 | `bar5_dim_eq_2` (`BarrierExecDimExamples.v:61`) |
 | any fully-sync schedule's execution is dim ≤ 2 | `fully_sync_frontier_dim_le2` (`DisjointChainsDim.v:582`) |
 | **barrier order = a computable product-of-lex clock (any N)** | **`blo_iff_stamp`** (`OnlineClock.v`); generic rule `stamp_iff` |
+| **clock computable from purely local data (no global view)** | **`local_stamp_correct`** / **`blo_iff_local_stamp`** (`OnlineClockLocal.v`) |
