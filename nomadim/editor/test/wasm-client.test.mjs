@@ -49,4 +49,12 @@ test('client exposes general dimension, realizers, and document meta', async () 
   const parsed = c.parseDocument(yaml);
   assert.strictEqual(parsed.meta.notes, 'hi');
   assert.strictEqual(parsed.meta.dimension, 2);
+
+  // Notes with quotes/newlines must survive the dump -> parse round trip
+  // (parseDocument emits JSON by hand, so the note must be JSON-escaped).
+  const tricky = 'a "quoted" note\nwith a newline\tand tab';
+  const yaml2 = c.dumpDocument({ poset: { n_vertices: 2, edges: [[1], []] },
+                                meta: { notes: tricky } });
+  const parsed2 = c.parseDocument(yaml2);
+  assert.strictEqual(parsed2.meta.notes, tricky);
 });

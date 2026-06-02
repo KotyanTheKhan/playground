@@ -43,6 +43,30 @@ adjacency_list parse_validated_adjacency(const std::string& json) {
     return g;
 }
 
+// Escape a string for embedding in a JSON string literal. notes/source_hash are
+// emitted by hand (the rest of the boundary is numeric), so they must be escaped
+// or a note containing a quote/newline would produce unparseable JSON.
+std::string json_escape(const std::string& s) {
+    std::ostringstream os;
+    for (unsigned char c : s) {
+        switch (c) {
+            case '"':  os << "\\\""; break;
+            case '\\': os << "\\\\"; break;
+            case '\n': os << "\\n";  break;
+            case '\r': os << "\\r";  break;
+            case '\t': os << "\\t";  break;
+            default:
+                if (c < 0x20) {
+                    static const char* hex = "0123456789abcdef";
+                    os << "\\u00" << hex[(c >> 4) & 0xf] << hex[c & 0xf];
+                } else {
+                    os << (char)c;
+                }
+        }
+    }
+    return os.str();
+}
+
 std::string ints_to_json(const std::vector<int>& xs) {
     std::ostringstream os;
     os << '[';
@@ -213,9 +237,9 @@ std::string parse_document_json(const std::string& text) {
         os << ",\"meta\":{";
         bool mfirst = true;
         auto comma = [&]{ if (!mfirst) os << ','; mfirst = false; };
-        if (d.meta->notes)       { comma(); os << "\"notes\":\"" << *d.meta->notes << "\""; }
+        if (d.meta->notes)       { comma(); os << "\"notes\":\"" << json_escape(*d.meta->notes) << "\""; }
         if (d.meta->dimension)   { comma(); os << "\"dimension\":" << *d.meta->dimension; }
-        if (d.meta->source_hash) { comma(); os << "\"source_hash\":\"" << *d.meta->source_hash << "\""; }
+        if (d.meta->source_hash) { comma(); os << "\"source_hash\":\"" << json_escape(*d.meta->source_hash) << "\""; }
         if (d.meta->realizers) {
             comma(); os << "\"realizers\":[";
             for (size_t r = 0; r < d.meta->realizers->size(); ++r)

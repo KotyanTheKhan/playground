@@ -8,7 +8,7 @@
 #include <iostream>
 
 int main(int argc, char** argv) {
-    CLI::App app{"nomadim: poset dimension-2 tooling"};
+    CLI::App app{"nomadim: poset order-dimension tooling"};
     app.set_version_flag("--version", std::string(nomadim::version()));
     app.require_subcommand(1);
 

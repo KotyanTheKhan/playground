@@ -51,11 +51,18 @@ enumerate_hyperedges(const StrictRel& base, const std::vector<critical_pair>& cp
 
     std::vector<std::vector<int>> edges;
     std::vector<int> sub;
+    // Subset enumeration is worst-case exponential in m, so bound the number of
+    // candidate sets evaluated (defence-in-depth: the dimension itself comes from
+    // chromatic_number, not from this list). When the budget is spent we return
+    // the edges found so far — for visualization a partial list is acceptable.
+    long budget = (long)caps.max_results * 200;
+    bool stop = false;
     // Enumerate subsets by increasing size; record minimal non-reversible ones.
     // Singletons are always reversible, so the smallest possible edge is size 2.
     std::function<void(int, int)> rec = [&](int start, int remaining) {
-        if ((int)edges.size() >= caps.max_results) return;
+        if (stop || (int)edges.size() >= caps.max_results) return;
         if (remaining == 0) {
+            if (--budget < 0) { stop = true; return; }
             if (!is_reversible(base, cps, sub) &&
                 all_proper_subsets_reversible(base, cps, sub))
                 edges.push_back(sub);
@@ -65,10 +72,10 @@ enumerate_hyperedges(const StrictRel& base, const std::vector<critical_pair>& cp
             sub.push_back(i);
             rec(i + 1, remaining - 1);
             sub.pop_back();
-            if ((int)edges.size() >= caps.max_results) return;
+            if (stop || (int)edges.size() >= caps.max_results) return;
         }
     };
-    for (int size = 2; size <= m && (int)edges.size() < caps.max_results; ++size)
+    for (int size = 2; size <= m && !stop && (int)edges.size() < caps.max_results; ++size)
         rec(0, size);
     return edges;
 }
@@ -104,9 +111,8 @@ struct Colorer {
         for (int c = 0; c < limit; ++c) {
             colors[i] = c;
             if (class_reversible(c, i)) {
-                bool stop = rec(i + 1, c == used ? used + 1 : used);
-                if (stop && !want_all) return true;
-                if (stop && want_all) return true;            // results full
+                // stop == "found one" (chromatic test) or "results full" (enum).
+                if (rec(i + 1, c == used ? used + 1 : used)) return true;
             }
         }
         colors[i] = -1;
