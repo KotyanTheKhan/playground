@@ -6,7 +6,7 @@ From Posets Require Import PosetClasses FinitePoset.
 From Dimension Require Import DimDefs Theorems.
 From Execution Require Import Op Event Edges Rank Poset DimBridge Ordinal
                               FullySync FullySyncDim2 Schedule ScheduleWf SyncShape
-                              DisjointChainsDim.
+                              DisjointChainsDim DimTwoGeneric.
 Import ListNotations.
 #[local] Existing Instance hb_IsPoset.
 #[local] Existing Instance hb_IsFinitePoset.
@@ -181,4 +181,16 @@ Proof.
     destruct (hb_or_of_fb_comp_eq s Hwf x y Heq Hcomp) as [Hhb|Hhb].
     + left. right. split; [exact Heq | exact Hhb].
     + right. right. split; [symmetry; exact Heq | exact Hhb].
+Qed.
+
+(* exact dimension: a barrier execution that is not a chain has dimension exactly 2 *)
+Theorem blo_dim_eq_2 :
+  forall s, wf_schedule s ->
+    (exists x y : ep_carrier (exec_of_schedule s), Incomparable (blo s) x y) ->
+    forall d, PosetDimension (blo s) d -> d = 2.
+Proof.
+  intros s Hwf [x [y Hinc]] d Hdim.
+  pose proof (barrier_execution_dim_le2 s Hwf d Hdim) as Hle.
+  pose proof (dim_ge_2_of_incomparable (blo s) x y Hinc d Hdim) as Hge.
+  lia.
 Qed.

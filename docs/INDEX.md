@@ -492,6 +492,7 @@ Honest note: this closes the **per-block** half of the gap (finding 2). It does 
 | `hb_idx_le` | `hb` respects the index (from the rank `2·idx + c`) |
 | `blo_IsPoset` | `blo` is a partial order |
 | `barrier_execution_dim_le2` | `wf_schedule s` ⟹ `dim (blo s) ≤ 2`, for **any** process count |
+| `blo_dim_eq_2` | `wf_schedule s` + an incomparable pair in `blo s` ⟹ `dim (blo s) = 2` (exact; via `dim_ge_2_of_incomparable`). `bar5_dim_eq_2`: the N=5 barrier execution has dimension **exactly** 2. |
 
 Honest scope: this models the *barrier* synchronization primitive (the paper's "synchronization"), not arbitrary pairwise-message executions (which are not dim ≤ 2). The pairwise `hb` model and its N>4 `FullySynchronizing` limitation remain on record alongside `blo`. `BarrierExecDimExamples.v` exhibits an **N=5** barrier execution with dim ≤ 2 — the regime finding 1 excluded. Admit-free (standard classical/proof-irrelevance axioms only).
 

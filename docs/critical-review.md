@@ -113,9 +113,10 @@ that `B2` "has 4 incomparable pairs, not 2" is resolved: it has 4 *incomparable*
 
 **Resolution:** finding 1's `blo` provides a genuinely fully-synchronized structure for **any N**,
 so the fully-sync hypotheses are now *satisfiable* at arbitrary process count, not just N≤4. The
-exact-dimension equality itself was already sound. (Computing the *exact* dimension of `blo`
-— rather than the ≤2 bound — is possible future work via the ordinal-sum/`linear_sum_dimension`
-route, but the dim≤2 result is the paper's claim and is done.)
+exact-dimension equality itself was already sound. The **exact** dimension of `blo` is now also
+proven: `blo_dim_eq_2` (`execution/BarrierExecDim.v`) gives `dim (blo s) = 2` whenever `blo s` is
+not a chain (has an incomparable pair) — combining `barrier_execution_dim_le2` (≤2) with
+`dim_ge_2_of_incomparable` (≥2). `bar5_dim_eq_2` is the N=5 witness (dimension *exactly* 2).
 
 ---
 
@@ -124,8 +125,8 @@ route, but the dim≤2 result is the paper's claim and is done.)
 - **Transformation A reduction content** (finding 3, A): the paper does not specify reduction
   geometry for A; we faithfully formalize preservation. No further work warranted.
 - **Universal `no_alt_cycle` removal** (finding 4): kept as correct, documented, weak machinery.
-- **Exact dimension of `blo`** (finding 6): only the ≤2 bound is proven (the paper's claim);
-  exact value is future work.
+- **Exact dimension of `blo`** (finding 6): now proven — `blo_dim_eq_2` gives `dim = 2` when
+  `blo` is not a chain (the ≤2 bound plus the incomparable-pair lower bound).
 - **The single dimension-library admit** `small_complement_le_2` (Trotter Lemma 3): a true but
   unproven finite base case; no execution result depends on it.
 - **Classicality:** all results use classical axioms; no constructive versions.
