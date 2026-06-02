@@ -83,7 +83,7 @@ else()
 
   enable_testing()
   include(GoogleTest)
-  add_executable(nomadim_tests tests/test_smoke.cpp tests/test_execution.cpp tests/test_process_graph.cpp tests/test_floyd.cpp tests/test_dimension.cpp tests/test_realizer.cpp tests/test_poset.cpp tests/test_isomorphism.cpp tests/test_enumerate.cpp tests/test_io.cpp tests/test_order_relation.cpp tests/test_hypergraph.cpp)
+  add_executable(nomadim_tests tests/test_smoke.cpp tests/test_execution.cpp tests/test_process_graph.cpp tests/test_floyd.cpp tests/test_dimension.cpp tests/test_realizer.cpp tests/test_poset.cpp tests/test_isomorphism.cpp tests/test_enumerate.cpp tests/test_io.cpp tests/test_order_relation.cpp tests/test_hypergraph.cpp tests/test_oracle.cpp src/oracle.cpp)
   target_link_libraries(nomadim_tests PRIVATE nomadim_core GTest::gtest_main)
   if(NOMADIM_SLOW_TESTS)
     target_compile_definitions(nomadim_tests PRIVATE NOMADIM_SLOW_TESTS=1)
