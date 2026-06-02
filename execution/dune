@@ -68,4 +68,5 @@
   OnlineClockExamples
   OnlineClockLocal
   OnlineClockLocalExamples
-  RoundSem))
+  RoundSem
+  RoundSemExamples))
