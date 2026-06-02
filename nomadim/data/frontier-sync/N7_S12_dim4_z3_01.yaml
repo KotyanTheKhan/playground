@@ -1,0 +1,18 @@
+execution:
+  n_procs: 7
+  syncs:
+    - [3, 6]
+    - [0, 2]
+    - [4, 5]
+    - [3, 4]
+    - [2, 6]
+    - [1, 3]
+    - [1, 2]
+    - [2, 5]
+    - [0, 3]
+    - [4, 6]
+    - [3, 6]
+    - [3, 4]
+meta:
+  notes: "First known DIMENSION-4 fully frontier-synchronized execution. N=7 processes, S=12 synchronizations; every process start is seen by every process last event. Order dimension = 4, verified by the z3 SMT oracle (data/frontier-sync/confirm_dim.py): t=3 is UNSAT (no 3 linear extensions intersect to this poset -> dim > 3) and t=4 is SAT (dim <= 4), so dim = 4 exactly. This is the smallest N at which dimension 4 occurs: N<=6 fully-synchronized executions are all dimension <= 3 (exhaustively for N=4 up to S=10, N=5 up to S=8, and the full N=6 minimum layer). nomadim's brute-force colorer cannot decide this poset (65+ critical pairs); the z3 model is the oracle. Reproduce/search: data/frontier-sync/hunt_n7.py."
+  dimension: 4

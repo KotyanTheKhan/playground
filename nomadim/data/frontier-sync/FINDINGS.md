@@ -29,11 +29,27 @@ that skewed merge pattern realizes a higher-dimensional order. An extra sync
 lets the pattern become more grid-like (balanced halves cross-coupled), which is
 exactly a 2-dimensional order. Fewer syncs => more skew => higher dimension.
 
-## Finding 2 — the order dimension never exceeds 3 for N <= 6
+## Finding 2 — dimension <= 3 for N <= 6, and dimension 4 first appears at N = 7
 
-Although a poset on these vertex counts could in principle have dimension up to
-N (the vector-clock bound), **every fully frontier-synchronized execution we
-have classified has dimension 2 or 3 — never 4 or more.** Concretely:
+The order dimension of a fully frontier-synchronized execution is **<= 3 for all
+N <= 6**, and **dimension 4 first occurs at N = 7**. The vector-clock bound only
+says dim <= N; the actual maximum climbs much more slowly -- it is 2 for N <= 3,
+3 for 4 <= N <= 6, and reaches 4 at N = 7.
+
+A concrete, verified N = 7 dimension-4 execution (S = 12 syncs, fully
+synchronized): `(3,6)(0,2)(4,5)(3,4)(2,6)(1,3)(1,2)(2,5)(0,3)(4,6)(3,6)(3,4)`
+(saved as `N7_S12_dim4_z3_01.yaml`). Dimension verified with the z3 SMT oracle:
+t = 3 is UNSAT (no 3 linear extensions intersect to it -> dim > 3) and t = 4 is
+SAT, so dim = 4 exactly. The oracle was validated on the standard examples S_3
+(dim 3) and S_4 (dim 4). N = 7 cannot be enumerated (OOM), so this was found by
+randomized memory-light walks that stop at first full synchronization
+(`hunt_n7.py`); structured gossip-optimal S = 10 schemes are all dimension 3, and
+the dimension-4 examples were seen at S = 12-13. The minimum S that yields a
+dimension-4 N = 7 execution (and whether one exists at the gossip minimum S = 10)
+is open.
+
+For N <= 6, **every fully frontier-synchronized execution classified has
+dimension 2 or 3 -- never 4 or more.** Concretely:
 
 - N = 2, 3: dimension 2 only (no dimension-3 execution of <= 3 processes exists
   in range).
@@ -48,9 +64,11 @@ have classified has dimension 2 or 3 — never 4 or more.** Concretely:
   The minimum-sync layer is always the highest-dimensional one, so N = 6 also
   tops out at dimension 3.
 
-Across N = 4, 5, 6 the maximum dimension is stuck at **3** -- it jumped 2 -> 3
-at N = 4 and has not climbed since. Where (if ever) dimension 4 first appears is
-open; it would require N >= 7, not more syncs.
+Across N = 4, 5, 6 the maximum dimension is **3** -- it jumped 2 -> 3 at N = 4,
+held through N = 6, and climbs to **4 at N = 7** (Finding 2 above). So the
+maximum dimension grows with the number of processes, roughly one step every
+two processes (2 at N<=3, 3 at N=4..6, 4 at N=7), far below the vector-clock
+ceiling of N.
 
 ### A cautionary note (and a better oracle)
 
