@@ -185,7 +185,8 @@ async function main() {
   els['tab-poset'].addEventListener('click', () => { setView('poset'); refresh(); });
   els['tab-exec'].addEventListener('click', () => { setView('execution'); refresh(); });
 
-  els.new.addEventListener('click', () => { dim = null; model = { poset: emptyPoset(), execution: null }; setView('poset'); refresh(); });
+  function doNewPoset() { dim = null; model = { poset: emptyPoset(), execution: null }; setView('poset'); refresh(); }
+  els.new.addEventListener('click', doNewPoset);
   els.addv.addEventListener('click', () => editPoset(addVertex));
   els.adde.addEventListener('click', () => {
     const u = parseInt(els['edge-u'].value, 10), v = parseInt(els['edge-v'].value, 10);
@@ -238,7 +239,7 @@ async function main() {
 
   window.__editor = {
     loadText,
-    newPoset: () => { model = { poset: emptyPoset(), execution: null }; setView('poset'); refresh(); },
+    newPoset: () => doNewPoset(),
     addVertex: () => editPoset(addVertex),
     addEdge: (u, v) => editPoset((p) => addEdge(p, u, v)),
     removeVertex: (i) => editPoset((p) => removeVertex(p, i)),
