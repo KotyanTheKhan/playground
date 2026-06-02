@@ -467,6 +467,20 @@ Lifts the per-transition barrier of `ConnSync.v` to a *window* of consecutive fr
 
 Honest note: this records the consecutive-cut impossibility — a single transition reaches ≤4 processes (matchings + intra-frontier messages), so `FullySynchronizing` (the consecutive/adjacent barrier) is unattainable for `n>4`; a window of `b−a` frontiers lifts the cap by relaying through intermediate processes over several frontiers.
 
+#### `execution/TransformB.v` — Transformation B (2-process block dim ≤ 2) (exported)
+
+The NomaDB paper's second reduction: *"two processes between synchronizations form at most 2 critical pairs,"* simplified to "one local modification," preserving the dimension property. The faithful core: a block spanned by 2 processes is covered by 2 chains (each process's events are a chain under program order), so its **width ≤ 2**, hence **dim ≤ 2** (`dimension_le_width`). Being a per-block property, it is preserved under any 2-process block replacement (mirroring how Transformation A used block replacement). `TransformBExamples.v` exhibits the equal-bound (`B2` and its simplification `B2s` both ≤ 2) that drives the transformation.
+
+| Name | Meaning |
+|------|---------|
+| `two_chain_cover_dim_le2` | a finite poset covered by two chains has dim ≤ 2 (via `width_exists` + `dimension_le_width` + chain/antichain pigeonhole) |
+| `B2` / `B2_R` / `B2_dim_le2` | concrete 2-process block (two disjoint 2-chains, the between-syncs shape); dim ≤ 2 |
+| `B2s` / `B2s_R` / `B2s_dim_le2` | the "one local modification" simplification — a single chain; dim ≤ 2 |
+| `transform_B_preserves_dim2` | all blocks ≤ 2 ⇒ fully-sync execution dim ≤ 2 (`= fully_sync_dim_le2`); the block swap keeps the bound invariant |
+| `transform_B_equal_bound` | (test) `B2` and `B2s` both dim ≤ 2 — the equal bound that makes the transformation dimension-preserving |
+
+Honest caveat (as for Transformation A): the paper's inter-sync geometry is informally specified; `B2`/`B2s` are our faithful concrete realization, and "critical pairs" are formalized as the equivalent width ≤ 2 ⇒ dim ≤ 2 bound.
+
 #### `execution/Yaml.v` — YAML file format (libnomadim) datatypes, printer, and bridges
 
 The libnomadim on-disk format (a YAML block map: an `execution:` doc with `n_procs` + `syncs`, or a `poset:` doc with `n_vertices` + cover `edges`). This slice provides the in-memory datatypes, a byte-faithful serializer (`dump`), and bridges from each document kind to the existing model: executions become `Schedule`s, posets become finite reachability posets. The string *parser* (read direction) is in `YamlParse.v` below; OCaml-extracted real file I/O is deferred to a later slice.

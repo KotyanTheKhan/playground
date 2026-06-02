@@ -123,3 +123,5 @@ execution/ConnSync.v
 execution/ConnSyncExamples.v
 execution/WindowSync.v
 execution/WindowSyncExamples.v
+execution/TransformB.v
+execution/TransformBExamples.v
