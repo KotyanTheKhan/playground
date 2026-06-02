@@ -2,7 +2,7 @@ import { makeClient } from './wasm-client.mjs';
 import { emptyModel, hasPoset, posetAdjacency, getMeta, setNotes } from './model.mjs';
 import { yamlToModel, modelToYaml } from './yaml-sync.mjs';
 import { computeVerdict, verdictText } from './verdict.mjs';
-import { dimensionText, realizerLines } from './dimension.mjs';
+import { dimensionText, realizerLines, DIMENSION_HINT } from './dimension.mjs';
 import { initPosetView, renderPoset, setCriticalOverlay, clearCriticalOverlay } from './poset-view.mjs';
 import { emptyPoset, addVertex, removeVertex, addEdge, removeEdge } from './edits.mjs';
 import { saveText } from './file-save.mjs';
@@ -17,7 +17,7 @@ async function main() {
   let view = 'poset'; // 'poset' | 'execution'
 
   const ids = ['version', 'verdict', 'dimension', 'yaml', 'apply', 'file', 'error',
-               'new', 'addv', 'adde', 'del', 'edge-u', 'edge-v', 'critical', 'realizer',
+               'new', 'addv', 'adde', 'del', 'edge-u', 'edge-v', 'critical', 'compute-dim', 'realizer',
                'realizers-all', 'notes', 'save',
                'tab-poset', 'tab-exec', 'poset-pane', 'exec-pane', 'exec',
                'nprocs', 'sync-a', 'sync-b', 'addsync', 'delsync', 'derive',
@@ -39,14 +39,37 @@ async function main() {
     if (v === 'poset') cy.resize();
   }
 
-  function renderDimension(adj) {
+  // Heavy general-dimension analysis runs only on demand (Compute button). `dim`
+  // caches the last result keyed by the adjacency it was computed for; a later
+  // edit leaves it shown but marked stale until recomputed.
+  let dim = null;   // { adjKey, result, one, all }
+
+  function renderDimensionPanel() {
+    const panel = [els.dimension, els.realizer, els['realizers-all']];
+    if (!dim) {
+      els.dimension.textContent = DIMENSION_HINT;
+      els.realizer.textContent = '';
+      els['realizers-all'].textContent = '';
+      panel.forEach((e) => e.classList.remove('stale'));
+      return;
+    }
+    const stale = JSON.stringify(posetAdjacency(model)) !== dim.adjKey;
+    els.dimension.textContent = dimensionText(dim.result, { stale });
+    const failed = dim.result.error || dim.one.error;
+    els.realizer.textContent = failed ? '' : 'realizer  ' + realizerLines(dim.one.realizer).join('   ');
+    els['realizers-all'].textContent = (dim.result.error || dim.all.error)
+      ? '' : `${dim.all.colorings.length} minimum realizer(s)`;
+    panel.forEach((e) => e.classList.toggle('stale', stale));
+  }
+
+  function computeDimension() {
+    if (!hasPoset(model)) { showError('Create or load a poset first (New poset).'); return; }
+    const adj = posetAdjacency(model);
     const result = client.dimension(adj);
-    els.dimension.textContent = dimensionText(result);
-    if (result.error) { els.realizer.textContent = ''; els['realizers-all'].textContent = ''; return; }
-    const one = client.findOneRealizer(adj);
-    els.realizer.textContent = one.error ? '' : 'realizer  ' + realizerLines(one.realizer).join('   ');
-    const all = client.allRealizers(adj);
-    els['realizers-all'].textContent = all.error ? '' : `${all.colorings.length} minimum realizer(s)`;
+    const one = result.error ? { error: result.error } : client.findOneRealizer(adj);
+    const all = result.error ? { error: result.error } : client.allRealizers(adj);
+    dim = { adjKey: JSON.stringify(adj), result, one, all };
+    renderDimensionPanel();
   }
 
   // The model may hold a poset, an execution, or BOTH (after "Show derived
@@ -77,7 +100,7 @@ async function main() {
       const adj = posetAdjacency(model);
       renderPoset(cy, model.poset);
       els.verdict.textContent = verdictText(computeVerdict(client, adj));
-      renderDimension(adj);
+      renderDimensionPanel();
       els.notes.value = getMeta(model).notes ?? '';
       if (els.critical.checked) setCriticalOverlay(cy, client.criticalPairs(adj));
     } else if (v === 'execution' && model.execution) {
@@ -113,6 +136,7 @@ async function main() {
   }
 
   function loadText(text) {
+    dim = null;
     try {
       model = yamlToModel(client, text);
       setView(model.execution && !model.poset ? 'execution' : 'poset');
@@ -135,6 +159,7 @@ async function main() {
   // Expand the execution to its poset (via WASM) and show it, but KEEP the source
   // execution so the user can switch back to the Execution tab and keep editing.
   function derivePoset() {
+    dim = null;
     if (!model.execution) { showError('Load or build an execution first.'); return; }
     try {
       const poset = client.expandExecution(model.execution);
@@ -160,7 +185,8 @@ async function main() {
   els['tab-poset'].addEventListener('click', () => { setView('poset'); refresh(); });
   els['tab-exec'].addEventListener('click', () => { setView('execution'); refresh(); });
 
-  els.new.addEventListener('click', () => { model = { poset: emptyPoset(), execution: null }; setView('poset'); refresh(); });
+  function doNewPoset() { dim = null; model = { poset: emptyPoset(), execution: null }; setView('poset'); refresh(); }
+  els.new.addEventListener('click', doNewPoset);
   els.addv.addEventListener('click', () => editPoset(addVertex));
   els.adde.addEventListener('click', () => {
     const u = parseInt(els['edge-u'].value, 10), v = parseInt(els['edge-v'].value, 10);
@@ -173,6 +199,7 @@ async function main() {
     if (els.critical.checked) setCriticalOverlay(cy, client.criticalPairs(posetAdjacency(model)));
     else clearCriticalOverlay(cy);
   });
+  els['compute-dim'].addEventListener('click', computeDimension);
   els.notes.addEventListener('input', () => { model = setNotes(model, els.notes.value); });
 
   els.nprocs.addEventListener('change', () => {
@@ -195,6 +222,7 @@ async function main() {
     catch (e) { if (e && e.name !== 'AbortError') showError('Save failed: ' + (e.message || e)); }
   });
   els.apply.addEventListener('click', () => {
+    dim = null;
     try {
       model = yamlToModel(client, els.yaml.value);
       setView(model.execution && !model.poset ? 'execution' : 'poset');
@@ -211,7 +239,7 @@ async function main() {
 
   window.__editor = {
     loadText,
-    newPoset: () => { model = { poset: emptyPoset(), execution: null }; setView('poset'); refresh(); },
+    newPoset: () => doNewPoset(),
     addVertex: () => editPoset(addVertex),
     addEdge: (u, v) => editPoset((p) => addEdge(p, u, v)),
     removeVertex: (i) => editPoset((p) => removeVertex(p, i)),
@@ -225,6 +253,7 @@ async function main() {
     syncCount: () => els.exec.querySelectorAll('.sync').length,
     realizerText: () => els.realizer.textContent,
     dimensionText: () => els.dimension.textContent,
+    computeDimension: () => computeDimension(),
     realizerLineCount: () => (els.realizer.textContent.match(/L\d+:/g) || []).length,
     setNotes: (s) => { els.notes.value = s; els.notes.dispatchEvent(new Event('input')); },
     currentYaml: () => currentYaml(),

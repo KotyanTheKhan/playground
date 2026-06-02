@@ -41,3 +41,4 @@ header .tabs button.active { background: #4f8cff; color: #fff; }
 .exec-svg .delete-zone rect { fill: #e0457b; opacity: 0.12; }
 .exec-svg .delete-zone.hot rect { opacity: 0.32; }
 .exec-svg .delete-zone text { fill: #e0457b; font: 11px system-ui; opacity: 0.7; pointer-events: none; }
+.stale { opacity: 0.5; }

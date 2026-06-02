@@ -14,6 +14,7 @@ test('building a chain by editing yields dim-2 YES and a realizer', async ({ pag
   await page.evaluate(() => { window.__editor.addEdge(0, 1); window.__editor.addEdge(1, 2);
                               window.__editor.addEdge(2, 3); });
   await expect(page.locator('#verdict')).toContainText('Dimension <= 2: YES');
+  await page.evaluate(() => window.__editor.computeDimension());
   await expect(page.locator('#realizer')).toContainText('realizer');
 });
 

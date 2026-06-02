@@ -1,10 +1,13 @@
 // Pure shaping over the WASM dimension/realizer results — no WASM here.
 
-export function dimensionText(result) {
+export const DIMENSION_HINT = 'Dimension: press Compute';
+
+export function dimensionText(result, opts = {}) {
   if (result && result.error) return `Dimension: ${result.error}`;
   const h = (result.hyperedges || []).length;
   const plural = h === 1 ? 'hyperedge' : 'hyperedges';
-  return `Dimension: ${result.dimension} (${h} ${plural})`;
+  const base = `Dimension: ${result.dimension} (${h} ${plural})`;
+  return opts.stale ? `${base}  (stale — press Compute)` : base;
 }
 
 export function realizerLines(realizer) {
