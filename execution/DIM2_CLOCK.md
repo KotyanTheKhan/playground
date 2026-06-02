@@ -217,15 +217,21 @@ lemmas confirm the only cross-process datum the formula reads is a `Recv`'s send
 id — **no clock-value piggybacking** (vs the vector clock's N entries per message),
 per-process state `(pid, a local counter)`.
 
-Be precise about what is *not* yet proven: the bridge `local_obs s p i` that feeds
-`local_stamp` the process's op still takes the schedule `s`, and "each process can
-determine its own op and maintain the layer counter `i` from purely local state"
-holds **by construction of the `blo` barrier model** (one op per process per
-frontier index), *noted but not separately formalized*. So what is proven is that
-the stamp *formula* is schedule-blind and correct; what remains is a **full
-operational distributed-semantics** model (per-process states + message channels +
-a global run relation) in which `local_obs` and the counter are primitive local
-state rather than projections of `s`.
+This gap is now **closed operationally** by `RoundSem.v`: an operational
+barrier-round model where each process has its **own primitive program**
+`rs_prog p : list Op` and its op is `rop S p r = nth r (rs_prog S p)` — a function
+of `p`'s own program and counter `r`, with **no `Schedule`/`op_at` projection**.
+The clock `rclock S p r = local_stamp (nprocs) p r (rop S p r)` is thus genuinely
+local, and `rhb_iff_rclock` proves causality (`rhb`) is exactly its product order,
+by instantiating the generic `stamp_iff` (`Print Assumptions` = only
+`proof_irrelevance`). So for the barrier-synchronized regime, the "local_obs takes
+the schedule" caveat is resolved: `local_obs` is replaced by the process's own
+program lookup.
+
+What remains genuinely open is a *fully asynchronous* small-step model with
+message channels and arbitrary interleaving — deliberately **not** pursued, since
+async executions are not dim-2 (they need vector clocks) and the dim-2 clock lives
+on exactly the barrier-synchronized runs the round model captures.
 
 ---
 
@@ -244,3 +250,4 @@ state rather than projections of `s`.
 | any fully-sync schedule's execution is dim ≤ 2 | `fully_sync_frontier_dim_le2` (`DisjointChainsDim.v:582`) |
 | **barrier order = a computable product-of-lex clock (any N)** | **`blo_iff_stamp`** (`OnlineClock.v`); generic rule `stamp_iff` |
 | **clock computable from purely local data (no global view)** | **`local_stamp_correct`** / **`blo_iff_local_stamp`** (`OnlineClockLocal.v`) |
+| **operational primitive-state model: causality via a schedule-free clock** | **`rhb_iff_rclock`** (`RoundSem.v`); `rop = nth r (rs_prog p)` |

@@ -527,6 +527,21 @@ Turns the abstract `L1`/`L2` realizer into a concrete computable timestamp. A ge
 
 `OnlineClockLocalExamples.v` (test): `s_msg3`'s local observations and stamps match the offline literals; a `local_stamp_correct` instance; causality via the local clock.
 
+#### `execution/RoundSem.v` — barrier-round operational model + schedule-free clock (exported)
+
+An operational, primitive-state model: an `RSys` is `nprocs`, `nrounds`, and a per-process program `rs_prog p : list Op`; `rop S p r = nth r (rs_prog S p)` is process `p`'s round-`r` action. `rwf` is rendezvous compatibility (sends/recvs matched per round). `rhb` is the barrier order on valid events (`rhb_IsPoset`, unconditional, via the realized send∧recv edge). The clock `rclock S p r = local_stamp (nprocs) p r (rop S p r)` reads **only** `p`'s own program and counter — no `Schedule`/`op_at` projection — and `rhb_iff_rclock` proves causality through it (via `stamp_iff`). This closes the proof-skeptic W-2 gap operationally for the barrier-synchronized regime. Admit-free (`Print Assumptions rhb_iff_rclock` = only `proof_irrelevance`).
+
+| Name | Meaning |
+|------|---------|
+| `RSys` / `rop` / `rvalid` / `rwf` | round system; per-process op; valid event; rendezvous well-formedness |
+| `redge` / `rhb_same` / `rhb` / `rhb_sub` / `rhb_IsPoset` | realized edge; within-round order; barrier order; on the valid-event carrier; partial order |
+| `rlay` / `rcomp` / `rstep` | round; sender (or own pid); `Recv?1:0` |
+| `rcomp_eq_of_rhb` / `rhb_comparable_of_comp` / `rhb_rank` / `rcomp_lt_nprocs` | the `stamp_iff` structural hypotheses |
+| `rhb_iff_stamp` | `rwf` ⟹ `rhb x y ↔ le_prod (nprocs-1) …` |
+| `rclock` / `rclock_is_stamp` / `rhb_iff_rclock` | schedule-free clock; its coordinates; causality via it |
+
+`RoundSemExamples.v` (test): a 3-proc/1-round system `Sdemo`, `rclock` literals, an `rhb` edge and an incomparable pair.
+
 #### `execution/TransformB.v` — Transformation B (2-process block dim ≤ 2) (exported)
 
 The NomaDB paper's second reduction: *"two processes between synchronizations form at most 2 critical pairs,"* simplified to "one local modification," preserving the dimension property. The faithful core: a block spanned by 2 processes is covered by 2 chains (each process's events are a chain under program order), so its **width ≤ 2**, hence **dim ≤ 2** (`dimension_le_width`). Being a per-block property, it is preserved under any 2-process block replacement (mirroring how Transformation A used block replacement). `TransformBExamples.v` exhibits the equal-bound (`B2` and its simplification `B2s` both ≤ 2) that drives the transformation.
