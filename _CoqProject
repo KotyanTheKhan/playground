@@ -130,3 +130,4 @@ execution/DisjointChainsDimExamples.v
 execution/BarrierExecDim.v
 execution/BarrierExecDimExamples.v
 execution/OnlineClock.v
+execution/OnlineClockExamples.v
