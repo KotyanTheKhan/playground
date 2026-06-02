@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { dimensionText, realizerLines, isMetaStale } from '../src/dimension.mjs';
-import { DIMENSION_HINT } from '../src/dimension.mjs';
+import { dimensionText, realizerLines, isMetaStale, DIMENSION_HINT } from '../src/dimension.mjs';
 
 test('dimensionText summarises a result', () => {
   assert.strictEqual(dimensionText({ dimension: 3, hyperedges: [[0, 1, 2]] }),
