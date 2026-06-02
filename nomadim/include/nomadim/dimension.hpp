@@ -2,6 +2,7 @@
 #define NOMADIM_DIMENSION_HPP
 
 #include "nomadim/types.hpp"
+#include "nomadim/hypergraph.hpp"
 #include <vector>
 
 namespace nomadim {
@@ -26,6 +27,29 @@ bool check_critical_pairs_graph(const adjacency_list& poset_graph,
 
 // True iff the poset given by adjacency `g` has order dimension <= 2.
 bool is_dim2(const adjacency_list& g);
+
+// One minimum proper coloring of the critical-pair hypergraph, plus the realizer
+// (one linear extension per reversible color class) it induces.
+struct Coloring {
+    std::vector<std::vector<critical_pair>> classes;   // dimension reversible classes
+    std::vector<std::vector<int>> realizer;            // dimension linear extensions
+};
+
+// Full analysis of a poset's order dimension.
+struct DimensionResult {
+    int dimension = 0;
+    std::vector<critical_pair> critical_pairs;
+    std::vector<std::vector<int>> hyperedges;          // indices into critical_pairs
+    std::vector<Coloring> colorings;                   // minimum colorings (capped)
+};
+
+// Compute the dimension, critical pairs, hyperedges, and all minimum colorings
+// (each with its induced realizer) of the poset given by adjacency `g`.
+// Precondition: `g` is acyclic. Throws std::runtime_error if `g` exceeds the caps.
+DimensionResult analyze_dimension(const adjacency_list& g, const Caps& caps = Caps{});
+
+// Convenience: just the dimension number.
+int dimension(const adjacency_list& g, const Caps& caps = Caps{});
 
 } // namespace nomadim
 

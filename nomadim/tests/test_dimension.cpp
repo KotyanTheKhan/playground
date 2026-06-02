@@ -4,6 +4,8 @@
 #include "nomadim/execution.hpp"
 #include "nomadim/types.hpp"
 #include "nomadim/floyd.hpp"
+#include "nomadim/order_relation.hpp"
+#include <stdexcept>
 
 using namespace nomadim;
 
@@ -108,4 +110,70 @@ TEST(Dimension, CheckCriticalPairsGraphBipartiteness) {
     std::vector<int> ms = make_graph_matrix(s3);
     auto cps3 = find_critical_pairs(ms.data(), 6);
     EXPECT_FALSE(check_critical_pairs_graph(s3, cps3));
+}
+
+// Intersection of the realizer's linear extensions equals the order.
+static bool realizer_intersects_to_order(const adjacency_list& g,
+                                         const std::vector<std::vector<int>>& realizer) {
+    int n = (int)g.size();
+    StrictRel base = base_order(g);
+    std::vector<std::vector<int>> pos(realizer.size(), std::vector<int>(n));
+    for (size_t r = 0; r < realizer.size(); ++r)
+        for (int i = 0; i < n; ++i) pos[r][realizer[r][i]] = i;
+    for (int a = 0; a < n; ++a)
+        for (int b = 0; b < n; ++b) {
+            if (a == b) continue;
+            bool in_all = true;
+            for (size_t r = 0; r < realizer.size(); ++r)
+                if (!(pos[r][a] < pos[r][b])) { in_all = false; break; }
+            if (in_all != base.less(a, b)) return false;
+        }
+    return true;
+}
+
+TEST(Dimension, ChainHasDimensionOne) {
+    adjacency_list chain = {{1}, {2}, {3}, {}};
+    DimensionResult dr = analyze_dimension(chain, Caps{});
+    EXPECT_EQ(dr.dimension, 1);
+    ASSERT_EQ(dr.colorings.size(), 1u);                 // the trivial realizer
+    EXPECT_EQ(dr.colorings[0].realizer.size(), 1u);
+}
+
+TEST(Dimension, AntichainHasDimensionTwo) {
+    adjacency_list a3(3);
+    DimensionResult dr = analyze_dimension(a3, Caps{});
+    EXPECT_EQ(dr.dimension, 2);
+}
+
+TEST(Dimension, StandardExampleS3HasDimensionThree) {
+    adjacency_list s3(6); s3[0] = {4,5}; s3[1] = {3,5}; s3[2] = {3,4};
+    DimensionResult dr = analyze_dimension(s3, Caps{});
+    EXPECT_EQ(dr.dimension, 3);
+    ASSERT_FALSE(dr.colorings.empty());
+    for (const auto& col : dr.colorings) {
+        EXPECT_EQ((int)col.realizer.size(), 3);
+        EXPECT_TRUE(realizer_intersects_to_order(s3, col.realizer));
+    }
+}
+
+TEST(Dimension, StandardExampleS4HasDimensionFour) {
+    // S_4: minimals 0..3, maximals 4..7; a_i < b_j iff i != j.
+    adjacency_list s4(8);
+    for (int i = 0; i < 4; ++i)
+        for (int j = 0; j < 4; ++j)
+            if (i != j) s4[i].push_back(4 + j);
+    EXPECT_EQ(analyze_dimension(s4, Caps{}).dimension, 4);
+}
+
+TEST(Dimension, AgreesWithIsDim2) {
+    adjacency_list n_poset = {{2}, {2, 3}, {}, {}};
+    EXPECT_EQ(analyze_dimension(n_poset, Caps{}).dimension == 2, is_dim2(n_poset));
+    adjacency_list s3(6); s3[0] = {4,5}; s3[1] = {3,5}; s3[2] = {3,4};
+    EXPECT_EQ(analyze_dimension(s3, Caps{}).dimension == 2, is_dim2(s3));
+}
+
+TEST(Dimension, CapsThrowOnTooManyVertices) {
+    adjacency_list big(20);
+    Caps caps; caps.max_vertices = 8;
+    EXPECT_THROW(analyze_dimension(big, caps), std::runtime_error);
 }
