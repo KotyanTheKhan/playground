@@ -1,9 +1,15 @@
 (* A computable 2-coordinate timestamp whose product order equals blo. *)
+(* SCOPE: this module proves the *characterization* (soundness) half -- a computable
+   stamp whose product order equals blo. The "online" maintenance (each process
+   updating its stamp from local state + message payloads) is future work, argued
+   in prose in execution/DIM2_CLOCK.md, not proven here. *)
 From Stdlib Require Import Arith Lia.
 From Stdlib Require Import Compare_dec.
 From Posets Require Import PosetClasses.
 
 (* lexicographic <= on a nat triple, given as 6 scalars (no tuple destructuring) *)
+(* NOTE: le_lex3 takes 6 scalars (not two triples) -- the uncurried form is
+   easier for lia; the design doc writes it tuple-style. *)
 Definition le_lex3 (a1 a2 a3 b1 b2 b3 : nat) : Prop :=
   a1 < b1 \/ (a1 = b1 /\ (a2 < b2 \/ (a2 = b2 /\ a3 <= b3))).
 
@@ -136,6 +142,10 @@ Proof.
     + subst y. lia.
     + destruct (hb_layer_step s Hwf x y Hl Hb Hne) as [Hsx Hsy]. rewrite Hsx, Hsy. lia.
   - (* step <= step -> blo *)
+    (* backward: comparability comes from hb_or_of_fb_comp_eq, whose correctness
+       rests on wf_frontier's NoDup (unique sender per frontier) -- that is what
+       makes each (layer, comp) class a chain of length <= 2, so Recv?1:0 is a
+       faithful rank here. *)
     intro Hs. apply (blo_same_layer s x y Hl).
     assert (Hidx : snd (proj1_sig x) = snd (proj1_sig y)) by exact Hl.
     assert (Hcc  : fb_comp s (proj1_sig x) = fb_comp s (proj1_sig y)) by exact Hc.

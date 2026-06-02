@@ -60,6 +60,30 @@ Example stamp_e00 : stamp s_msg3 e00 = ((0,0,0),(0,2,0)). Proof. vm_compute. ref
 Example stamp_e10 : stamp s_msg3 e10 = ((0,0,1),(0,2,1)). Proof. vm_compute. reflexivity. Qed.
 Example stamp_e20 : stamp s_msg3 e20 = ((0,2,0),(0,0,0)). Proof. vm_compute. reflexivity. Qed.
 
+(* the sender->receiver pair really is blo-ordered (true case of the iff) *)
+Example msg3_blo_e00_e10 : blo s_msg3 e00 e10.
+Proof.
+  right. split.
+  - vm_compute. reflexivity.   (* snd = snd = 0 *)
+  - apply (msg_hb_events s_msg3 wf_s_msg3 0 e00 e10).
+    + vm_compute; reflexivity.
+    + vm_compute; reflexivity.
+    + vm_compute; auto.          (* In (0,1) [(0,1)] *)
+Qed.
+
+(* ...hence its stamp is product-ordered, derived THROUGH blo_iff_stamp
+   (closes the true/true vacuity case) *)
+Lemma msg3_pos : 0 < sch_nprocs s_msg3. Proof. vm_compute; lia. Qed.
+
+Example msg3_stamp_e00_le_e10 :
+  le_prod (sch_nprocs s_msg3 - 1)
+    (clk_lay s_msg3 e00)(clk_comp s_msg3 e00)(clk_step s_msg3 e00)
+    (clk_lay s_msg3 e10)(clk_comp s_msg3 e10)(clk_step s_msg3 e10).
+Proof.
+  apply (blo_iff_stamp s_msg3 wf_s_msg3 msg3_pos e00 e10).
+  exact msg3_blo_e00_e10.
+Qed.
+
 (* ordering checks that don't depend on the events *)
 Example msg3_sender_below_receiver : le_prod 2 0 0 0 0 0 1.
 Proof. unfold le_prod, le_lex3. lia. Qed.
