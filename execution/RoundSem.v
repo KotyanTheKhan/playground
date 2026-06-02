@@ -254,3 +254,46 @@ Proof.
               Hrecv : rop (fst x)(snd y) = Recv (fst y) tr; snd y = snd x -> rstep x = 1 *)
            rewrite Hsend in Hs. rewrite Hlayyx in Hrecv. rewrite Hrecv in Hs. lia.
 Qed.
+
+(* ---- Task 3: payoff -- schedule-free clock from primitive local state ---- *)
+
+Theorem rhb_iff_stamp :
+  forall S, rwf S -> 0 < rs_nprocs S -> forall x y : REvent S,
+    rhb_sub S x y <->
+    le_prod (rs_nprocs S - 1)
+      (rlay S x)(rcomp S x)(rstep S x)(rlay S y)(rcomp S y)(rstep S y).
+Proof.
+  intros S Hwf Hnp x y.
+  apply (stamp_iff (rhb_sub S) (rlay S) (rcomp S) (rstep S) (rs_nprocs S - 1)).
+  - intros a b H. exact (rhb_barrier S a b H).
+  - intros a b H. exact (rhb_resp_lay S a b H).
+  - intros a b H He. exact (rcomp_eq_of_rhb S a b H He).
+  - intros a b He Hc. exact (rhb_rank S Hwf a b He Hc).
+  - intro e. pose proof (rcomp_lt_nprocs S Hwf e). lia.
+Qed.
+
+(* the clock from PRIMITIVE local state: process p's own program at its counter r *)
+Definition rclock (S : RSys) (p r : nat) : (nat*nat*nat) * (nat*nat*nat) :=
+  local_stamp (rs_nprocs S) p r (rop S p r).
+
+Lemma rclock_is_stamp :
+  forall S (x : REvent S),
+    rclock S (fst (proj1_sig x)) (snd (proj1_sig x))
+    = ((rlay S x, rcomp S x, rstep S x),
+       (rlay S x, (rs_nprocs S - 1) - rcomp S x, rstep S x)).
+Proof.
+  intros S x. unfold rclock, local_stamp, rlay, rcomp, rstep.
+  destruct (rop S (fst (proj1_sig x)) (snd (proj1_sig x))); reflexivity.
+Qed.
+
+Theorem rhb_iff_rclock :
+  forall S, rwf S -> 0 < rs_nprocs S -> forall x y : REvent S,
+    rhb_sub S x y <->
+    stamp_le (rclock S (fst (proj1_sig x)) (snd (proj1_sig x)))
+             (rclock S (fst (proj1_sig y)) (snd (proj1_sig y))).
+Proof.
+  intros S Hwf Hnp x y.
+  rewrite (rclock_is_stamp S x), (rclock_is_stamp S y).
+  unfold stamp_le.
+  exact (rhb_iff_stamp S Hwf Hnp x y).
+Qed.
