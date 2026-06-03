@@ -56,6 +56,29 @@ N = 7's gossip-minimum executions are only dimension 3, and dimension 4 needs on
 extra sync. (Not an exhaustive proof for S = 10, since N = 7 cannot be
 enumerated, but a large diverse sample.)
 
+### Independent verification of the N=7 dimension-4 result
+
+Because the N=7 result rests on a custom SMT model, it was cross-checked four
+independent ways (`verify_n7.py`), all passing for N7_S10 (dim 3), N7_S11 and
+N7_S12 (dim 4):
+
+1. **Model fidelity** -- the pure-Python execution expansion produces exactly
+   the same poset (identical vertex count and edge set) as nomadim's own
+   `convert`.
+2. **Oracle calibration** -- the SMT model returns the correct dimension on
+   canonical posets of known dimension 1-5 (chain, antichain, S_3, S_4, S_5).
+3. **Certificate** -- z3's witness (the d linear extensions) is extracted and
+   verified independently of the solver to realize the poset, *proving* dim <= d.
+4. **Second encoding** -- a structurally different SMT model (boolean precedence
+   with explicit transitivity) independently confirms t = 3 UNSAT, t = 4 SAT.
+
+A fifth, "gold-standard" check -- nomadim's own brute-force exact algorithm on
+N7_S11 and N7_S12 -- was run for **6 hours at ~99% CPU each and did not finish**
+(no output). This is the expected intractability that motivated the z3 oracle in
+the first place (N=7 posets have ~80+ critical pairs); it neither confirms nor
+contradicts the result. The four layers above settle it: the dimension-4 N=7
+findings are verified.
+
 For N <= 6, **every fully frontier-synchronized execution classified has
 dimension 2 or 3 -- never 4 or more.** Concretely:
 
