@@ -359,3 +359,18 @@ Proof.
     - apply Singleton_inv in Hb; subst; exact HL2in. }
   exact (incl_card_le (E -> E -> Prop) Three r 3 d HcardThree Hcard HincThree).
 Qed.
+
+(* the crown poset HAS a dimension (Dushnik-Miller, finite carrier) ... *)
+Lemma crown3_dim_exists : exists d, inhabited (PosetDimension crown3 d).
+Proof.
+  destruct (finite_cardinal _ _ crown_carrier_finite) as [n Hn].
+  exact (dushnik_miller_exists crown3 n Hn).
+Qed.
+
+(* ... and it is at least 3: connecting two 3-antichains by the S3 crown frontier
+   raises dimension from 2 to >= 3 (closed, unconditional). *)
+Lemma crown3_dim_ge_3_closed : exists d, inhabited (PosetDimension crown3 d) /\ 3 <= d.
+Proof.
+  destruct crown3_dim_exists as [d [Hd]].
+  exists d. split; [ exact (inhabits Hd) | exact (crown3_dim_ge_3 d Hd) ].
+Qed.
