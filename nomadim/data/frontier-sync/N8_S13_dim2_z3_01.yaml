@@ -1,0 +1,19 @@
+execution:
+  n_procs: 8
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 4]
+    - [0, 5]
+    - [0, 6]
+    - [0, 7]
+    - [0, 6]
+    - [0, 5]
+    - [0, 4]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+  meta:
+    notes: "Minimum-S DIMENSION-2 fully frontier-synchronized execution for N=8: the STAR gossip (gather to hub 0 from all others, then scatter back). S=13 = 2N-3 = one above the gossip minimum 2N-4. Order dimension = 2 (z3-verified: t=2 SAT), so this execution admits a 2-coordinate logical clock. Note S=13 also hosts dimension-3 and dimension-4 executions (different structures): the gossip-minimum S=12 forces dimension 3, and one extra sync allows dimension 2 (this sequential star) OR dimension 4 (a tangled structure). The star gossip is dimension 2 at S=2N-3 for every N tested (7..11)."
+    dimension: 2

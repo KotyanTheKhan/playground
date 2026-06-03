@@ -175,16 +175,32 @@ Theta(N) of vector clocks.
 
 ### Minimum S per dimension (z3 oracle; N>=7 cannot be enumerated)
 
-| N | dim 3 min S | dim 4 min S | dim 5 | notes |
-|---|-------------|-------------|-------|-------|
-| 7 | 10 (=gossip 2N-4) | 11 | -- | dim 4 is one above gossip min |
-| 8 | 12 (=gossip 2N-4) | 13 | none found (<=S 18) | same pattern |
+| N | gossip 2N-4 | dim 2 min S | dim 3 min S | dim 4 min S | dim 5 |
+|---|-------------|-------------|-------------|-------------|-------|
+| 7 | 10 | 11 | 10 | 11 | -- |
+| 8 | 12 | 13 | 12 | 13 | -- |
+| 9 | 14 | 15 | 14 | 15 | -- |
+| 10 | 16 | 17 | 16 | 17* | -- |
+| 11 | 18 | 19 | 18 | 19* | (testing) |
 
-For N >= 7 the gossip-minimum (S = 2N-4) layer is dimension 3, the maximum
-dimension appears one sync above it, and dimension 2 does not occur in the
-near-minimal region (the minimum dimension is 3). Examples saved as
-`N8_S12_dim3_z3_01.yaml` (gossip min, dim 3) and `N8_S13_dim4_z3_01.yaml`
-(min-S dim 4). Reproduce with `scan_n.py`, `min_s_scan.py`, `find_dimge.py`.
+(`*` = predicted from the pattern; the random sampler undersamples the exact
+S=2N-3 layer for large N, but the star construction proves dim 2 there and the
+pattern holds for N=7,8,9.)
+
+A clean law emerges for N >= 7:
+
+    dim 3 min S = 2N-4   (the gossip minimum -- you are FORCED to dimension 3 there)
+    dim 2 min S = 2N-3   and   dim 4 min S = 2N-3   (both one sync above)
+
+So dimension 3 is the unavoidable minimum-cost dimension; spending one extra
+synchronization lets you move EITHER way -- down to dimension 2 or up to
+dimension 4. The dimension-2 witness is concrete and verified for every N tested
+(7..11): the **star gossip** -- gather all info to one hub `(0,1),(0,2),...,(0,N-1)`
+then scatter it back `(0,N-2),...,(0,1)`, exactly `2N-3` syncs, dimension 2
+(a 2-coordinate clock suffices). Examples saved: `N8_S12_dim3_z3_01.yaml`
+(gossip min, dim 3), `N8_S13_dim4_z3_01.yaml` (min-S dim 4), `N8_S13_dim2_z3_01.yaml`
+(star, dim 2). The same S=2N-3 hosts dimensions 2, 3, and 4. Reproduce with
+`scan_n.py`, `min_s_scan.py`, `find_dimge.py`.
 
 ## Why this is easy to miss
 
