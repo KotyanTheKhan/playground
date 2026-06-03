@@ -70,4 +70,5 @@
   OnlineClockLocalExamples
   RoundSem
   RoundSemExamples
-  FrontierCompose))
+  FrontierCompose
+  FrontierComposeExamples))
