@@ -1,0 +1,29 @@
+execution:
+  n_procs: 13
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 4]
+    - [0, 5]
+    - [0, 6]
+    - [0, 7]
+    - [0, 8]
+    - [0, 9]
+    - [0, 10]
+    - [0, 11]
+    - [0, 12]
+    - [0, 11]
+    - [0, 10]
+    - [0, 9]
+    - [0, 8]
+    - [0, 7]
+    - [0, 6]
+    - [0, 5]
+    - [0, 4]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+meta:
+  notes: "DIM-2 PRESERVED, bigger. Compose FOUR 4-process dim-2 coordinator executions by identifying their hubs (process 0): leaf groups {1,2,3},{4,5,6},{7,8,9},{10,11,12}. The composite is a single coordinator over all 12 leaves (gather 1..12 to 0, scatter back) -- fully synchronized, dimension 2. The shared-hub (star) composition keeps dim 2 for ANY number of 4-process blocks (verified here for N=7,10,13). Verified dim<=2 (nomadim dimension --le 2)."
+  dimension: 2

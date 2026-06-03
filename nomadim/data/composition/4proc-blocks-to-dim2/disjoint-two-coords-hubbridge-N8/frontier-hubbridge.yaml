@@ -1,0 +1,7 @@
+execution:
+  n_procs: 8
+  syncs:
+    - [0, 4]
+meta:
+  notes: "Connecting frontier: the single hub-to-hub bridge [0,4] that glues block A and block B. It is inserted between the two clusters' gather and scatter phases; this hub bridge (not a cross bridge) is what keeps the composite dim 2."
+  dimension: 2

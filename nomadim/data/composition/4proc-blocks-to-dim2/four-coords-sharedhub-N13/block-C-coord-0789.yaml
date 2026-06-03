@@ -1,0 +1,12 @@
+execution:
+  n_procs: 13
+  syncs:
+    - [0, 7]
+    - [0, 8]
+    - [0, 9]
+    - [0, 9]
+    - [0, 8]
+    - [0, 7]
+meta:
+  notes: "Constituent: block C = 4-process dim-2 coordinator on {0,7,8,9}. dim 2."
+  dimension: 2
