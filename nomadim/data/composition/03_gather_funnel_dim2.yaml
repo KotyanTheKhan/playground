@@ -1,0 +1,9 @@
+poset:
+  n_vertices: 6
+  edges:
+    - [0, 3]
+    - [1, 3]
+    - [2, 3]
+meta:
+  notes: "COMPOSABLE (dim 2). Gather / funnel. All producers a0,a1,a2 (vertices 0,1,2) report to a single coordinator b0 (vertex 3); the other consumers b1,b2 (vertices 4,5) stay concurrent (no incoming messages). Frontier F a b = (b = b0): one full column. Ferrers (every nonempty message-row is {b0}). dim = 2. Coq: threshold_dim_le2 (a one-column frontier is a threshold relation)."
+  dimension: 2

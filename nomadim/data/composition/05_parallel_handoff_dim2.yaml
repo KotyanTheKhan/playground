@@ -1,0 +1,9 @@
+poset:
+  n_vertices: 6
+  edges:
+    - [0, 3]
+    - [1, 4]
+    - [2, 5]
+meta:
+  notes: "COMPOSABLE (dim 2) -- but NOT via Ferrers. Parallel hand-off: each process continues independently, a_i -> b_i only (frontier F a_i b_j = (i = j), the diagonal matching). Vertices 0,1,2 = a0,a1,a2; 3,4,5 = b0,b1,b2. Three disjoint 2-chains, no interaction. This frontier is NOT Ferrers (a lone diagonal is the S2 crossing pattern), yet dim = 2 -- it is a disjoint union of chains. Shows non-crossing/Ferrers is SUFFICIENT, not necessary. Coq: disjoint_chains_dim_le2 (not threshold_dim_le2)."
+  dimension: 2

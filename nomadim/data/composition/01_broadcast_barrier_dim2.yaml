@@ -1,0 +1,15 @@
+poset:
+  n_vertices: 6
+  edges:
+    - [0, 3]
+    - [0, 4]
+    - [0, 5]
+    - [1, 3]
+    - [1, 4]
+    - [1, 5]
+    - [2, 3]
+    - [2, 4]
+    - [2, 5]
+meta:
+  notes: "COMPOSABLE (dim 2). Broadcast / full barrier. Two concurrent groups -- producers a0,a1,a2 (vertices 0,1,2) and consumers b0,b1,b2 (vertices 3,4,5) -- joined by a frontier F where EVERY producer notifies EVERY consumer (F a b = true). This is the full barrier / linear sum: the whole a-layer is below the whole b-layer. dim = max(dim a-antichain, dim b-antichain) = 2. Coq: threshold_dim_le2 with phi=psi=0 (FrontierCompose.v)."
+  dimension: 2
