@@ -147,6 +147,45 @@ require more than 4 processes, not more syncs.
 
 (No dimension >= 4 at any S; 17008 shapes total.)
 
+## Finding 4 -- maximum dimension grows like sqrt(N): a triangular-number law
+
+Maximum order dimension of a fully frontier-synchronized execution, by N:
+
+| N      | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|--------|---|---|---|---|---|---|---|
+| max dim| 2 | 2 | 3 | 3 | 3 | 4 | 4 |
+
+Each new dimension *first appears* at N = **2, 4, 7** for dim 2, 3, 4 -- i.e. at
+
+    N(d) = 1 + d(d-1)/2      (1 + the triangular numbers 0, 1, 3, 6, 10, ...)
+
+so the conjecture is: **dimension d first occurs at N = 1 + C(d,2)**, equivalently
+
+    max dimension(N) = floor( (1 + sqrt(8N-7)) / 2 )  ~  sqrt(2N).
+
+N = 8 fits (predicted max dim 4 for N in 7..10; observed 4, with NO dimension 5
+in 12721 classified executions up to S = 18). The next, decisive prediction:
+**dimension 5 first appears at N = 11**, and N = 9, 10 are still max dim 4.
+
+Why this matters (project north star): the order dimension of an execution poset
+bounds the number of coordinates a logical clock needs. If the maximum dimension
+of an N-process fully-synchronized execution is ~sqrt(2N) rather than N, such
+executions admit clocks of O(sqrt(N)) coordinates -- dramatically below the
+Theta(N) of vector clocks.
+
+### Minimum S per dimension (z3 oracle; N>=7 cannot be enumerated)
+
+| N | dim 3 min S | dim 4 min S | dim 5 | notes |
+|---|-------------|-------------|-------|-------|
+| 7 | 10 (=gossip 2N-4) | 11 | -- | dim 4 is one above gossip min |
+| 8 | 12 (=gossip 2N-4) | 13 | none found (<=S 18) | same pattern |
+
+For N >= 7 the gossip-minimum (S = 2N-4) layer is dimension 3, the maximum
+dimension appears one sync above it, and dimension 2 does not occur in the
+near-minimal region (the minimum dimension is 3). Examples saved as
+`N8_S12_dim3_z3_01.yaml` (gossip min, dim 3) and `N8_S13_dim4_z3_01.yaml`
+(min-S dim 4). Reproduce with `scan_n.py`, `min_s_scan.py`, `find_dimge.py`.
+
 ## Why this is easy to miss
 
 `nomadim enumerate` keeps only dimension-<=2 executions by default, so it never
