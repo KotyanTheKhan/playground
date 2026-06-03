@@ -1,0 +1,16 @@
+execution:
+  n_procs: 4
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+meta:
+  notes: "Composition B1 then B1 (frontier matching pi=(0, 1, 2, 3)) of two minimum dim-2 N=4 executions; the composed S=10 fully-synchronized execution stays DIMENSION 2 -- a dim-2-preserving (Ferrers/threshold-type) composition."
+  dimension: 2
