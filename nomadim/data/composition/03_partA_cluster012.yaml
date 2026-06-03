@@ -1,0 +1,9 @@
+execution:
+  n_procs: 5
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 1]
+meta:
+  notes: "Constituent of 03_N5_lean_dim3: the sub-cluster {0,1,2}, synchronized through coordinator 0 (dim 2). Procs 3,4 idle here."
+  dimension: 2

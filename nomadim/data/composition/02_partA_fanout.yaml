@@ -1,0 +1,9 @@
+execution:
+  n_procs: 4
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+meta:
+  notes: "Constituent of 02_coordinator_balanced_dim2: coordinator FAN-OUT -- process 0 meets 1, then 2, then 3 (dim 2)."
+  dimension: 2

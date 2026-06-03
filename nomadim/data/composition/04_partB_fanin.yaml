@@ -1,0 +1,9 @@
+execution:
+  n_procs: 5
+  syncs:
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+meta:
+  notes: "Constituent of 04_N5_balanced_dim2: coordinator FAN-IN -- process 0 meets 3,2,1 (dim 2). 04 = fan-out then fan-in; the balanced palindrome stays dim 2."
+  dimension: 2

@@ -1,0 +1,8 @@
+execution:
+  n_procs: 4
+  syncs:
+    - [0, 2]
+    - [1, 3]
+meta:
+  notes: "Connecting frontier of 01_two_pairs_cross_dim3: the cross meetings [0,2],[1,3] that glue the two pairs together. dim 2 in isolation; composed ONTO the two pairs (01 = pair01 + pair23 + this, in that order) it lifts the whole execution to dim 3."
+  dimension: 2

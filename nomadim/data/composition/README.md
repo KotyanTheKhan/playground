@@ -41,3 +41,23 @@ keep dimension low?") in their own settings.
 Building blocks (already in `../frontier-sync/`): `N2_S1_dim2_real2_01.yaml`
 (two processes, dim 2) and `N3_S3_dim2_real4_02.yaml` (three processes, dim 2) are
 the small fully-synced atoms these larger executions compose.
+
+## Constituent parts (what each composite is built from)
+
+For every composite, the pieces it is composed of are shipped as separate
+`NN_part*` / `NN_frontier*` files (same process space, the relevant subset of
+syncs in their original relative order). **Every part is itself dimension 2** —
+only the *full* lean compositions (`01`, `03`) reach dimension 3.
+
+| Composite | = parts (⊕ in sync order) | each part's dim |
+|-----------|---------------------------|-----------------|
+| `01_two_pairs_cross_dim3` (dim 3) | `01_partA_pair01` ⊕ `01_partB_pair23` ⊕ `01_frontier_cross` | 2, 2, 2 |
+| `02_coordinator_balanced_dim2` (dim 2) | `02_partA_fanout` ⊕ `02_partB_fanin` | 2, 2 |
+| `03_N5_lean_dim3` (dim 3) | `03_partA_cluster012` ⊕ `03_partB_pair34` ⊕ `03_frontier` (interleaved) | 2, 2, 2 |
+| `04_N5_balanced_dim2` (dim 2) | `04_partA_fanout` ⊕ `04_partB_fanin` | 2, 2 |
+
+So in `01`/`03` you can watch the tangle appear: two dim-2 blocks and a dim-2
+connecting frontier, each harmless alone, combine into a dim-3 whole. In `02`/`04`
+the two dim-2 phases combine and stay dim 2. (For `03` the block and frontier syncs
+are interleaved in time; the part files show *which* processes meet, the composite
+file gives the exact order.)

@@ -1,0 +1,7 @@
+execution:
+  n_procs: 4
+  syncs:
+    - [0, 1]
+meta:
+  notes: "Constituent of 01_two_pairs_cross_dim3: the first synced block -- pair {0,1} meeting once (a fully-synced 2-process execution, dim 2). Procs 2,3 idle here."
+  dimension: 2

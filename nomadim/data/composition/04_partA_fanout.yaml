@@ -1,0 +1,10 @@
+execution:
+  n_procs: 5
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 4]
+meta:
+  notes: "Constituent of 04_N5_balanced_dim2: coordinator FAN-OUT -- process 0 meets 1,2,3,4 (dim 2)."
+  dimension: 2

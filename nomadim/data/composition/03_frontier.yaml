@@ -1,0 +1,8 @@
+execution:
+  n_procs: 5
+  syncs:
+    - [0, 3]
+    - [2, 4]
+meta:
+  notes: "Connecting frontier of 03_N5_lean_dim3: meetings [0,3],[2,4] stitching the {0,1,2} cluster to the {3,4} pair. dim 2 alone; the lean stitch makes the composite dim 3. (In 03 the block and frontier syncs are interleaved in time -- see the composite for the exact order.)"
+  dimension: 2

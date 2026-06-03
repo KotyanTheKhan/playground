@@ -1,0 +1,7 @@
+execution:
+  n_procs: 5
+  syncs:
+    - [3, 4]
+meta:
+  notes: "Constituent of 03_N5_lean_dim3: the pair {3,4} meeting once (dim 2). Procs 0,1,2 idle here."
+  dimension: 2
