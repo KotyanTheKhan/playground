@@ -550,10 +550,10 @@ Abstract poset-dimension theory: composing two **antichains** by a frontier `F` 
 |------|---------|
 | `Carrier` / `compose_le` / `compose_IsPoset` | disjoint-sum carrier; the frontier-composed order (two antichains + one-way `F`); a poset for any `F` |
 | `Ferrers` / `threshold_Ferrers` | non-crossing (no 2×2 crossing); a threshold frontier `φ a ≤ ψ b` is Ferrers |
-| `M1` / `M2` / `threshold_dim_le2` | the explicit 2-realizer; **a non-crossing (threshold) frontier preserves `dim ≤ 2`** |
+| `M1` / `M2` / `threshold_dim_le2` | the explicit 2-realizer; **a threshold frontier (`F a b ⟺ φ a ≤ ψ b`, on `Fin.t` carriers) preserves `dim ≤ 2`** |
 | `crownF` / `crown3` | the S₃ crown frontier `i ≠ j` on `Fin 3` + `Fin 3` |
 | `crown_critical` / `crown_alt_cycle` | the three `(aᵢ,bᵢ)` critical pairs; any two form an alternating cycle |
-| `crown3_dim_ge_3` | **the crown frontier gives `dim ≥ 3`** — connecting two dim-2 antichains can raise dimension |
+| `crown3_dim_ge_3` / `crown3_dim_exists` / `crown3_dim_ge_3_closed` | **the crown frontier gives `dim ≥ 3`** — connecting two dim-2 antichains can raise dimension (`_closed`: crown3 *has* a dimension, via Dushnik–Miller, and it is ≥ 3) |
 
 `FrontierComposeExamples.v` (test): a Ferrers staircase (`dim ≤ 2`) vs the crown (`¬Ferrers`, `dim ≥ 3`). Honest scope: Slice A (antichains); the positive is `threshold_dim_le2` (full `ferrers_dim_le2` needs Ferrers⟹threshold, deferred); exact `dim = 3` (3-realizer) and general dim-2 inputs (Slice B) are future work.
 

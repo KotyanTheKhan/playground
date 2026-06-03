@@ -251,12 +251,18 @@ on exactly the barrier-synchronized runs the round model captures.
 | **barrier order = a computable product-of-lex clock (any N)** | **`blo_iff_stamp`** (`OnlineClock.v`); generic rule `stamp_iff` |
 | **clock computable from purely local data (no global view)** | **`local_stamp_correct`** / **`blo_iff_local_stamp`** (`OnlineClockLocal.v`) |
 | **operational primitive-state model: causality via a schedule-free clock** | **`rhb_iff_rclock`** (`RoundSem.v`); `rop = nth r (rs_prog p)` |
-| **connecting two executions by a frontier: non-crossing preserves dim 2** | **`threshold_dim_le2`** (`FrontierCompose.v`) |
+| **connecting two executions by a threshold frontier preserves dim 2** | **`threshold_dim_le2`** (`FrontierCompose.v`) |
 | **a crossing (S₃) frontier raises dimension to ≥ 3** | **`crown3_dim_ge_3`** (`FrontierCompose.v`) |
 
 **Composition (when is dim-2 preserved).** Connecting two dim-2 executions by a
 frontier does *not* always keep dimension low: `FrontierCompose.v` proves the
-dichotomy on antichains — a **non-crossing** (Ferrers/threshold) frontier preserves
-`dim ≤ 2` (`threshold_dim_le2`), while the **S₃ crown** frontier (`i≠j`) forces
-`dim ≥ 3` (`crown3_dim_ge_3`). So a barriered/dim-2 structure is fragile under
-arbitrary frontier gluing; only non-crossing connections preserve it.
+dichotomy on antichains — a **threshold** frontier (`F a b ⟺ φ a ≤ ψ b`, the
+directly-buildable form of non-crossing) preserves `dim ≤ 2` (`threshold_dim_le2`),
+while the **S₃ crown** frontier (`i≠j`) forces `dim ≥ 3` (`crown3_dim_ge_3_closed`:
+crown3 *has* a dimension, via Dushnik–Miller, and it is ≥ 3 — unconditional). The
+full *Ferrers* (general non-crossing) positive result needs Ferrers⟹threshold and
+is deferred. So a dim-2 structure is fragile
+under frontier gluing; threshold (non-crossing) connections preserve it.
+*(Admit-free; `Print Assumptions`: `threshold_dim_le2` uses `classic` +
+`Extensionality_Ensembles`; `crown3_dim_ge_3` additionally uses the Szpilrajn-chain
+choice/extensionality axioms via the dimension library.)*
