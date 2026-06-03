@@ -1,0 +1,13 @@
+// Finding 1: adding a sync can LOWER the order dimension.
+// For N=5: the cheapest full synchronization (6 syncs) is dimension 3;
+// paying one extra sync (7) drops it to dimension 2.
+digraph nonmono {
+  rankdir=LR;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=12];
+  edge [arrowhead=vee, fontsize=11];
+
+  a [label="N = 5,  6 syncs\nfewest possible\ndimension 3", fillcolor="#f2dede"];
+  b [label="N = 5,  7 syncs\none extra sync\ndimension 2", fillcolor="#dff0d8"];
+
+  a -> b [label="  add 1 sync\n  -> dimension DROPS"];
+}

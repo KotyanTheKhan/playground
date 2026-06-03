@@ -1,0 +1,19 @@
+// Finding 3: at N=7 the gossip-minimum execution (S=10 = 2N-4) is only
+// dimension 3; dimension 4 first appears one sync later, at S=11.
+// This breaks the N<=6 pattern where the cheapest sync layer was the
+// highest-dimensional one.
+digraph n7 {
+  rankdir=LR;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+  edge [arrowhead=vee, fontsize=10];
+
+  s10 [label="N = 7,  S = 10\ngossip minimum (2N-4)\n3000+ diverse samples\nALL dimension 3", fillcolor="#fcf8e3"];
+  s11 [label="N = 7,  S = 11\none extra sync\ndimension 4 appears", fillcolor="#f2dede"];
+  s12 [label="N = 7,  S = 12\nanother\ndimension 4 example", fillcolor="#f2dede"];
+
+  s10 -> s11 [label="  +1 sync"];
+  s11 -> s12 [label="  +1 sync"];
+
+  note [label="sampled, not exhaustive:\nN=7 is too big to enumerate (OOM).\nS=10 dim-3 is a large diverse sample;\nS=11 dim-4 is z3-proven exact.",
+        shape=note, fillcolor="#eeeeee", fontsize=9];
+}

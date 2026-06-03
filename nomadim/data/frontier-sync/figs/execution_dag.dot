@@ -1,0 +1,50 @@
+// The N=4, S=4, dimension-3 execution as an event DAG.
+// Syncs (in order): (0,1) (2,3) (0,2) (1,3).
+// Each process is a horizontal chain of events; a sync is a join that
+// makes both partners' next events depend on both partners' current ones.
+digraph execution {
+  rankdir=LR;
+  node [shape=circle, width=0.28, fixedsize=true, fontsize=10, label=""];
+  edge [arrowsize=0.7];
+  splines=true;
+  ranksep=0.55; nodesep=0.30;
+
+  // process 0 chain
+  p0s [label="P0", shape=box, style=filled, fillcolor="#dbe9ff"];
+  p0s -> a0 -> a1 -> p0e;
+  p0e [label="end", shape=box, style=filled, fillcolor="#ffe2c2"];
+
+  // process 1 chain
+  p1s [label="P1", shape=box, style=filled, fillcolor="#dbe9ff"];
+  p1s -> b0 -> b1 -> p1e;
+  p1e [label="end", shape=box, style=filled, fillcolor="#ffe2c2"];
+
+  // process 2 chain
+  p2s [label="P2", shape=box, style=filled, fillcolor="#dbe9ff"];
+  p2s -> c0 -> c1 -> p2e;
+  p2e [label="end", shape=box, style=filled, fillcolor="#ffe2c2"];
+
+  // process 3 chain
+  p3s [label="P3", shape=box, style=filled, fillcolor="#dbe9ff"];
+  p3s -> d0 -> d1 -> p3e;
+  p3e [label="end", shape=box, style=filled, fillcolor="#ffe2c2"];
+
+  // sync 1: (0,1) couples a0 and b0
+  a0 -> b1 [color="#c0392b", style=bold, constraint=false];
+  b0 -> a1 [color="#c0392b", style=bold, constraint=false];
+
+  // sync 2: (2,3) couples c0 and d0
+  c0 -> d1 [color="#c0392b", style=bold, constraint=false];
+  d0 -> c1 [color="#c0392b", style=bold, constraint=false];
+
+  // sync 3: (0,2) couples a1 and c1
+  a1 -> p2e [color="#27ae60", style=bold, constraint=false];
+  c1 -> p0e [color="#27ae60", style=bold, constraint=false];
+
+  // sync 4: (1,3) couples b1 and d1
+  b1 -> p3e [color="#27ae60", style=bold, constraint=false];
+  d1 -> p1e [color="#27ae60", style=bold, constraint=false];
+
+  { rank=same; p0s; p1s; p2s; p3s; }
+  { rank=same; p0e; p1e; p2e; p3e; }
+}

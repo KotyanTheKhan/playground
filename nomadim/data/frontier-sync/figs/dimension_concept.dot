@@ -1,0 +1,27 @@
+// What "order dimension" means: the smallest number of total orders
+// (think: independent rankings / timelines) you must overlay so that
+// X is below Y in the combined picture EXACTLY when X really happened
+// before Y. Dimension = how many timelines it takes to pin the order down.
+digraph dimconcept {
+  rankdir=TB;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+  edge [arrowhead=vee];
+
+  poset [label="the happened-before order\n(a partial order: some events\nare incomparable / concurrent)",
+         fillcolor="#dbe9ff"];
+
+  r1 [label="timeline 1\n(one consistent ranking)", fillcolor="#eafaf1"];
+  r2 [label="timeline 2\n(another ranking)", fillcolor="#eafaf1"];
+  rd [label="...timeline d", fillcolor="#eafaf1"];
+
+  poset -> r1 [style=invis];
+  poset -> r2 [style=invis];
+  poset -> rd [style=invis];
+
+  { rank=same; r1; r2; rd; }
+
+  combine [label="overlap them: X < Y in ALL of them  <=>  X happened-before Y\nfewest timelines d that works = the DIMENSION",
+           shape=note, fillcolor="#fcf8e3", fontsize=10];
+
+  r1 -> combine; r2 -> combine; rd -> combine;
+}

@@ -1,0 +1,18 @@
+// Max attainable order dimension of a fully frontier-synchronized execution,
+// as a function of N (number of processes). Climbs far slower than the
+// vector-clock ceiling of N.
+digraph dimvn {
+  rankdir=LR;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=12];
+  edge [arrowhead=vee];
+
+  n2 [label="N = 2,3\nmax dim 2", fillcolor="#dff0d8"];
+  n4 [label="N = 4,5,6\nmax dim 3", fillcolor="#fcf8e3"];
+  n7 [label="N = 7\nmax dim 4", fillcolor="#f2dede"];
+
+  n2 -> n4 [label="  +1 dim"];
+  n4 -> n7 [label="  +1 dim"];
+
+  ceil [label="vector-clock ceiling: dim <= N\n(so up to 7 allowed at N=7)\nbut only 4 is realized",
+        shape=note, fillcolor="#eeeeee", fontsize=10];
+}
