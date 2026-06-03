@@ -1,0 +1,17 @@
+// Headline: gluing two dim-2 blocks directly keeps dim 2 only 28% of the
+// time (72% become dim-3 crowns). Inserting ONE connector sync rescues
+// every crown: 28% -> 100%.
+digraph headline {
+  rankdir=LR;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=12];
+  edge [arrowhead=vee, fontname="Helvetica", fontsize=11];
+
+  direct [label="Direct glue\nA -> B\n\n28% stay dim 2\n72% are crowns (dim 3)",
+          fillcolor="#f2dede"];
+  conn   [label="Insert ONE\nconnector sync\non the crossed pair",
+          fillcolor="#ffe8a1"];
+  rescued [label="A -> [sync] -> B\n\n100% dim 2\nevery crown rescued",
+           fillcolor="#dff0d8"];
+
+  direct -> conn -> rescued [label="  +1 well-placed sync"];
+}

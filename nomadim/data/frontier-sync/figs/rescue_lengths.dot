@@ -1,0 +1,51 @@
+// Rescuer counts vs connector length for the 5 crown classes.
+// COUNT grows with length, but FRACTION stays flat (~10-22%) -> it never
+// becomes "any connector works". Crossed-pair-FREE rescues stay a minority.
+digraph lengths {
+  rankdir=TB;
+  node [shape=plaintext, fontname="Helvetica", fontsize=11];
+
+  tab [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6">
+      <TR>
+        <TD BGCOLOR="#34495e"><FONT COLOR="white"><B>crown</B></FONT></TD>
+        <TD BGCOLOR="#34495e"><FONT COLOR="white"><B>crossed pair</B></FONT></TD>
+        <TD BGCOLOR="#34495e"><FONT COLOR="white"><B>L1 / 6</B></FONT></TD>
+        <TD BGCOLOR="#34495e"><FONT COLOR="white"><B>L2 / 36</B></FONT></TD>
+        <TD BGCOLOR="#34495e"><FONT COLOR="white"><B>L3 / 216</B></FONT></TD>
+        <TD BGCOLOR="#34495e"><FONT COLOR="white"><B>L4 / 1296</B></FONT></TD>
+        <TD BGCOLOR="#34495e"><FONT COLOR="white"><B>1st length<BR/>dodging the<BR/>crossed pair</B></FONT></TD>
+      </TR>
+      <TR>
+        <TD BGCOLOR="#fdecea">#1 star;star</TD><TD BGCOLOR="#fdecea">(2,3)</TD>
+        <TD>1</TD><TD>7</TD><TD>33</TD><TD>153</TD>
+        <TD BGCOLOR="#fdecea">L4 (only 4)</TD>
+      </TR>
+      <TR>
+        <TD BGCOLOR="#fdecea">#2 star;star</TD><TD BGCOLOR="#fdecea">(1,2)</TD>
+        <TD>1</TD><TD>5</TD><TD>25</TD><TD>121</TD>
+        <TD BGCOLOR="#fdecea">L3 (only 1)</TD>
+      </TR>
+      <TR>
+        <TD BGCOLOR="#fff7e0">#3 star;pairs</TD><TD BGCOLOR="#fff7e0">(1,2)</TD>
+        <TD>1</TD><TD>6</TD><TD>33</TD><TD>172</TD>
+        <TD BGCOLOR="#fff7e0">L2 (1)</TD>
+      </TR>
+      <TR>
+        <TD BGCOLOR="#fff7e0">#4 pairs;star</TD><TD BGCOLOR="#fff7e0">(1,2)</TD>
+        <TD>1</TD><TD>6</TD><TD>33</TD><TD>172</TD>
+        <TD BGCOLOR="#fff7e0">L2 (1)</TD>
+      </TR>
+      <TR>
+        <TD BGCOLOR="#eafaf1">#5 pairs;pairs</TD><TD BGCOLOR="#eafaf1">(1,2)</TD>
+        <TD>2</TD><TD>10</TD><TD>54</TD><TD>278</TD>
+        <TD BGCOLOR="#eafaf1">L1 (1)</TD>
+      </TR>
+    </TABLE>
+  >];
+
+  cap [shape=note, fillcolor="#eeeeee", style=filled, fontsize=10,
+       label="Count grows with length; FRACTION stays flat (~10-22%).\nRed = pure-star crowns: crossed pair is unavoidable until L3-L4.\nGreen = two-pairs crown #5: a SECOND crossing (0,3) lets short\nconnectors dodge (1,2) earlier -- but always a minority."];
+
+  tab -> cap [style=invis];
+}

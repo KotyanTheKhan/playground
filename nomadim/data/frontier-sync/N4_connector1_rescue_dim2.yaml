@@ -1,0 +1,17 @@
+execution:
+  n_procs: 4
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+    - [1, 2]
+    - [0, 2]
+    - [0, 1]
+    - [0, 3]
+    - [0, 1]
+    - [0, 2]
+meta:
+  notes: "A crown (dim-3 direct composition of two dim-2 N=4 blocks) rescued to DIMENSION 2 by inserting a connector of 1 sync(s) between the two blocks. Total S=10+1. z3-verified dim 2."
+  dimension: 2

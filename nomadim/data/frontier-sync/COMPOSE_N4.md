@@ -75,5 +75,94 @@ yet non-isomorphic -- WL distinguishes them. So **every** dim-2 composition of a
 of the 10 blocks is isomorphic to one of these 5; the dim-2-preserving
 compositions are governed entirely by the star and two-pairs archetypes.
 
-Reproduce: `compose_n4.py` (the full relation + counts) and
-`compose_n4_distinct.py` (the non-isomorphic representatives).
+## Connector composition: one extra sync rescues every crown
+
+Instead of gluing A's output frontier directly to B's input frontier, insert a
+short **connector** of `c` syncs in between: `A.syncs + connector + pi(B.syncs)`.
+The connector re-mixes the frontier before B runs, and it dramatically widens
+dim-2 preservation:
+
+| connector budget | dim-2 variants (of 2400) |
+|------------------|--------------------------|
+| <=0 (direct)     | 672 = **28%** |
+| **<=1 (one sync)** | **2400 = 100%** |
+
+The 1728 crown (dim-3) variants form **5 non-isomorphic crown classes**, and
+**every one is rescued to dimension 2 by a single connector sync** (e.g. `(1,2)`,
+`(2,3)`, `(0,3)`). So a 1-sync bridge takes dim-2 preservation from 28% to 100%.
+
+Concretely (`N4_connector1_rescue_dim2.yaml`, dim 2 by both z3 and nomadim):
+`(0,1)(0,2)(0,3)(0,2)(0,1)` **`(1,2)`** `(0,2)(0,1)(0,3)(0,1)(0,2)` is dimension 2,
+whereas the same composition without the middle `(1,2)` is the dimension-3 crown.
+Intuition: the crown is an S3-type frontier crossing; one synchronization across
+the crossing breaks it, dropping the order back to 2-dimensional (one clock
+coordinate saved). This is the constructive counterpart of the
+`threshold_dim_le2` / `crown3_dim_ge_3` dichotomy.
+
+### Which connector rescues a crown: the crossed pair, not any pair
+
+A generic connector does NOT work -- typically only **1 of the 6** possible
+single syncs rescues a given crown (one class allows 2). And the rescuing sync is
+not arbitrary: it is exactly the **pair of processes that the frontier matching
+crosses**.
+
+| crown class | matching pi | pi transposes | rescuing connector(s) (of 6) |
+|-------------|-------------|---------------|------------------------------|
+| #1  B1;B1 | (0,1,3,2) | 2<->3 | `(2,3)` |
+| #2  B1;B1 | (0,2,1,3) | 1<->2 | `(1,2)` |
+| #3  B1;B9 | (0,2,1,3) | 1<->2 | `(1,2)` |
+| #4  B9;B1 | (0,2,1,3) | 1<->2 | `(1,2)` |
+| #5  B9;B9 | (0,2,1,3) | 1<->2 | `(1,2)` and `(0,3)` |
+
+Every crown here is created by a matching that **transposes two channels**, and
+the unique rescuing connector is a sync on **precisely those two crossed
+processes**. Structurally: the crown is the S3-type crossing introduced by
+swapping two channels; placing one synchronization across exactly that crossing
+collapses it and the order returns to 2-dimensional. The lone exception, #5
+(two-pairs ; two-pairs), also accepts `(0,3)`, because the B9 block carries two
+independent `{0,1}`/`{2,3}` groupings and thus a second equivalent crossing that
+`(0,3)` resolves.
+
+Takeaway: the connector must be **targeted at the crossed pair**. A random
+connector sync rescues a given crown only ~1/6 (sometimes 2/6) of the time, even
+though *some* single-sync connector always exists.
+
+### Connector length 1-4: rescuer counts and the crossed pair
+
+Number of connectors of each length that rescue the crown to dim 2 (and the
+shortest length whose rescuers can AVOID the crossed pair -- the channels the
+matching transposes):
+
+| crown | crossed pair | L1 / 6 | L2 / 36 | L3 / 216 | L4 / 1296 | first length avoiding crossed pair |
+|-------|--------------|--------|---------|----------|-----------|------------------------------------|
+| #1 B1;B1 | (2,3) | 1 | 7 | 33 | 153 | L4 (only 4) |
+| #2 B1;B1 | (1,2) | 1 | 5 | 25 | 121 | L3 (only 1) |
+| #3 B1;B9 | (1,2) | 1 | 6 | 33 | 172 | L2 (1) |
+| #4 B9;B1 | (1,2) | 1 | 6 | 33 | 172 | L2 (1) |
+| #5 B9;B9 | (1,2) | 2 | 10 | 54 | 278 | L1 (1) |
+
+Two facts:
+
+1. **The rescue COUNT grows with length, but the FRACTION stays flat (~10-22%)** --
+   it never runs away toward "any connector works". Star crowns drift slightly
+   down (16.7% -> 11.8%); the two-pairs crown #5 stays highest (33% -> 21%). A
+   longer connector gives proportionally more rescuers, not an easier problem.
+
+2. **The crossed pair is mandatory for short connectors; only longer ones route
+   around it, always as a minority.** Pure-star crowns (#1, #2) cannot avoid the
+   crossed pair through length 2 (first dodge at length 3-4, a handful: 1 or 4 of
+   thousands). Two-pairs crowns (#3-5) dodge it earlier and more often, via the
+   **alternative `(0,3)` crossing** (avoidance climbs 1 -> 8 -> 47 for #3/#4;
+   1 -> 5 -> 27 -> 131 for #5).
+
+So even with up to 4 syncs you must still synchronize across one of the crown's
+crossings; longer connectors merely let you reach the *alternative* crossing or
+take a roundabout route, and crossed-pair-free rescues remain a small minority.
+The crown's crossing structure is the gatekeeper at every length.
+
+Reproduce: `compose_n4.py` (the full relation + counts),
+`compose_n4_distinct.py` (the non-isomorphic dim-2 representatives),
+`compose_n4_connector.py` (the connector rescue),
+`check_connector_pairs.py` (which single connector pair rescues each crown),
+`check_connectors2.py` (length-1 vs length-2 connectors), and
+`check_connectors_len.py` (rescuer counts for connector lengths 1-4).

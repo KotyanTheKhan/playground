@@ -1,0 +1,41 @@
+// The rescue: insert ONE connector sync on exactly the crossed pair (2,3)
+// between A and B. The crossing collapses and the order returns to dim 2.
+digraph rescue {
+  rankdir=LR;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+  edge [arrowhead=vee, fontname="Helvetica", fontsize=10];
+  nodesep=0.35;
+
+  subgraph cluster_a {
+    label="Block A (dim 2)";
+    style="rounded,filled"; fillcolor="#eef3fb"; fontname="Helvetica"; fontsize=11;
+    a0 [label="A out 0", fillcolor="#dff0d8"];
+    a1 [label="A out 1", fillcolor="#dff0d8"];
+    a2 [label="A out 2", fillcolor="#dff0d8"];
+    a3 [label="A out 3", fillcolor="#dff0d8"];
+  }
+
+  conn [label="connector sync\non the crossed pair\n(2,3)", shape=box,
+        style="rounded,filled", fillcolor="#ffe8a1", penwidth=2];
+
+  subgraph cluster_b {
+    label="Block B (dim 2)";
+    style="rounded,filled"; fillcolor="#eef3fb"; fontname="Helvetica"; fontsize=11;
+    b0 [label="B in 0", fillcolor="#dff0d8"];
+    b1 [label="B in 1", fillcolor="#dff0d8"];
+    b2 [label="B in 2", fillcolor="#dff0d8"];
+    b3 [label="B in 3", fillcolor="#dff0d8"];
+  }
+
+  a0 -> b0 [color="#888888"];
+  a1 -> b1 [color="#888888"];
+
+  // the crossed channels now pass THROUGH the connector
+  a2 -> conn [color="#27ae60", penwidth=2.2];
+  a3 -> conn [color="#27ae60", penwidth=2.2];
+  conn -> b3 [color="#27ae60", penwidth=2.2];
+  conn -> b2 [color="#27ae60", penwidth=2.2];
+
+  note [shape=note, fillcolor="#dff0d8", fontsize=9,
+        label="One sync ACROSS the crossing (2,3)\ncollapses the crown.\nDimension drops 3 -> 2.\nOne clock coordinate saved."];
+}
