@@ -135,3 +135,4 @@ execution/OnlineClockLocal.v
 execution/OnlineClockLocalExamples.v
 execution/RoundSem.v
 execution/RoundSemExamples.v
+execution/FrontierCompose.v
