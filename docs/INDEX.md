@@ -542,6 +542,21 @@ An operational, primitive-state model: an `RSys` is `nprocs`, `nrounds`, and a p
 
 `RoundSemExamples.v` (test): a 3-proc/1-round system `Sdemo`, `rclock` literals, an `rhb` edge and an incomparable pair.
 
+#### `execution/FrontierCompose.v` — connecting executions by a frontier: the dimension dichotomy (exported)
+
+Abstract poset-dimension theory: composing two **antichains** by a frontier `F` gives the bipartite poset `compose_le F` (an `IsPoset` for any `F`). The dichotomy — *when does connecting two dim-2 executions by a frontier preserve dimension*: a **non-crossing** frontier preserves `dim ≤ 2`, a **crossing** (S₃) frontier raises it to `dim ≥ 3`. Both proven, admit-free.
+
+| Name | Meaning |
+|------|---------|
+| `Carrier` / `compose_le` / `compose_IsPoset` | disjoint-sum carrier; the frontier-composed order (two antichains + one-way `F`); a poset for any `F` |
+| `Ferrers` / `threshold_Ferrers` | non-crossing (no 2×2 crossing); a threshold frontier `φ a ≤ ψ b` is Ferrers |
+| `M1` / `M2` / `threshold_dim_le2` | the explicit 2-realizer; **a threshold frontier (`F a b ⟺ φ a ≤ ψ b`, on `Fin.t` carriers) preserves `dim ≤ 2`** |
+| `crownF` / `crown3` | the S₃ crown frontier `i ≠ j` on `Fin 3` + `Fin 3` |
+| `crown_critical` / `crown_alt_cycle` | the three `(aᵢ,bᵢ)` critical pairs; any two form an alternating cycle |
+| `crown3_dim_ge_3` / `crown3_dim_exists` / `crown3_dim_ge_3_closed` | **the crown frontier gives `dim ≥ 3`** — connecting two dim-2 antichains can raise dimension (`_closed`: crown3 *has* a dimension, via Dushnik–Miller, and it is ≥ 3) |
+
+`FrontierComposeExamples.v` (test): a Ferrers staircase (`dim ≤ 2`) vs the crown (`¬Ferrers`, `dim ≥ 3`). Honest scope: Slice A (antichains); the positive is `threshold_dim_le2` (full `ferrers_dim_le2` needs Ferrers⟹threshold, deferred); exact `dim = 3` (3-realizer) and general dim-2 inputs (Slice B) are future work.
+
 #### `execution/TransformB.v` — Transformation B (2-process block dim ≤ 2) (exported)
 
 The NomaDB paper's second reduction: *"two processes between synchronizations form at most 2 critical pairs,"* simplified to "one local modification," preserving the dimension property. The faithful core: a block spanned by 2 processes is covered by 2 chains (each process's events are a chain under program order), so its **width ≤ 2**, hence **dim ≤ 2** (`dimension_le_width`). Being a per-block property, it is preserved under any 2-process block replacement (mirroring how Transformation A used block replacement). `TransformBExamples.v` exhibits the equal-bound (`B2` and its simplification `B2s` both ≤ 2) that drives the transformation.
