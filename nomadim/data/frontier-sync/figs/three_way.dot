@@ -1,0 +1,29 @@
+// Finding C: at N>=7, the gossip minimum S = 2N-4 FORCES dimension 3.
+// Spending exactly one extra sync (S = 2N-3) lets you branch EITHER way:
+// down to dimension 2 (the sequential star gossip) or up to dimension 4
+// (a tangled structure). Same sync budget, three different dimensions.
+digraph threeway {
+  rankdir=LR;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+  edge [arrowhead=vee, fontname="Helvetica", fontsize=10];
+
+  gossip [label="S = 2N-4\nthe gossip minimum\n(cheapest full sync)\n=> FORCED to dimension 3",
+          fillcolor="#fcf8e3"];
+
+  hub [label="S = 2N-3\none extra sync", shape=point, width=0.12];
+
+  dim2 [label="dimension 2\nthe STAR gossip:\ngather all to hub 0,\nthen scatter back\n(2-coordinate clock!)",
+        fillcolor="#dff0d8"];
+  dim4 [label="dimension 4\na tangled\ncross-coupled\nstructure",
+        fillcolor="#f2dede"];
+  dim3b [label="dimension 3\n(also available\nat this budget)",
+        fillcolor="#fcf8e3"];
+
+  gossip -> hub [label="  +1 sync"];
+  hub -> dim2 [label="  go down"];
+  hub -> dim3b [style=dashed];
+  hub -> dim4 [label="  go up"];
+
+  note [label="Same S = 2N-3 hosts dim 2, 3 AND 4.\nLaw for N >= 7 (z3 oracle; verified N=7,8,9,\nstar gives dim 2 for N=7..11):\n  dim 3 min S = 2N-4    dim 2 min S = dim 4 min S = 2N-3",
+        shape=note, fillcolor="#eeeeee", fontsize=9];
+}
