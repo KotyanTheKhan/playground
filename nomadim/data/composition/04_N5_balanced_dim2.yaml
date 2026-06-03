@@ -1,0 +1,13 @@
+execution:
+  n_procs: 5
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 4]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+meta:
+  notes: "COMPOSITION at N=5, dimension PRESERVED at 2 (one extra sync). Five processes fully frontier-synchronized through a COORDINATOR (process 0): fan-out 0->1,2,3,4 then fan-in 0<-4,3,2,1 -- a symmetric palindrome (7 syncs). Every start precedes every last event, and the dimension is 2. Versus 03 (the 6-sync lean merge, dim 3): one extra sync buys the balanced, grid-like structure that two timelines can realize. The non-monotonicity again -- more gossip, less tangle. Dimension verified = 2 (nomadim dimension --max-vertices). Same sync-set as frontier-sync/N5_S7_dim2."
+  dimension: 2

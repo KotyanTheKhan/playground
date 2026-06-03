@@ -1,0 +1,12 @@
+execution:
+  n_procs: 5
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [3, 4]
+    - [0, 3]
+    - [0, 1]
+    - [2, 4]
+meta:
+  notes: "COMPOSITION at N=5, tangle = 3. Five processes composed by the LEAN (minimum, 6-sync) full synchronization: a sub-cluster {0,1,2} and a pair {3,4} are stitched together (0 bridges to 3; 2 bridges to 4). Fully frontier-synchronized, but the sparse merge routes causality through a few hub events, forcing dimension 3. Dimension verified = 3 (nomadim dimension --max-vertices). Same sync-set as frontier-sync/N5_S6_dim3."
+  dimension: 3

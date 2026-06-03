@@ -1,0 +1,11 @@
+execution:
+  n_procs: 4
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+meta:
+  notes: "COMPOSITION, dimension PRESERVED at 2 (but costs one extra sync). Same 4 processes, fully frontier-synchronized through a COORDINATOR (process 0): 0 meets 1, 2, 3 in turn (fan-out), then meets 2, 1 again on the way back (fan-in) -- a palindrome around the hub. Every process's start precedes every process's last event, and the dimension is 2. Compared with 01 (the 4-sync cross-merge, dim 3), this balanced 5-sync structure is grid-like, so two timelines suffice. NON-MONOTONICITY: spending ONE more sync LOWERS the dimension from 3 to 2. Dimension verified = 2 (nomadim dimension --max-vertices). Same sync-set as frontier-sync/N4_S5_dim2."
+  dimension: 2

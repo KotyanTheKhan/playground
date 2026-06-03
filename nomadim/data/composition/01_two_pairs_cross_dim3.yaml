@@ -1,0 +1,10 @@
+execution:
+  n_procs: 4
+  syncs:
+    - [0, 1]
+    - [2, 3]
+    - [0, 2]
+    - [1, 3]
+meta:
+  notes: "COMPOSITION, tangle RISES to 3. Take two fully-synced 2-process executions -- pair {0,1} (sync [0,1]) and pair {2,3} (sync [2,3]), each dimension 2 on its own -- and connect them by a CROSS frontier [0,2],[1,3] (0 meets 2, 1 meets 3). The composite is fully frontier-synchronized (every start precedes every last event) but its dimension is 3, NOT 2. This is the minimal (4-sync) full synchronization of 4 processes, and the lean cross-merge is skewed enough to need a third timeline. Dimension verified = 3 (nomadim dimension). Same sync-set as frontier-sync/N4_S4_dim3."
+  dimension: 3

@@ -1,9 +1,0 @@
-poset:
-  n_vertices: 6
-  edges:
-    - [0, 3]
-    - [0, 4]
-    - [0, 5]
-meta:
-  notes: "COMPOSABLE (dim 2). Scatter / fan-out. One producer a0 (vertex 0) triggers all consumers b0,b1,b2 (vertices 3,4,5); the other producers a1,a2 (vertices 1,2) stay concurrent (send nothing). Frontier F a b = (a = a0): one full row. Ferrers (the only nonempty row is a0's, trivially nested). dim = 2. Coq: threshold_dim_le2 (a one-row frontier is a threshold relation)."
-  dimension: 2
