@@ -20,15 +20,23 @@ def extract_realizer(nv, edges):
     r = subprocess.run(["z3", "-in"], input=smt + "\n" + getvals,
                        capture_output=True, text=True)
     lines = r.stdout.strip().splitlines()
-    if not lines or lines[0] != "sat":
+    first = lines[0] if lines else ""
+    if first == "sat":
+        pass  # fall through to model parsing
+    elif first == "unsat":
         return None
+    else:
+        snippet = (r.stderr.strip() or r.stdout.strip())[:200]
+        raise RuntimeError(
+            f"z3 did not return sat/unsat (rc={r.returncode}): {snippet}")
     model = " ".join(lines[1:])
-    vals = dict((k, int(val)) for k, val in
-                re.findall(r"\(p(\d+_\d+)\s+(-?\d+)\)", model))
+    vals = {k: int(val) for k, val in
+            re.findall(r"\(p(\d+_\d+)\s+(-?\d+)\)", model)}
     L1 = [vals[f"0_{v}"] for v in range(nv)]
     L2 = [vals[f"1_{v}"] for v in range(nv)]
     return L1, L2
 
 
 if __name__ == "__main__":
-    print(extract_realizer(4, [(0, 1), (2, 3)]))
+    result = extract_realizer(4, [(0, 1), (2, 3)])
+    print(f"2-chain example realizer: {result}")
