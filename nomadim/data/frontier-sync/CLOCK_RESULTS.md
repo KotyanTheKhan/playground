@@ -84,3 +84,36 @@ crowning is a property of the full frontier relation, not of any single block.
 repaired by any single inserted sync (the search only tested length-1
 connectors), so some identity-matching frontier configurations need a longer
 connector — the exact minimal length for those 14 was not measured here.
+
+---
+
+## Any-N (N=5..7) — Empirical Fan vs. Minimal Repair
+
+**Date:** 2026-06-04, branch `dev`
+**Functions:** `star_block(n)`, `anyN_probe(n, perm, max_len)` in `clock_compose.py`
+
+### N=5 cycle-type probe (max_len=2)
+
+```
+transposition  [0, 2, 1, 3, 4]  cycles=[[0], [1, 2], [3], [4]]  direct_dim=3  fan_len=1  fan_repairs=True  min_len=1
+leaf3cycle     [0, 2, 3, 1, 4]  cycles=[[0], [1, 2, 3], [4]]    direct_dim=3  fan_len=2  fan_repairs=True  min_len=2
+leaf4cycle     [0, 2, 3, 4, 1]  cycles=[[0], [1, 2, 3, 4]]      direct_dim=3  fan_len=3  fan_repairs=True  min_len=None
+doubleswap     [0, 2, 1, 4, 3]  cycles=[[0], [1, 2], [3, 4]]    direct_dim=3  fan_len=2  fan_repairs=True  min_len=2
+```
+
+`min_len=None` for `leaf4cycle` means no connector of length ≤ 2 was found within the bounded search; the fan connector of length 3 does repair it.
+
+### N=6, N=7 fan-only check (leaf transposition swap(1,2), max_len=0)
+
+```
+N=6 swap(1,2)  direct_dim=3  fan_len=1  fan_repairs=True
+N=7 swap(1,2)  direct_dim=3  fan_len=1  fan_repairs=True
+```
+
+### Reading
+
+At N=5, all four representative crown permutations have `fan_repairs=True`: the perm-fan connector (length = N − #cycles) successfully restores an exact 2-coordinate clock for every tested case. The same holds for N=6 and N=7 on the leaf transposition. This is consistent with EXPLAINER.md's leaf-cycle claim that the fan is a z3-verified achievable repair in the leaf-cycle regime.
+
+`star_block(n)` (gather-then-scatter on hub 0) is confirmed dim 2 for N=5 (test `star_n5` PASS).
+
+For the N=5 transposition crown `[0,2,1,3,4]`, the minimal search finds a repair of length 1 (matching the fan length of 1). For the `leaf4cycle` `[0,2,3,4,1]`, the fan of length 3 repairs the crown, but no connector of length ≤ 2 was found within the bounded search — consistent with the fan being tight there. The perm-fan is thus an achievable upper bound; the minimal repair may be shorter or equal, depending on the permutation structure. At N=4, the search outperformed the fan on 10/18 crowns; at N=5 the fan matches or exceeds (within the cycle types tested), which aligns with the EXPLAINER.md characterization of the leaf-cycle regime. No claim is made beyond the permutations actually tested.

@@ -77,6 +77,19 @@ def test_every_star_self_crown_repaired_by_search():
     assert r['n_crowns'] > 0
     assert r['all_repaired'] is True, f"unrepaired crowns: {r['records']}"
 
+from clock_compose import star_block, anyN_probe
+
+def test_star_block_n5_dim2():
+    from clock_realizer import clock_check_syncs
+    assert clock_check_syncs(5, star_block(5)) == (True, 2)
+
+def test_n5_crown_repaired_by_search():
+    # a leaf transposition (swap channels 1,2) on star(5): crown, search-repaired
+    p = [0, 2, 1, 3, 4]
+    r = anyN_probe(5, p, max_len=2)
+    assert r['direct_dim'] == 3           # it crowns
+    assert r['min_len'] is not None and r['min_len'] <= 2   # search repairs it
+
 if __name__ == "__main__":
     test_realizer_of_two_chains(); print("PASS two_chains")
     test_realizer_none_for_crown(); print("PASS crown_none")
@@ -87,3 +100,5 @@ if __name__ == "__main__":
     test_fan_repair_exact_again(); print("PASS fan_repair")
     test_assertion_a_all_blocks_exact(); print("PASS assertion_a")
     test_every_star_self_crown_repaired_by_search(); print("PASS search_repair")
+    test_star_block_n5_dim2(); print("PASS star_n5")
+    test_n5_crown_repaired_by_search(); print("PASS n5_crown_repair")

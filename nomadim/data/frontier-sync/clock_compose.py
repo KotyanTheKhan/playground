@@ -41,6 +41,68 @@ def star_block_b1():
     return [(0, 1), (0, 2), (0, 3), (0, 2), (0, 1)]
 
 
+def star_block(n):
+    """Return the star-block syncs for an n-process system (hub = process 0).
+
+    Gather phase: hub 0 syncs with each leaf 1..n-1 in order.
+    Scatter phase: hub 0 syncs with each leaf n-2..1 in reverse order.
+    Total syncs: 2*(n-1) - 1 (one fewer because hub never syncs with itself
+    and the reversal covers leaves n-2 down to 1, skipping 0).
+
+    For n=4 this produces [(0,1),(0,2),(0,3),(0,2),(0,1)] which equals B1.
+    """
+    gather  = [(0, k) for k in range(1, n)]
+    scatter = [(0, k) for k in range(n - 2, 0, -1)]
+    return gather + scatter
+
+
+def anyN_probe(n, perm, max_len=2):
+    """Probe star(n)⊛star(n) under perm: dimensions, fan, and minimal repair.
+
+    Parameters
+    ----------
+    n       : number of processes
+    perm    : list of length n, the frontier matching permutation
+    max_len : maximum connector length to search (0 = skip search)
+
+    Returns a dict with keys:
+      direct_dim   -- dimension of the direct composition (no connector)
+      fan_len      -- length of the perm-fan connector (= N - #cycles)
+      fan_repairs  -- bool: does the perm-fan connector restore (True, 2)?
+      min_len      -- 0 if direct_dim==2; len of shortest found connector if
+                      found within max_len; None if search failed / skipped
+    """
+    from clock_fan import fan_connector, compose_with_connector as cwc
+    A = star_block(n)
+    B = star_block(n)
+
+    # 1. direct composition (no connector)
+    direct = cwc(A, B, perm, use_connector=False)
+    _, direct_dim = clock_check_syncs(n, direct)
+
+    # 2. perm-fan length and whether it repairs
+    fan = fan_connector(perm)
+    fan_len = len(fan)
+    repaired_fan = cwc(A, B, perm, use_connector=True)
+    fan_repairs = (clock_check_syncs(n, repaired_fan) == (True, 2))
+
+    # 3. minimal repair search
+    if direct_dim == 2:
+        min_len = 0
+    elif max_len == 0:
+        min_len = None
+    else:
+        connector = min_repair_connector(A, B, perm, n, max_len)
+        min_len = len(connector) if connector is not None else None
+
+    return {
+        'direct_dim': direct_dim,
+        'fan_len':    fan_len,
+        'fan_repairs': fan_repairs,
+        'min_len':    min_len,
+    }
+
+
 def load_blocks():
     """The 10 minimum dim-2 fully-synced N=4 blocks (S=5)."""
     blocks = []
