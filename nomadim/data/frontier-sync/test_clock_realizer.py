@@ -22,6 +22,22 @@ def test_realizer_none_for_crown():
     edges = [(i, 3 + j) for i in range(3) for j in range(3) if i != j]
     assert extract_realizer(nv, edges) is None
 
+from clock_realizer import clock_of, clock_is_exact
+
+def test_clock_exact_two_chains():
+    nv, edges = 4, [(0, 1), (2, 3)]
+    clock = clock_of(nv, edges)            # dict v -> (c1, c2)
+    assert clock is not None
+    ok, bad = clock_is_exact(nv, edges, clock)
+    assert ok, f"clock not exact: {bad}"
+
+def test_clock_none_for_crown():
+    nv = 6
+    edges = [(i, 3 + j) for i in range(3) for j in range(3) if i != j]
+    assert clock_of(nv, edges) is None     # dim 3 -> no 2-coord clock
+
 if __name__ == "__main__":
     test_realizer_of_two_chains(); print("PASS two_chains")
     test_realizer_none_for_crown(); print("PASS crown_none")
+    test_clock_exact_two_chains(); print("PASS clock_exact")
+    test_clock_none_for_crown(); print("PASS clock_none")

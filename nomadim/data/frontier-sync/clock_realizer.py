@@ -37,6 +37,32 @@ def extract_realizer(nv, edges):
     return L1, L2
 
 
+def clock_of(nv, edges):
+    """The 2-coordinate clock: v -> (rank in L1, rank in L2). None if dim>2."""
+    rz = extract_realizer(nv, edges)
+    if rz is None:
+        return None
+    L1, L2 = rz
+    return {v: (L1[v], L2[v]) for v in range(nv)}
+
+
+def clock_is_exact(nv, edges, clock):
+    """Check clock(x) <= clock(y) (componentwise) iff x ->hb y (reach+refl).
+    Returns (True, None) or (False, (x, y, reason)) for the first violation.
+    """
+    reach = reachable_closure(nv, edges)
+    def hb(x, y):
+        return x == y or y in reach[x]
+    for x in range(nv):
+        cx = clock[x]
+        for y in range(nv):
+            cy = clock[y]
+            le = cx[0] <= cy[0] and cx[1] <= cy[1]
+            if le != hb(x, y):
+                return False, (x, y, f"clock_le={le} hb={hb(x, y)}")
+    return True, None
+
+
 if __name__ == "__main__":
     result = extract_realizer(4, [(0, 1), (2, 3)])
     print(f"2-chain example realizer: {result}")
