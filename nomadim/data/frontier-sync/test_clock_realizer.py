@@ -70,6 +70,13 @@ def test_assertion_a_all_blocks_exact():
     failures = assertion_a_single_blocks(blocks)
     assert failures == [], f"blocks not exact: {failures}"
 
+from clock_compose import search_repair_star_self
+
+def test_every_star_self_crown_repaired_by_search():
+    r = search_repair_star_self(max_len=2)
+    assert r['n_crowns'] > 0
+    assert r['all_repaired'] is True, f"unrepaired crowns: {r['records']}"
+
 if __name__ == "__main__":
     test_realizer_of_two_chains(); print("PASS two_chains")
     test_realizer_none_for_crown(); print("PASS crown_none")
@@ -79,3 +86,4 @@ if __name__ == "__main__":
     test_crown_fails_at_two_coords(); print("PASS crown_fail")
     test_fan_repair_exact_again(); print("PASS fan_repair")
     test_assertion_a_all_blocks_exact(); print("PASS assertion_a")
+    test_every_star_self_crown_repaired_by_search(); print("PASS search_repair")
