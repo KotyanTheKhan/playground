@@ -36,3 +36,13 @@ def fan_connector(perm):
             if c != root:
                 fan.append((root, c))
     return fan
+
+
+def compose_with_connector(a_syncs, b_syncs, perm, use_connector=True):
+    """Build the composed sync list A ; [connector fan] ; relabel(B).
+    perm relabels B's channels (the frontier matching). When use_connector,
+    the repairing-sync fan for perm is inserted between A and B.
+    """
+    connector = fan_connector(perm) if use_connector else []
+    relabelled_b = [(perm[i], perm[j]) for (i, j) in b_syncs]
+    return list(a_syncs) + connector + relabelled_b
