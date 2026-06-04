@@ -1,0 +1,33 @@
+execution:
+  n_procs: 8
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 4]
+    - [0, 5]
+    - [0, 6]
+    - [0, 7]
+    - [0, 6]
+    - [0, 5]
+    - [0, 4]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+    - [1, 2]
+    - [0, 2]
+    - [0, 1]
+    - [0, 3]
+    - [0, 4]
+    - [0, 5]
+    - [0, 6]
+    - [0, 7]
+    - [0, 6]
+    - [0, 5]
+    - [0, 4]
+    - [0, 3]
+    - [0, 1]
+    - [0, 2]
+meta:
+  notes: "Recovered: the leaf-2cycle crown rescued to dimension 2 by a connector of 1 sync(s) [(1, 2)] among the moved channels [1, 2]. z3-verified dim 2."
+  dimension: 2
