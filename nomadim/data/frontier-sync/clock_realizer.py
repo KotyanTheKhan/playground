@@ -63,6 +63,37 @@ def clock_is_exact(nv, edges, clock):
     return True, None
 
 
+from hunt_n7 import PG  # event-DAG model (mirrors process_graph.cpp)
+
+
+def pg_of(n, syncs):
+    """Build nomadim's event PG for a sync list; return (nv, edges)."""
+    g = PG(n)
+    for a, b in syncs:
+        g.sync(a, b)
+    return g.nv, g.edges
+
+
+def clock_check_syncs(n, syncs):
+    """Construct the clock for an execution and check exactness against its PG.
+    Returns (exact, dim) where dim in {2, 3} (or higher).
+    exact is True/False when a 2-clock exists; None when none exists (dim>2).
+    """
+    nv, edges = pg_of(n, syncs)
+    clock = clock_of(nv, edges)
+    if clock is None:
+        # No 2-realizer: confirm the dimension for the report.
+        from hunt_n7 import z3_dim, PG as _PG
+        g = _PG(n)
+        for a, b in syncs:
+            g.sync(a, b)
+        d = z3_dim(g)
+        d = 3 if d == ">=4" else int(d)
+        return None, d
+    ok, _bad = clock_is_exact(nv, edges, clock)
+    return ok, 2
+
+
 if __name__ == "__main__":
     result = extract_realizer(4, [(0, 1), (2, 3)])
     print(f"2-chain example realizer: {result}")

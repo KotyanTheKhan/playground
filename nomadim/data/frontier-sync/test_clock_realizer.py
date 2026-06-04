@@ -36,8 +36,37 @@ def test_clock_none_for_crown():
     edges = [(i, 3 + j) for i in range(3) for j in range(3) if i != j]
     assert clock_of(nv, edges) is None     # dim 3 -> no 2-coord clock
 
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from hunt_n7 import PG
+from clock_fan import compose_with_connector
+from clock_realizer import clock_check_syncs
+
+B1 = [(0, 1), (0, 2), (0, 3), (0, 2), (0, 1)]
+
+def test_single_block_exact():
+    # A single dim-2 star block: clock exists and is exact.
+    ok, dim = clock_check_syncs(4, B1)
+    assert dim == 2 and ok is True
+
+def test_crown_fails_at_two_coords():
+    # B1 composed with itself, swap 2<->3, NO connector -> crown (dim 3).
+    syncs = compose_with_connector(B1, B1, [0, 1, 3, 2], use_connector=False)
+    ok, dim = clock_check_syncs(4, syncs)
+    assert dim == 3            # no 2-coord clock exists
+    assert ok is None          # clock_of returned None -> not exact, by absence
+
+def test_fan_repair_exact_again():
+    # Same crown, but with the (2,3) repairing connector -> dim 2, exact.
+    syncs = compose_with_connector(B1, B1, [0, 1, 3, 2], use_connector=True)
+    ok, dim = clock_check_syncs(4, syncs)
+    assert dim == 2 and ok is True
+
 if __name__ == "__main__":
     test_realizer_of_two_chains(); print("PASS two_chains")
     test_realizer_none_for_crown(); print("PASS crown_none")
     test_clock_exact_two_chains(); print("PASS clock_exact")
     test_clock_none_for_crown(); print("PASS clock_none")
+    test_single_block_exact(); print("PASS single_block")
+    test_crown_fails_at_two_coords(); print("PASS crown_fail")
+    test_fan_repair_exact_again(); print("PASS fan_repair")
