@@ -62,6 +62,14 @@ def test_fan_repair_exact_again():
     ok, dim = clock_check_syncs(4, syncs)
     assert dim == 2 and ok is True
 
+from clock_compose import load_blocks, assertion_a_single_blocks
+
+def test_assertion_a_all_blocks_exact():
+    blocks = load_blocks()
+    assert len(blocks) == 10               # the 10 N=4 S=5 dim-2 blocks
+    failures = assertion_a_single_blocks(blocks)
+    assert failures == [], f"blocks not exact: {failures}"
+
 if __name__ == "__main__":
     test_realizer_of_two_chains(); print("PASS two_chains")
     test_realizer_none_for_crown(); print("PASS crown_none")
@@ -70,3 +78,4 @@ if __name__ == "__main__":
     test_single_block_exact(); print("PASS single_block")
     test_crown_fails_at_two_coords(); print("PASS crown_fail")
     test_fan_repair_exact_again(); print("PASS fan_repair")
+    test_assertion_a_all_blocks_exact(); print("PASS assertion_a")
