@@ -31,7 +31,7 @@ any N.
 | Deliverable | Doc-first derivation, with an implementation (validation harness) gated behind it. |
 | Model | **Literal pairwise-sync (nomadim)** — executions are lists of pairwise syncs `(i,j)`; the connector is a real sequence of syncs. |
 | Correctness bar | **Construction + empirical validation** against nomadim's z3 / brute-force oracle. Coq proof deferred. |
-| Construction approach | **A (within-block depth+tag, comp-flip) as the engine; C (block-index + seam scalar φ/ψ) for composition and any-N generalization.** B (offline `M1/M2` ranks) used only as a validation oracle. |
+| Construction approach | Within-block: **exact 2-realizer** extracted from the z3 model (the raw depth+tag engine was found sound-but-not-exact and dropped). Composition: seam `φ/ψ` interleave (`M1/M2`), driven by the connector. Any-N via the fan law. |
 | Connector | **First-class**: composition is *always* `A ; CONNECTOR ; B`; the connector is its own block layer, never invisible glue. |
 
 ## Honest scope boundary
@@ -65,60 +65,72 @@ ground truth and the clock is checked against that.
 
 ---
 
-## §2 — The clock: two lexicographic keys, O(1), N-independent
+## §2 — The clock: the two coordinates of a 2-realizer
 
 ```
 clock(e) = ( c₁(e) , c₂(e) )                       -- "two elements"
-c₁(e) = ( block(e),  u₁(e) )                        -- lexicographic
-c₂(e) = ( block(e),  u₂(e) )                        -- lexicographic
+c₁(e) = rank of e in L₁                             -- a linear extension of →hb
+c₂(e) = rank of e in L₂                             -- a second linear extension
 e →hb f   ⟺   c₁(e) ≤ c₁(f)  ∧  c₂(e) ≤ c₂(f)       -- componentwise
 ```
 
-- `block(e) ∈ {0 (A), 1 (CONNECTOR), 2 (B), …}` — the block-layer index. Because
-  each block is fully synced, the layer boundary is a **true barrier**: all of
-  layer `k` precedes all of layer `k+1`. This is the coarse, sound-and-exact
-  outer coordinate, and it is shared by both keys.
-- `(u₁(e), u₂(e))` — the **within-block 2-realizer** produced by the
-  depth+tag engine (§3): `u₁ = (depth, tag)`, `u₂ = (depth, Cmax − tag)`.
-- The **comp-flip** — only `tag`'s direction reverses between `u₁` and `u₂` — is
-  the established dimension-2 device (`BarrierExecDim`): two events with equal
-  `depth` but different `tag` disagree across the two keys, hence come out
-  **incomparable**, exactly as concurrent chains in a layer require.
+`(L₁, L₂)` is a **2-realizer** of the composed poset: two total orders whose
+intersection is exactly `→hb`. The clock is each event's rank in the two orders.
+This exists iff the poset has dimension ≤ 2 — the whole point.
 
-"Two elements" = the two lexicographic keys `c₁, c₂` (each a short fixed-width
-tuple, mirroring `OnlineClock`'s `nat³ × nat³`). Memory is **2 keys per event,
+**Correction from planning (block-index is *not* a clean barrier).** An earlier
+draft prepended a block-index `block(e) ∈ {A, CONNECTOR, B}` as an outer
+lexicographic coordinate, treating each block boundary as a full barrier. That is
+**unsound**: running block A then block B on the same processes leaves an idle
+process's A-head event *concurrent* with B's first sync (it is not in that sync's
+causal past), yet block-index ordering would assert `A-head →hb (B's first
+sync)`. The true composition is `compose_le F` (`FrontierCompose.v`): cross-block
+order is governed by the **frontier relation `F`**, and a threshold `F` realizes
+as the `M1/M2` **frontier interleave** — A- and B-events interleaved by their
+`φ/ψ` value, *not* "all A before all B". So `L₁, L₂` are genuine realizers of the
+*whole* composed poset; the block structure shows up as the §4 seam interleave,
+not a lexicographic prefix.
+
+**Building blocks (compositional construction).** `L₁, L₂` are assembled from:
+each block's own exact 2-realizer (§3, the within-block coordinates) + the seam
+`φ/ψ` interleave that the connector installs (§4). The `M1/M2` formulas of
+`threshold_dim_le2` are the seam-stitch recipe in Coq form.
+
+"Two elements" = the two coordinates `c₁, c₂` (small integers / short tuples,
+mirroring `OnlineClock`'s `nat³ × nat³`). Memory is **2 coordinates per event,
 independent of N** — strictly below the vector clock's `N` for `N ≥ 3`.
 
 ---
 
-## §3 — The online protocol
+## §3 — Constructing the coordinates (within a block) and the online question
 
-Per-process state: `(blk_p, d_p, g_p)` = (block counter, depth, tag).
-Initialize `blk_p = 0`, `d_p = 0`, `g_p = p` (each process is its own initial
-tag/channel).
+**Within-block exact 2-realizer.** Each block, being dimension 2, has an exact
+2-realizer `(L₁ᵇ, L₂ᵇ)` of its internal `→hb`. We extract it directly and
+exactly from the **z3 model** already used as the oracle: `confirm_dim.build_smt`
+at `t = 2` declares position variables `p0_v`, `p1_v` constrained to be two
+linear extensions whose intersection is the poset; when SAT, those two position
+vectors **are** `(L₁ᵇ, L₂ᵇ)`. The within-block coordinates are the ranks
+`u₁(v) = p0_v`, `u₂(v) = p1_v`. (Blocks are small — ≤ `N + 3·S` vertices,
+e.g. 19 for N=4/S=5 — so extraction is instant.) This is exact by construction
+for any dim-2 block, sidestepping the `depth+tag` over-ordering trap below.
 
-At sync `sₜ = (i, j)`:
+**Why not the raw `depth+tag` engine.** A candidate online engine assigned each
+process `(depth, tag)` with `c = (depth, ±tag)`. Planning showed it is **sound
+but not exact**: any two events with different `depth` are forced comparable by
+the clock, so exactness needs incomparable events to share a depth — true only
+for strict barrier/weak-order blocks, false for a general dim-2 block (e.g.
+`DimExampleN3`'s `a ∥ e` cross-layer concurrency). It is therefore *not* the
+within-block engine; the exact z3-extracted realizer is.
 
-1. **Depth (2-way barrier advance):** `d := max(d_i, d_j) + 1; d_i := d_j := d`.
-2. **Tag merge:** `g := merge(g_i, g_j)` (a canonical representative, e.g.
-   `min`); `g_i := g_j := g`. Events that synced share a tag.
-3. **Stamp:** `stamp(sₜ) := ( (blk, d, g), (blk, d, Cmax − g) )`.
-
-At a **block boundary** (the current fully-synced block has completed): every
-participant performs `blk += 1` and resets `d`, `g` for the new layer. The
-boundary is detected from the execution's block structure (the harness knows
-where A ends, the connector begins, and B begins — this is given by how the
-composed execution was built).
-
-**Message budget:** each sync exchanges only the two keys (a handful of integers)
-— **O(1) per sync, independent of N** — versus a vector clock's `N` entries per
-message. This is the concrete "cheaper than vector clocks" payoff.
-
-The depth+tag engine runs *within* each block, where the block's internal
-structure makes `(u₁, u₂)` a genuine 2-realizer of the block's internal `→hb`.
-It is **not** used across block boundaries — those are handled by `block(e)` and
-the connector (§4), avoiding the Lamport over-ordering trap (a raw global depth
-would wrongly order genuinely-concurrent cross-layer events).
+**The online question (deliberately deferred, named).** A 2-realizer extracted
+post-hoc is an *offline* clock. A vector clock earns its `Θ(N)` by being
+maintainable *on the fly*. Whether the composed 2-coordinate clock can be
+maintained online with `O(1)` per-process state is exactly the open problem of
+`DIM2_CLOCK.md §6`, now in the harder pairwise model. This spec's deliverable is
+the **construction + empirical exactness** of the offline composed clock and the
+composition/repair law; the online per-process protocol is future work. The
+memory payoff we *do* establish: the clock is **2 coordinates per event,
+independent of N** — below the vector clock's `N` for `N ≥ 3`.
 
 ---
 
@@ -141,12 +153,12 @@ cross-block order is `compose_le F` (cf. `FrontierCompose.v`).
 - **Crossing seam (crown):** no monotone `φ/ψ` exists ⟹ dimension 3 ⟹ no
   2-coordinate clock. The connector is the **fan**: one repairing sync per
   transposition, `N − #cycles` total, rooted at one channel per cycle
-  (`(1,2)(1,3)…(1,d)` for a d-cycle). Running those syncs through the depth+tag
-  engine **re-mixes the crossed tags through a shared event**, installing the
-  monotone `φ/ψ` that block B needs and restoring dimension 2.
+  (`(1,2)(1,3)…(1,d)` for a d-cycle). Those syncs **re-route the crossed channels
+  through a shared event**, installing the monotone `φ/ψ` that block B needs and
+  restoring dimension 2 (so a 2-realizer, hence the clock, exists again).
 
-Thus there is **one uniform mechanism**: the connector layer's syncs realign
-`tag`/`g` so block B's tags line up monotonically with block A's outputs. The
+Thus there is **one uniform mechanism**: the connector layer's syncs realign the
+seam so block B's channels line up monotonically with block A's outputs. The
 empty fan and the repair fan are the same construction at `length 0` and
 `length N − #cycles`. The repairing sync is the device that "buys back the second
 coordinate."
@@ -160,12 +172,12 @@ Two block archetypes from `COMPOSE_N4.md`:
 - **Star `B1`** `(0,1)(0,2)(0,3)(0,2)(0,1)` — gather to hub 0, scatter back.
 - **Two-pairs `B9`** `(0,1)(2,3)(0,2)(0,1)(2,3)`.
 
-Both are dim 2 with an explicit depth+tag within-block clock (the gather/scatter
-hourglass = the X-cross of `DIM2_CLOCK.md §4`; `tag` = which leaf/group).
+Both are dim 2 (the gather/scatter hourglass = the X-cross of `DIM2_CLOCK.md
+§4`); each has an exact 2-realizer extracted per §3.
 
 Demonstrations (each a falsifiable check in §7):
 
-1. **Single block exact** — the within-block clock realizes each block's `→hb`.
+1. **Single block exact** — the extracted 2-realizer realizes each block's `→hb`.
 2. **Threshold composition exact** — identity-matching glue stays 2 coords.
 3. **Crown is a negative control** — a crossing matching (e.g. swap 2↔3 on
    `B1;B1`) needs a 3rd coordinate; the 2-coord clock provably *fails* exactness.
@@ -201,7 +213,7 @@ A Python harness living alongside the existing `nomadim/data/frontier-sync/*.py`
 tooling. For each execution under test it:
 
 1. Reads the execution (and its known block boundaries / matching).
-2. Runs the §3 protocol to assign every event a `clock = (c₁, c₂)`.
+2. Extracts the §3 2-realizer to assign every event a `clock = (c₁, c₂)`.
 3. Builds `→hb` via nomadim's poset (ground truth).
 4. **Checks exactness:** for all event pairs `(e, f)`,
    `clock(e) ≤ clock(f)  ⟺  e →hb f`.
