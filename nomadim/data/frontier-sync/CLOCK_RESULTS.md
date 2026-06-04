@@ -80,6 +80,7 @@ repair in general.  At N=4, the search-based connector outperforms the fan on
 
 The heterogeneous finding (61/90 pairs crown under identity) confirms that
 crowning is a property of the full frontier relation, not of any single block.
-47 of those 61 crowns are single-sync repairable; the 14 that are not indicate
-that some frontier configurations require a 2-sync connector even in the
-identity-matching regime.
+47 of those 61 crowns are single-sync repairable; the remaining 14 are not
+repaired by any single inserted sync (the search only tested length-1
+connectors), so some identity-matching frontier configurations need a longer
+connector — the exact minimal length for those 14 was not measured here.
