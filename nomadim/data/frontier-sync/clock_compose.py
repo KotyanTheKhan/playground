@@ -127,14 +127,18 @@ def assertion_a_single_blocks(blocks):
 
 
 def assertion_b_threshold(blocks):
-    """Return list of (nameA, nameB, ok, dim) for identity-perm compositions NOT exact at dim 2.
+    """Return list of (nameA, nameB, ok, dim) for identity-perm DIRECT compositions NOT exact at dim 2.
 
-    Assertion (b): threshold (non-crossing) compositions stay exact at dim 2.
-    The simplest non-crossing matching is the identity permutation [0,1,2,3]
-    composed WITHOUT a connector.  For each ordered block pair (A, B) we build
-    compose_with_connector(A, B, [0,1,2,3], use_connector=False) and assert
-    clock_check_syncs(4, ...) == (True, 2).  Any pair that fails is returned as
-    a failure tuple; an empty list means all pairs pass.
+    This probes spec assertion (b) ("threshold/non-crossing compositions stay
+    dim 2") via the identity permutation [0,1,2,3], composed WITHOUT a connector.
+    EMPIRICAL FINDING: the result is NOT [] — identity-perm is a non-crossing
+    *channel wiring*, but it does NOT imply a threshold frontier relation F in the
+    compose_le-F sense.  Whether the seam is threshold depends on BOTH blocks'
+    frontier structure, not the permutation alone, so many identity-perm pairs
+    still crown (dim 3).  See heterogeneous_identity_crowns() and CLOCK_RESULTS.md
+    for the count.  Hence the naive form of assertion (b) is FALSE; the genuine
+    threshold property is subtler than perm = identity.  Returns the failing pairs
+    (the crowns); an empty list would mean every identity composition stays dim 2.
     """
     identity = [0, 1, 2, 3]
     failures = []

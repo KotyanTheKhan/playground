@@ -63,6 +63,16 @@ rescue check: (True, 2)
   frontier relation F (both blocks + matching), not the permutation alone.
   This finding is documented; it is not the headline result.
 
+  **This subsumes spec assertion (b).** The spec listed "(b) threshold
+  (non-crossing) compositions stay exact at dim 2" and tentatively read the
+  identity matching as the non-crossing case. The data refutes that naive
+  reading: identity is a non-crossing *channel wiring* but does **not** imply a
+  threshold frontier relation `F`, so many identity-perm compositions still
+  crown. The genuine threshold property depends on both blocks' frontier
+  structure, not on the permutation. Assertion (b) as originally phrased is
+  therefore false; the correct statement is the search-repair headline plus this
+  heterogeneous finding.
+
 ---
 
 ## Reading
