@@ -1,6 +1,6 @@
 (* YAML parser — field/pair parsers + document assembler over cleaned lines. *)
 From Stdlib Require Import String Ascii List Arith Lia.
-From Execution Require Import Yaml YamlLex.
+From ExecYaml Require Import Yaml YamlLex.
 Import ListNotations.
 Open Scope string_scope.
 

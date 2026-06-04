@@ -4,7 +4,8 @@ From Posets Require Import PosetClasses FinitePoset.
 From Dimension Require Import DimDefs.
 From Execution Require Import Op Event Edges Rank Poset Schedule ScheduleWf SyncShape
                              Ordinal DisjointChainsDim BarrierExecDim
-                             BarrierExecDimExamples OnlineClock.
+                             BarrierExecDimExamples.
+From ExecClock Require Import OnlineClock.
 Import ListNotations.
 
 (* ================================================================= *)

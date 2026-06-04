@@ -3,7 +3,8 @@
 
 From Stdlib Require Import String Ascii List Arith Lia.
 From Posets Require Import PosetClasses.
-From Execution Require Import Schedule Yaml.
+From Execution Require Import Schedule.
+From ExecYaml Require Import Yaml.
 Import ListNotations.
 Open Scope string_scope.
 

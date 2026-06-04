@@ -3,7 +3,8 @@
    nth r (prog p) -- p's own program -- with no Schedule projection (closes W-2). *)
 From Stdlib Require Import List Arith Lia ProofIrrelevance.
 From Posets Require Import PosetClasses.
-From Execution Require Import Op OnlineClock OnlineClockLocal.
+From Execution Require Import Op.
+From ExecClock Require Import OnlineClock OnlineClockLocal.
 Import ListNotations.
 
 Record RSys := { rs_nprocs : nat ; rs_nrounds : nat ; rs_prog : nat -> list Op }.

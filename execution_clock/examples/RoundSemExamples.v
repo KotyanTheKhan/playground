@@ -1,7 +1,8 @@
 (* Barrier-round model: worked instance (test-only). *)
 From Stdlib Require Import List Arith Lia.
 From Posets Require Import PosetClasses.
-From Execution Require Import Op OnlineClock OnlineClockLocal RoundSem.
+From Execution Require Import Op.
+From ExecClock Require Import OnlineClock OnlineClockLocal RoundSem.
 Import ListNotations.
 
 (* 3 processes, 1 round: proc0 -> proc1 (msg), proc2 idle *)

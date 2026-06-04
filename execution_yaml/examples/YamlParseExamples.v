@@ -1,6 +1,6 @@
 (* YAML reader examples (test-only): round-trip + messy-input acceptance. *)
 From Stdlib Require Import String Ascii List Arith.
-From Execution Require Import Yaml YamlLex YamlParse.
+From ExecYaml Require Import Yaml YamlLex YamlParse.
 Import ListNotations.
 Open Scope string_scope.
 

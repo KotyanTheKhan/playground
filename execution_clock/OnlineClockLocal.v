@@ -4,7 +4,8 @@
 From Stdlib Require Import List Arith Lia.
 From Posets Require Import PosetClasses FinitePoset.
 From Execution Require Import Op Event Edges Rank Poset Schedule ScheduleWf SyncShape
-                             Ordinal DisjointChainsDim BarrierExecDim OnlineClock.
+                             Ordinal DisjointChainsDim BarrierExecDim.
+From ExecClock Require Import OnlineClock.
 Import ListNotations.
 
 (* The clock computed from purely local data: N = system size, p = own pid,

@@ -1,0 +1,6 @@
+(include_subdirs qualified)
+
+(coq.theory
+ (name ExecClock)
+ (package playground)
+ (theories Execution Posets Dimension Stdlib))

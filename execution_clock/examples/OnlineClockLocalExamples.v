@@ -2,8 +2,8 @@
 From Stdlib Require Import List Arith Lia.
 From Posets Require Import PosetClasses FinitePoset.
 From Execution Require Import Op Event Poset Schedule ScheduleWf
-                             BarrierExecDim OnlineClock OnlineClockExamples
-                             OnlineClockLocal.
+                             BarrierExecDim.
+From ExecClock Require Import OnlineClock OnlineClockExamples OnlineClockLocal.
 Import ListNotations.
 
 (* the local observations of s_msg3's three events *)
