@@ -97,6 +97,7 @@ execution/dimension/DimBridge.v
 execution/dimension/DimCriticalPairs.v
 execution/dimension/DimIso.v
 execution/dimension/DimTwoGeneric.v
+execution/dimension/ExtremumReductionAux.v
 execution/dimension/ExtremumReduction.v
 execution/dimension/FinExtremumDim.v
 execution/dimension/FinPosetDim.v
