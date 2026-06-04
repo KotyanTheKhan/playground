@@ -100,6 +100,7 @@ execution/dimension/DimTwoGeneric.v
 execution/dimension/ExtremumReduction.v
 execution/dimension/FinExtremumDim.v
 execution/dimension/FinPosetDim.v
+execution/dimension/FinPosetDimSurgeryAux.v
 execution/dimension/FinPosetDimSurgery.v
 execution/dimension/Ordinal.v
 execution/dimension/Reduction.v
