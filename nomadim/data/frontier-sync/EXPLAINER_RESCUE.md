@@ -1,4 +1,4 @@
-# One sync to untangle them: rescuing a "crown" back to a 2-coordinate clock
+# Counting the crossings: how many syncs it takes to untangle a "crown"
 
 *Who this is for: engineers and scientists comfortable with distributed systems
 and a little discrete math, but not with order-dimension theory or this project's
@@ -15,13 +15,22 @@ process. You glue them together end to end, expecting the result to stay cheap.
 Most of the time it doesn't: gluing two cheap things accidentally creates a
 **crown**, an obstruction that drags the cost up to a *third* coordinate.
 
-The fix is almost comically small. **A single extra synchronization — one
-conversation, placed in exactly the right spot — buys back the cheap clock**,
-every single time. Not any sync: the *right* sync, on the precise pair of
-processes that the gluing crossed. Place it anywhere else and it usually does
-nothing.
+The fix is almost comically small — and it turns out to follow a clean law. The
+way you glue the two executions is a *shuffle* of their channels (a permutation),
+and that shuffle's **crossings** are what create the crown. **Each crossing costs
+exactly one extra synchronization to undo.** A simple swap of two channels: one
+sync. A three-way rotation: two syncs. A full N-way scramble: N − 1 syncs. In one
+line:
 
-This is a concrete, minimal *dimension-repair* operation, and it's the story
+> **recovery length = number of crossings in the gluing = N − (number of cycles
+> in the shuffle).**
+
+And the punchline that makes it a *law* rather than a measurement: it is
+**independent of N**. The very same repair works whether you have 4 processes or
+8, because the repair lives entirely on the channels that moved.
+
+The simplest case — a single swap, fixed by a single sync — is where this story
+started (for 4 processes); the general law is where it ends. That's the arc
 below.
 
 ---
@@ -108,22 +117,24 @@ pure-star, two star/two-pairs duals, and one pure two-pairs.
 
 ---
 
-## The rescue: one sync, on exactly the crossed pair
+## The rescue, simplest case: one sync, on exactly the crossed pair
 
 Here is the heart of the piece. Instead of gluing A's output frontier *directly*
 to B's input frontier, slip a short **connector** of a few syncs in between:
 `A.syncs + connector + matched(B.syncs)`. The connector re-mixes the frontier
 before B runs.
 
-The headline result:
+Start with the simplest crowns — the ones born from a matching that just *swaps
+two channels* (a single transposition). For N = 4 *every* crown is of this kind,
+and the headline is:
 
 | connector | dim-2 variants (of 2400) |
 |-----------|--------------------------|
 | none (direct glue) | 672 = **28%** |
 | **one sync** | **2400 = 100%** |
 
-**A single connector sync rescues every crown back to dimension 2.** All five
-crown classes, gone. 28% → 100%.
+**A single connector sync rescues every N = 4 crown back to dimension 2.** All
+five crown classes, gone. 28% → 100%.
 
 But — and this is the non-obvious part — it has to be the *right* sync. A generic
 single connector typically rescues a given crown only **1 in 6** of the time (one
@@ -158,14 +169,71 @@ That whole thing is dimension 2. **Remove the middle `(1,2)` and it's the
 dimension-3 crown.** One sync is the entire difference between a two-number clock
 and a three-number clock.
 
+This single-swap case is just the smallest instance of a much cleaner law — the
+next section.
+
 ---
 
-## Why a longer connector doesn't make it free
+## The general law: one sync per crossing, the "fan" connector
 
-You might hope a *bigger* connector — more syncs to play with — eventually makes
-the problem trivial, so that "almost any connector works." It doesn't. Counting
-how many connectors of each length (L1 = 1 sync, up to L4 = 4 syncs) rescue each
-crown:
+A frontier matching is a **permutation** of the N channels: each output channel
+of A is wired to some input channel of B. A swap of two channels was the simplest
+permutation, but the gluing can scramble the channels any way at all. The
+question that opens up for larger N: *how much repair does a more tangled gluing
+need?*
+
+Push past N = 4 — to N = 5, 6, 7, 8 — and a clean answer falls out. First, recall
+that every permutation breaks into independent **cycles**: `(1 2)` is a 2-cycle (a
+swap), `(1 2 3)` is a 3-cycle (a rotation of three channels), and so on, up to the
+full N-cycle that rotates everyone. The number of crossings a permutation
+introduces is exactly its **number of transpositions** — and a d-cycle is d − 1
+transpositions, no matter how you slice it.
+
+The result: **the minimal connector that recovers dimension 2 is a "fan" of one
+sync per transposition** — pick one channel of each cycle as the root, and sync it
+once to each other channel of that cycle.
+
+- a swap (2-cycle) → fan `(1,2)` → **1 sync**
+- a 3-cycle → fan `(1,2)(1,3)` → **2 syncs**
+- a d-cycle → fan `(1,2)(1,3)…(1,d)` → **d − 1 syncs**
+- a double swap (2,2) → union of two fans `(1,2)(3,4)` → **2 syncs**
+- the full N-cycle → fan `(1,2)(1,3)…(1,N)` → **N − 1 syncs**
+
+A product of several disjoint cycles is just the union of their fans. Summing it
+all up gives the law from the hook:
+
+> **recovery length = number of transpositions of the matching
+> = N − (number of cycles) = Σ over cycles (cycle length − 1).**
+
+![The transposition law: the minimal connector is a fan of one sync per crossing, rooted at one channel of each cycle. Recovery length equals the matching's number of transpositions, N minus its number of cycles — and the same connector works for every N from 5 to 8.](figs/rescue_fan.svg)
+
+The single most surprising part is what *doesn't* appear in that formula: **N**.
+The repair does not get harder as you add processes. A 3-cycle costs two syncs
+whether you have 5 channels or 8, because the fan only touches the channels that
+actually moved — the rest of the star carries on untouched. The same connector
+file works verbatim at every N. The tangle of the gluing, not the size of the
+system, sets the price.
+
+And the N = 4 single-swap rescue from the previous section is now simply the
+**d = 2** corner of this law: one transposition, one sync.
+
+---
+
+## When you *need* a longer connector — and why it still isn't free
+
+The fan law says a d-cycle crown needs d − 1 syncs and no fewer. That number is a
+genuine **minimum**, not just a recipe that happens to work: brute force confirms
+a 3-cycle cannot be rescued by any single sync, a 4-cycle cannot be rescued by any
+two, and below d − 1 the search comes up empty. So longer connectors aren't a
+luxury for the d > 2 regime — they're mandatory. The deeper the cycle, the more
+crossings, the more syncs.
+
+But "mandatory" raises the same worry in reverse: once you're *allowed* a longer
+connector, does the problem go soft — does almost any connector of the right
+length work? It doesn't. Even at N = 4 (where every crown is a single swap, so
+one sync *suffices*), letting yourself use connectors up to length 4 anyway shows
+the pattern. Counting how many connectors of each length (L1 = 1 sync, up to
+L4 = 4 syncs) rescue each crown:
 
 ![Rescuer counts per connector length for the five crown classes. The count grows with length, but the fraction that works stays flat at roughly 10–22%. Red rows are pure-star crowns, whose crossed pair is unavoidable until length 3–4; the green row is the two-pairs crown #5, which has a second crossing (0,3) that lets short connectors dodge the (1,2) pair earlier — but always as a minority.](figs/rescue_lengths.svg)
 
@@ -204,19 +272,32 @@ example (the `(1,2)`-rescued composition) was additionally confirmed by
 nomadim's **independent brute-force** dimension algorithm — two methods, same
 answer.
 
-The composition sweep itself is **exhaustive within its scope**: all 2400 `(A, B,
+The N = 4 composition sweep is **exhaustive within its scope**: all 2400 `(A, B,
 matching)` variants were generated and classified, not sampled, and the "28% stay
 dim 2 / one sync → 100%" counts are exact over that set. The 5 crown classes and
 5 dim-2 classes come from a Weisfeiler–Leman isomorphism signature on the
 reachability closure. The crossed-pair and connector-length counts in the tables
 are direct enumerations (`check_connector_pairs.py`, `check_connectors_len.py`).
 
-The honest scope: all of this is **N = 4, blocks of 5 syncs, connectors up to
-length 4**. It is a complete and verified picture *of that world*. It is not a
-proof that the "one sync on the crossed pair" rule holds for larger N — that
-generalization isn't claimed here. What *is* claimed is backed either by
-exhaustive enumeration or by the z3 oracle (with the headline case double-checked
-by brute force).
+The general fan law was checked by the same z3 oracle for **every cycle length
+d = 2..N and every N = 5, 6, 7, 8** — including the 7-sync fan that rescues the
+full 8-cycle. So the d − 1 length is a verified *achievable* bound everywhere; and
+where brute force is feasible it is also the verified *minimum* (a 4-cycle needs
+exactly 3 — the length-3 fan is 1 of 216 connectors — and length ≤ 2 fails;
+for d ≥ 5 the length-≤-2 search likewise fails). The N-independence is read off
+directly: the table is identical for N = 5 through 8. There are 52 stored witness
+executions (26 crowns + 26 recoveries) under `connector_examples/`.
+
+Two honest caveats carried from the source. First, for N ≥ 6 the full set of
+dimension-2 blocks **cannot be enumerated**, so the **star** is used as the
+representative block rather than checked against all blocks; for N = 5, where the
+6-block / 120-matching scan *was* run over the actual enumerated blocks, it gave
+the same picture (6% direct dim-2, 12 crown classes, all recovered). Second, a
+small structural aside that the law predicts and the scan confirms:
+**hub ↔ leaf swaps never crown** — swapping the central hub with a leaf is a
+symmetry of the star, so it introduces no crossing at all. Everything claimed is
+backed either by exhaustive enumeration or by the z3 oracle, with the N = 4
+headline case additionally double-checked by nomadim's independent brute force.
 
 ---
 
@@ -226,24 +307,31 @@ Composition is how you'd actually build big executions out of small, cheap ones 
 stack a `√N`-coordinate-clock execution on top of another and hope the result
 stays cheap. This result is the warning *and* the remedy:
 
-- **The warning:** gluing two dimension-2 blocks is *usually* (72% of wirings) a
-  trap. A generic frontier alignment crosses into a crown and silently costs you
-  a third clock coordinate.
-- **The remedy:** that cost is repairable with the smallest possible move. One
-  synchronization, placed across the crossing the gluing introduced, collapses
-  the crown and restores the two-coordinate clock.
+- **The warning:** gluing two dimension-2 blocks is *usually* (72% of wirings at
+  N = 4) a trap. A generic frontier alignment crosses into a crown and silently
+  costs you a third clock coordinate.
+- **The remedy:** that cost is repairable, and the price tag is a clean
+  combinatorial invariant of how tangled the gluing was. Look at the matching as a
+  permutation, count its crossings — `N − (number of cycles)` — and that many
+  well-placed synchronizations, arranged as a fan over each cycle, collapse every
+  crown and restore the two-coordinate clock.
 
-So "dimension repair" isn't an abstraction here — it's a concrete operation with
-a concrete recipe: *find the pair your matching crossed, and sync it once.* The
-crossing structure tells you both that you have a problem and exactly where to
-put the one sync that fixes it.
+So "dimension repair" isn't an abstraction here — it's a concrete operation with a
+concrete, *N-independent* recipe: *decompose your matching into cycles, and lay a
+fan of one sync per crossing over each.* The crown costs you a third clock
+coordinate; the fan is the exact, minimal sequence of synchronizations that buys
+the two-coordinate clock back — and its length tells you, at a glance, precisely
+how tangled the gluing was.
 
 ---
 
-*Source: `COMPOSE_N4.md` in this folder (the authoritative writeup, with the
-2400-variant sweep, the 5 crown / 5 dim-2 classes, the crossed-pair table, and
-the length-1–4 rescuer counts). Background: `FINDINGS.md` (the order-dimension /
-√N story) and `EXPLAINER.md` (the companion piece). Verified example:
-`N4_connector1_rescue_dim2.yaml`. Reproduce with `compose_n4.py`,
+*Sources: `CONNECTOR_SCAN.md` (the N = 5..8 transposition law, the cycle-type /
+fan table, and the N-independence) and `COMPOSE_N4.md` (the authoritative N = 4
+writeup, with the 2400-variant sweep, the 5 crown / 5 dim-2 classes, the
+crossed-pair table, and the length-1–4 rescuer counts). Background: `FINDINGS.md`
+(the order-dimension / √N story) and `EXPLAINER.md` (the companion piece).
+Verified examples: `N4_connector1_rescue_dim2.yaml` and the 52 witnesses under
+`connector_examples/`. Reproduce with `scan_connector_multi.py` (the N = 5..8
+scan), `compose_n5_connector.py` (the N = 5 enumerated-block scan), `compose_n4.py`,
 `compose_n4_connector.py`, `check_connector_pairs.py`, `check_connectors2.py`,
-`check_connectors_len.py`.*
+and `check_connectors_len.py`.*

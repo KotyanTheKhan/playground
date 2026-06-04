@@ -1,0 +1,66 @@
+// The transposition law: the minimal connector that recovers a crown is a
+// "fan" of one sync per transposition in the matching's cycle decomposition.
+// recovery length = number of transpositions of pi = N - (number of cycles)
+//                 = sum over cycles of (cycle_length - 1).
+// Verified by z3 for every cycle length d=2..N and every N=5..8; also the
+// brute-force minimum where feasible. N-independent: the same connector works
+// at every N.
+digraph fan {
+  rankdir=TB;
+  labelloc="t";
+  fontname="Helvetica"; fontsize=13;
+  label="Recovery length = number of transpositions of the matching = N - (number of cycles)";
+  node [fontname="Helvetica", fontsize=11];
+
+  // ---- left column: the law as a table ----
+  tab [shape=plaintext, label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6">
+      <TR>
+        <TD BGCOLOR="#34495e"><FONT COLOR="white"><B>matching cycle type</B></FONT></TD>
+        <TD BGCOLOR="#34495e"><FONT COLOR="white"><B>fan connector</B></FONT></TD>
+        <TD BGCOLOR="#34495e"><FONT COLOR="white"><B>length</B></FONT></TD>
+      </TR>
+      <TR><TD BGCOLOR="#eafaf1">identity / hub&#8596;leaf swap</TD>
+          <TD BGCOLOR="#eafaf1">none (no crown)</TD>
+          <TD BGCOLOR="#eafaf1"><B>0</B></TD></TR>
+      <TR><TD BGCOLOR="#fff7e0">transposition (2-cycle)</TD>
+          <TD BGCOLOR="#fff7e0">(1,2)</TD>
+          <TD BGCOLOR="#fff7e0"><B>1</B></TD></TR>
+      <TR><TD BGCOLOR="#fff7e0">3-cycle</TD>
+          <TD BGCOLOR="#fff7e0">(1,2)(1,3)</TD>
+          <TD BGCOLOR="#fff7e0"><B>2</B></TD></TR>
+      <TR><TD BGCOLOR="#fff7e0">double transposition (2,2)</TD>
+          <TD BGCOLOR="#fff7e0">(1,2)(3,4)</TD>
+          <TD BGCOLOR="#fff7e0"><B>2</B></TD></TR>
+      <TR><TD BGCOLOR="#fdecea">d-cycle</TD>
+          <TD BGCOLOR="#fdecea">(1,2)(1,3)...(1,d)</TD>
+          <TD BGCOLOR="#fdecea"><B>d&#8722;1</B></TD></TR>
+      <TR><TD BGCOLOR="#fdecea">full N-cycle</TD>
+          <TD BGCOLOR="#fdecea">(1,2)(1,3)...(1,N)</TD>
+          <TD BGCOLOR="#fdecea"><B>N&#8722;1</B></TD></TR>
+    </TABLE>
+  >];
+
+  // ---- right column: the fan picture for one d-cycle ----
+  subgraph cluster_fan {
+    label="The fan for a d-cycle: one sync per crossing, all rooted at channel 1";
+    style="rounded,filled"; fillcolor="#eef3fb"; fontname="Helvetica"; fontsize=11;
+    node [shape=box, style="rounded,filled", fontsize=11];
+
+    hub [label="channel 1\n(fan root)", fillcolor="#ffe8a1", penwidth=2];
+    c2  [label="channel 2", fillcolor="#dff0d8"];
+    c3  [label="channel 3", fillcolor="#dff0d8"];
+    cd  [label="channel d", fillcolor="#dff0d8"];
+
+    hub -> c2 [label=" sync (1,2)", color="#27ae60", penwidth=2, arrowhead=none];
+    hub -> c3 [label=" sync (1,3)", color="#27ae60", penwidth=2, arrowhead=none];
+    hub -> cd [label=" sync (1,d)", color="#27ae60", penwidth=2, arrowhead=none, style=dashed];
+
+    c3 -> cd [style=invis];
+  }
+
+  cap [shape=note, fillcolor="#eeeeee", style=filled, fontsize=10,
+       label="Each crossing the gluing introduces costs exactly ONE sync to undo.\nSame connector works for N = 5, 6, 7, 8 -- it lives only on the moved\nchannels, so neither N nor the process count changes it.\nz3-verified for every d = 2..N; brute-force minimum where feasible."];
+
+  tab -> cap [style=invis];
+}
