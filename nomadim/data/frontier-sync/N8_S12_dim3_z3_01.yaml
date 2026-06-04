@@ -1,0 +1,18 @@
+execution:
+  n_procs: 8
+  syncs:
+    - [2, 3]
+    - [6, 5]
+    - [7, 4]
+    - [0, 4]
+    - [3, 1]
+    - [5, 4]
+    - [3, 5]
+    - [1, 4]
+    - [1, 2]
+    - [4, 6]
+    - [1, 7]
+    - [3, 0]
+  meta:
+    notes: "N=8 gossip-minimum fully frontier-synchronized execution: S=12 = the minimum 2N-4. Order dimension = 3 (z3-verified: t=2 UNSAT, t=3 SAT). All 5001 sampled gossip-minimum (S=12) N=8 schemes are dimension 3 -- dimension 3 is the minimum S layer for N=8, and dimension 4 first appears one sync later at S=13. No dimension-2 execution was found anywhere in S=12..18 for N=8 (the minimum dimension for N>=7 appears to be 3)."
+    dimension: 3

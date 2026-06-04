@@ -147,6 +147,61 @@ require more than 4 processes, not more syncs.
 
 (No dimension >= 4 at any S; 17008 shapes total.)
 
+## Finding 4 -- maximum dimension grows like sqrt(N): a triangular-number law
+
+Maximum order dimension of a fully frontier-synchronized execution, by N:
+
+| N      | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|--------|---|---|---|---|---|---|---|
+| max dim| 2 | 2 | 3 | 3 | 3 | 4 | 4 |
+
+Each new dimension *first appears* at N = **2, 4, 7** for dim 2, 3, 4 -- i.e. at
+
+    N(d) = 1 + d(d-1)/2      (1 + the triangular numbers 0, 1, 3, 6, 10, ...)
+
+so the conjecture is: **dimension d first occurs at N = 1 + C(d,2)**, equivalently
+
+    max dimension(N) = floor( (1 + sqrt(8N-7)) / 2 )  ~  sqrt(2N).
+
+N = 8 fits (predicted max dim 4 for N in 7..10; observed 4, with NO dimension 5
+in 12721 classified executions up to S = 18). The next, decisive prediction:
+**dimension 5 first appears at N = 11**, and N = 9, 10 are still max dim 4.
+
+Why this matters (project north star): the order dimension of an execution poset
+bounds the number of coordinates a logical clock needs. If the maximum dimension
+of an N-process fully-synchronized execution is ~sqrt(2N) rather than N, such
+executions admit clocks of O(sqrt(N)) coordinates -- dramatically below the
+Theta(N) of vector clocks.
+
+### Minimum S per dimension (z3 oracle; N>=7 cannot be enumerated)
+
+| N | gossip 2N-4 | dim 2 min S | dim 3 min S | dim 4 min S | dim 5 |
+|---|-------------|-------------|-------------|-------------|-------|
+| 7 | 10 | 11 | 10 | 11 | -- |
+| 8 | 12 | 13 | 12 | 13 | -- |
+| 9 | 14 | 15 | 14 | 15 | -- |
+| 10 | 16 | 17 | 16 | 17* | -- |
+| 11 | 18 | 19 | 18 | 19* | (testing) |
+
+(`*` = predicted from the pattern; the random sampler undersamples the exact
+S=2N-3 layer for large N, but the star construction proves dim 2 there and the
+pattern holds for N=7,8,9.)
+
+A clean law emerges for N >= 7:
+
+    dim 3 min S = 2N-4   (the gossip minimum -- you are FORCED to dimension 3 there)
+    dim 2 min S = 2N-3   and   dim 4 min S = 2N-3   (both one sync above)
+
+So dimension 3 is the unavoidable minimum-cost dimension; spending one extra
+synchronization lets you move EITHER way -- down to dimension 2 or up to
+dimension 4. The dimension-2 witness is concrete and verified for every N tested
+(7..11): the **star gossip** -- gather all info to one hub `(0,1),(0,2),...,(0,N-1)`
+then scatter it back `(0,N-2),...,(0,1)`, exactly `2N-3` syncs, dimension 2
+(a 2-coordinate clock suffices). Examples saved: `N8_S12_dim3_z3_01.yaml`
+(gossip min, dim 3), `N8_S13_dim4_z3_01.yaml` (min-S dim 4), `N8_S13_dim2_z3_01.yaml`
+(star, dim 2). The same S=2N-3 hosts dimensions 2, 3, and 4. Reproduce with
+`scan_n.py`, `min_s_scan.py`, `find_dimge.py`.
+
 ## Why this is easy to miss
 
 `nomadim enumerate` keeps only dimension-<=2 executions by default, so it never

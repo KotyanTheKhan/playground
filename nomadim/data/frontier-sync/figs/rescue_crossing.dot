@@ -1,0 +1,37 @@
+// The crown: gluing block A's output frontier to block B's input frontier
+// with a matching that SWAPS two channels creates a frontier crossing
+// (an S3-type obstruction) that forces dimension 3.
+digraph crossing {
+  rankdir=LR;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+  edge [arrowhead=vee, fontname="Helvetica", fontsize=10];
+  nodesep=0.35;
+
+  subgraph cluster_a {
+    label="Block A (dim 2)";
+    style="rounded,filled"; fillcolor="#eef3fb"; fontname="Helvetica"; fontsize=11;
+    a0 [label="A out 0", fillcolor="#dff0d8"];
+    a1 [label="A out 1", fillcolor="#dff0d8"];
+    a2 [label="A out 2", fillcolor="#dff0d8"];
+    a3 [label="A out 3", fillcolor="#dff0d8"];
+  }
+
+  subgraph cluster_b {
+    label="Block B (dim 2)";
+    style="rounded,filled"; fillcolor="#eef3fb"; fontname="Helvetica"; fontsize=11;
+    b0 [label="B in 0", fillcolor="#dff0d8"];
+    b1 [label="B in 1", fillcolor="#dff0d8"];
+    b2 [label="B in 2", fillcolor="#dff0d8"];
+    b3 [label="B in 3", fillcolor="#dff0d8"];
+  }
+
+  // straight wires
+  a0 -> b0 [color="#888888"];
+  a1 -> b1 [color="#888888"];
+  // the swap: channels 2 and 3 cross
+  a2 -> b3 [color="#c0392b", penwidth=2.2];
+  a3 -> b2 [color="#c0392b", penwidth=2.2];
+
+  note [shape=note, fillcolor="#f2dede", fontsize=9,
+        label="Matching swaps channels 2 and 3.\nThe two red wires CROSS -> a crown ->\ndimension jumps 2 -> 3."];
+}

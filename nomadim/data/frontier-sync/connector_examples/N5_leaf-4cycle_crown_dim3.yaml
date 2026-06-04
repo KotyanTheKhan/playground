@@ -1,0 +1,20 @@
+execution:
+  n_procs: 5
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 4]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 4]
+    - [0, 1]
+    - [0, 4]
+    - [0, 3]
+    - [0, 2]
+meta:
+  notes: "Crown: star;star composition of dim-2 N=5 executions with frontier matching leaf-4cycle (pi=(0, 2, 3, 4, 1)); dimension 3."
+  dimension: 3

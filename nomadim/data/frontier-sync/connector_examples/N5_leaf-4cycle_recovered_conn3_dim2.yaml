@@ -1,0 +1,23 @@
+execution:
+  n_procs: 5
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 4]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+    - [1, 2]
+    - [1, 3]
+    - [1, 4]
+    - [0, 2]
+    - [0, 3]
+    - [0, 4]
+    - [0, 1]
+    - [0, 4]
+    - [0, 3]
+    - [0, 2]
+meta:
+  notes: "Recovered: the leaf-4cycle crown (N=5) rescued to dim 2 by a fan connector of 3 syncs [(1, 2), (1, 3), (1, 4)] (= #transpositions of the matching). z3-verified."
+  dimension: 2

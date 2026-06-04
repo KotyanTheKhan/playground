@@ -1,0 +1,35 @@
+// Why the star gossip is dimension 2: two timelines (two rankings of all the
+// events) whose AGREEMENT rebuilds the happened-before order exactly. The hub
+// gathers everyone's start (fan-in), then scatters back (fan-out). The two
+// timelines order the leaves in OPPOSITE directions; an event is below another
+// in BOTH timelines exactly when it truly happened-before. (Schematic; the real
+// N=8 star is N8_S13_dim2_z3_01.yaml, z3-verified t=2 SAT.)
+digraph star {
+  rankdir=LR;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+  edge [arrowhead=vee, color="#888888"];
+
+  subgraph cluster_t1 {
+    label="Timeline 1 (rank events one way)";
+    fontname="Helvetica"; color="#7fb3d5"; style=rounded;
+    a1 [label="starts: P1 P2 ... P7", fillcolor="#eafaf1"];
+    h1 [label="hub gathers all", fillcolor="#dbe9ff"];
+    z1 [label="ends: P7 ... P2 P1", fillcolor="#fdebd0"];
+    a1 -> h1 -> z1 [style=invis];
+  }
+
+  subgraph cluster_t2 {
+    label="Timeline 2 (rank the leaves the OTHER way)";
+    fontname="Helvetica"; color="#7fb3d5"; style=rounded;
+    a2 [label="starts: P7 ... P2 P1", fillcolor="#eafaf1"];
+    h2 [label="hub gathers all", fillcolor="#dbe9ff"];
+    z2 [label="ends: P1 P2 ... P7", fillcolor="#fdebd0"];
+    a2 -> h2 -> z2 [style=invis];
+  }
+
+  meet [label="Overlap (what both timelines agree on)\n= the true happened-before order.\nEvery start is below the hub is below every end;\nthe concurrent leaves are left incomparable.\n=> ORDER DIMENSION = 2",
+        shape=note, fillcolor="#fcf8e3", fontsize=10];
+
+  z1 -> meet [style=invis];
+  z2 -> meet [style=invis];
+}

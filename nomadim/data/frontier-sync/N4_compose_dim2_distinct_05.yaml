@@ -1,0 +1,16 @@
+execution:
+  n_procs: 4
+  syncs:
+    - [0, 1]
+    - [2, 3]
+    - [0, 2]
+    - [0, 1]
+    - [2, 3]
+    - [0, 1]
+    - [2, 3]
+    - [0, 2]
+    - [0, 1]
+    - [2, 3]
+meta:
+  notes: "Distinct dimension-2 composition #5 of two minimum dim-2 N=4 executions: B9 then B9 with frontier matching pi=(0, 1, 2, 3). The composed S=10 fully-synchronized execution is dimension 2 (z3-verified). One of 5 pairwise non-isomorphic dim-2 compositions (distinct WL poset signatures)."
+  dimension: 2
