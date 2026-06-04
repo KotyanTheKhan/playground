@@ -83,10 +83,9 @@ def clock_check_syncs(n, syncs):
     clock = clock_of(nv, edges)
     if clock is None:
         # No 2-realizer: confirm the dimension for the report.
-        from hunt_n7 import z3_dim, PG as _PG
-        g = _PG(n)
-        for a, b in syncs:
-            g.sync(a, b)
+        from hunt_n7 import z3_dim
+        from types import SimpleNamespace
+        g = SimpleNamespace(nv=nv, edges=edges)
         d = z3_dim(g)
         d = 3 if d == ">=4" else int(d)
         return None, d
