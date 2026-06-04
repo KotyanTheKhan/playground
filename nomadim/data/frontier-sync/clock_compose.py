@@ -28,12 +28,33 @@ def load_blocks():
 
 
 def assertion_a_single_blocks(blocks):
-    """Return list of (name) whose single-block clock is NOT exact at dim 2."""
+    """Return list of (name, ok, dim) triples whose single-block clock is NOT exact at dim 2."""
     failures = []
     for name, syncs in blocks:
         ok, dim = clock_check_syncs(4, syncs)
         if not (dim == 2 and ok is True):
             failures.append((name, ok, dim))
+    return failures
+
+
+def assertion_b_threshold(blocks):
+    """Return list of (nameA, nameB, ok, dim) for identity-perm compositions NOT exact at dim 2.
+
+    Assertion (b): threshold (non-crossing) compositions stay exact at dim 2.
+    The simplest non-crossing matching is the identity permutation [0,1,2,3]
+    composed WITHOUT a connector.  For each ordered block pair (A, B) we build
+    compose_with_connector(A, B, [0,1,2,3], use_connector=False) and assert
+    clock_check_syncs(4, ...) == (True, 2).  Any pair that fails is returned as
+    a failure tuple; an empty list means all pairs pass.
+    """
+    identity = [0, 1, 2, 3]
+    failures = []
+    for (na, A) in blocks:
+        for (nb, B) in blocks:
+            composed = compose_with_connector(A, B, identity, use_connector=False)
+            ok, dim = clock_check_syncs(4, composed)
+            if not (dim == 2 and ok is True):
+                failures.append((na, nb, ok, dim))
     return failures
 
 
@@ -67,6 +88,8 @@ def main():
     print(f"loaded {len(blocks)} blocks")
     fa = assertion_a_single_blocks(blocks)
     print(f"(a) single-block exact: {'PASS' if not fa else 'FAIL ' + str(fa)}")
+    fb = assertion_b_threshold(blocks)
+    print(f"(b) threshold (identity) exact: {'PASS' if not fb else 'FAIL ' + str(fb)}")
     n_crowns, c_fail, d_fail = assertion_cd_crown_and_repair(blocks)
     print(f"(c) crowns found: {n_crowns}; "
           f"crown-has-no-2clock: {'PASS' if not c_fail else 'FAIL ' + str(c_fail)}")
