@@ -9,6 +9,15 @@ Definition wf_frontier (n : nat) (fr : Frontier) : Prop :=
   (forall a b, In (a, b) fr -> a < n /\ b < n /\ a <> b) /\
   NoDup (flat_map endpoints fr).
 
+Lemma wf_frontier_pair : forall n a b, a < n -> b < n -> a <> b -> wf_frontier n [(a,b)].
+Proof.
+  intros n a b Ha Hb Hab. unfold wf_frontier, endpoints. split.
+  - intros x y [Heq|[]]. injection Heq as <- <-. repeat split; assumption.
+  - simpl. constructor.
+    + simpl. intros [H|[]]. apply Hab. symmetry. exact H.
+    + constructor; [ simpl; intros [] | constructor ].
+Qed.
+
 Definition wf_schedule (s : Schedule) : Prop :=
   forall fr, In fr (sch_frontiers s) -> wf_frontier (sch_nprocs s) fr.
 

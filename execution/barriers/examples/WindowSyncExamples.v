@@ -13,15 +13,6 @@ Definition s_gs : Schedule :=
   {| sch_nprocs := 3;
      sch_frontiers := [ [(0,1)] ; [(1,0)] ; [(2,0)] ; [(0,1)] ; [(0,2)] ; [(0,1)] ] |}.
 
-Lemma wf_frontier_pair : forall n a b, a < n -> b < n -> a <> b -> wf_frontier n [(a,b)].
-Proof.
-  intros n a b Ha Hb Hab. unfold wf_frontier, endpoints. split.
-  - intros x y [Heq|[]]. injection Heq as <- <-. repeat split; assumption.
-  - simpl. constructor.
-    + simpl. intros [H|[]]. apply Hab. symmetry. exact H.
-    + constructor; [ simpl; intros [] | constructor ].
-Qed.
-
 Lemma wf_s_gs : wf_schedule s_gs.
 Proof.
   unfold wf_schedule, s_gs. simpl. intros fr Hin.
