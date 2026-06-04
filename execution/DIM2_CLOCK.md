@@ -28,7 +28,7 @@ e →hb f   ⟺   clock(e) ≤ clock(f)  componentwise     -- causality test
 ```
 
 This is proven, end to end, on a concrete execution in
-[`DimExampleN3.v`](DimExampleN3.v): `key1_n3` and `key2_n3` (lines 25–34) are the
+[`DimExampleN3.v`](dimension/examples/DimExampleN3.v): `key1_n3` and `key2_n3` (lines 25–34) are the
 two coordinates, `hb_n3_realizer` (line 275) proves `→hb = L₁ ∩ L₂`, and
 `E_n3_dim_2` (line 332) concludes dimension exactly 2. That execution has 3
 processes yet needs only **2** clock coordinates, not 3.
@@ -46,7 +46,7 @@ So the research question "which executions beat vector clocks" is exactly:
 ## 2. The structural rule: barrier-layered chains
 
 The master sufficient condition is `layered_chains_dim_le2`
-([`BarrierExecDim.v:14`](BarrierExecDim.v)). An execution has `dim ≤ 2` whenever
+([`BarrierExecDim.v:14`](barriers/BarrierExecDim.v)). An execution has `dim ≤ 2` whenever
 each event carries a **layer** `lay(e) ∈ ℕ` and a **component** `comp(e) ∈ ℕ`
 satisfying:
 
@@ -89,7 +89,7 @@ e →hb f  ⟺  T₁(e) ≤ T₁(f)  ∧  T₂(e) ≤ T₂(f)
 
 Two lexicographic keys — **O(1) keys per event, independent of N** — versus the
 vector clock's N entries. For the message-passing model the component is read off
-the program directly: `fb_comp` ([`DisjointChainsDim.v:180`](DisjointChainsDim.v))
+the program directly: `fb_comp` ([`DisjointChainsDim.v:180`](families/DisjointChainsDim.v))
 sets `comp` of a receive to its **sender** and of a send/local to its **own
 pid**. Lemmas `fb_comp_eq_of_hb` and `hb_or_of_fb_comp_eq` discharge conditions 3
 and 4; `barrier_execution_dim_le2` (`BarrierExecDim.v:167`) plugs them into the
@@ -101,14 +101,14 @@ master rule for the barrier order `blo`.
 
 Why the rule is stable under nesting — the key to building large dim-2
 executions — is `fully_sync_dimension`
-([`FullySyncDimExact.v:18`](FullySyncDimExact.v)):
+([`FullySyncDimExact.v:18`](sync/FullySyncDimExact.v)):
 
 > For a barrier (ordinal) decomposition into blocks `B₀, …, B_{m-1}`,
 > `dim(whole) = max(1, maxᵢ dim(Bᵢ))`.
 
 Stacking blocks through a full barrier composes their dimensions by **maximum**.
 A disjoint union of chains has `dim ≤ 2` (`disjoint_chains_dim_le2`,
-[`DisjointChainsDim.v:14`](DisjointChainsDim.v)), so any stack of such layers
+[`DisjointChainsDim.v:14`](families/DisjointChainsDim.v)), so any stack of such layers
 stays at 2 no matter how many layers or processes:
 
 - `blo_dim_eq_2` (`BarrierExecDim.v:187`): a non-trivial barrier execution has
