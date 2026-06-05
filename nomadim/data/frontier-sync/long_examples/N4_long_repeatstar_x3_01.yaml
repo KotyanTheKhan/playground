@@ -1,0 +1,21 @@
+execution:
+  n_procs: 4
+  syncs:
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+    - [0, 1]
+    - [0, 2]
+    - [0, 3]
+    - [0, 2]
+    - [0, 1]
+meta:
+  notes: "Repeated star block B1 x3 (identity seams). S=15 events=49. z3-verified dim 2 -> exact 2-coordinate clock."
+  dimension: 2
