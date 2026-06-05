@@ -542,6 +542,17 @@ An operational, primitive-state model: an `RSys` is `nprocs`, `nrounds`, and a p
 
 `RoundSemExamples.v` (test): a 3-proc/1-round system `Sdemo`, `rclock` literals, an `rhb` edge and an incomparable pair.
 
+#### `execution_clock/witnesses/` — repair-clock Coq witnesses (admit-free)
+
+Machine-checked proofs that a 2-coordinate clock exactly characterizes happened-before on the literal nomadim PG posets from the repair-clock experiment. All four results below are admit-free (`Print Assumptions` = standard classical axioms only; see `execution_clock/witnesses/README.md`).
+
+| Name | File | Meaning |
+|------|------|---------|
+| `realizer_keys_dim_le2` | `FinPosetBool.v` | Reusable bridge: two injective key functions `k1,k2 : Fin.t n → nat` that are monotone along a boolean order `Rb` in both directions give dim ≤ 2 via an explicit 2-realizer. |
+| `block_dim_eq_2` | `BlockDim2.v` | The minimal fully-synced 2-process block (W_block: N=2, sync `[(0,1)]`, 5 events) has dimension **exactly 2** — so a 2-coordinate clock suffices and is tight. |
+| `repair_dim_le_2` / `repair_dim_eq_2` | `RepairDim2.v` | The crown's one-sync repair (W_repair: N=4, syncs `[(0,1),(2,3),(0,3),(0,2),(1,3)]`, 19 events) has dimension **exactly 2** — inserting sync `(0,3)` restores the 2-coordinate clock. |
+| `W_crown_order` | `RepairDim2.v` | The unrepaired crown (W_crown: N=4, syncs `[(0,1),(2,3),(0,2),(1,3)]`, 16 events) defined as a Coq order; dim 3 by z3 oracle (`CLOCK_RESULTS.md`); concrete Coq proof deferred (no induced `crown3` in the PG crown — alternating-cycle certificate left to future work). Abstract obstruction: `FrontierCompose.crown3_dim_ge_3`. |
+
 #### `execution/families/FrontierCompose.v` — connecting executions by a frontier: the dimension dichotomy (exported)
 
 Abstract poset-dimension theory: composing two **antichains** by a frontier `F` gives the bipartite poset `compose_le F` (an `IsPoset` for any `F`). The dichotomy — *when does connecting two dim-2 executions by a frontier preserve dimension*: a **non-crossing** frontier preserves `dim ≤ 2`, a **crossing** (S₃) frontier raises it to `dim ≥ 3`. Both proven, admit-free.
