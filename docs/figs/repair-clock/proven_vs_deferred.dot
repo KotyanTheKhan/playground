@@ -1,0 +1,29 @@
+digraph proven_vs_deferred {
+  rankdir=LR;
+  bgcolor="white";
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+  edge [color="#888888"];
+
+  block  [label="Minimal fully-synced block\n(N=2, 5 events)\ndim = 2", fillcolor="#d7ecd9", color="#2e7d32"];
+  crown  [label="Crown\n(N=4, 16 events)\ndim = 3", fillcolor="#fdecea", color="#cc2222"];
+  repair [label="Crown + 1 repairing sync\n(N=4, 19 events)\ndim = 2", fillcolor="#d7ecd9", color="#2e7d32"];
+
+  block -> crown  [label="glue another\nblock (crossed)", fontsize=10];
+  crown -> repair [label="insert one\nsync (0,3)", fontsize=10];
+
+  // proof status badges
+  bp [shape=note, fillcolor="#e8f5e9", color="#2e7d32", fontsize=10,
+      label="Coq: PROVEN dim = 2\n(block_dim_eq_2)"];
+  rp [shape=note, fillcolor="#e8f5e9", color="#2e7d32", fontsize=10,
+      label="Coq: PROVEN dim = 2\n(repair_dim_eq_2)"];
+  cp [shape=note, fillcolor="#fff8e1", color="#b8860b", fontsize=10,
+      label="Coq: DEFERRED\ndim 3 only by z3 oracle\n(no clean 3-crown inside)"];
+
+  block -> bp [style=dotted, arrowhead=none, color="#2e7d32"];
+  repair -> rp [style=dotted, arrowhead=none, color="#2e7d32"];
+  crown -> cp [style=dotted, arrowhead=none, color="#b8860b"];
+
+  {rank=same; block; bp;}
+  {rank=same; crown; cp;}
+  {rank=same; repair; rp;}
+}

@@ -1,0 +1,30 @@
+digraph empirical_map {
+  bgcolor="white";
+  rankdir=TB;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11,
+        fillcolor="#f3f7fb", color="#4477aa"];
+  edge [color="#888888", fontsize=10];
+
+  root [label="Glue two dim-2 blocks (N=4)", fillcolor="#dde7f3"];
+
+  homo [label="Star block glued to itself\n24 matchings -> 18 crowns"];
+  het  [label="Different blocks, identity wiring\n90 pairs -> 61 crown anyway"];
+
+  root -> homo;
+  root -> het;
+
+  homo_fix [label="ALL 18 repaired by a minimal connector\n(1 or 2 syncs): 10 need 1, 8 need 2",
+            fillcolor="#d7ecd9", color="#2e7d32"];
+  homo_fan [label="Closed-form 'fan' (N - #cycles) law\nfixes only 8/18 at N=4\n(but works at N=5,6,7)",
+            fillcolor="#fff8e1", color="#b8860b"];
+
+  homo -> homo_fix;
+  homo -> homo_fan [label="not minimal here", style=dashed];
+
+  het_fix [label="47 of 61 repaired by ONE sync\n(often the hub sync); 14 need more",
+           fillcolor="#d7ecd9", color="#2e7d32"];
+  het -> het_fix;
+  het_note [shape=note, fillcolor="#eef2f7", color="#4477aa", fontsize=10,
+            label="Lesson: crowning is set by the\nFRONTIER RELATION, not the\npermutation alone."];
+  het -> het_note [style=dotted, arrowhead=none];
+}

@@ -1,0 +1,31 @@
+digraph crown {
+  rankdir=LR;
+  bgcolor="white";
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+
+  subgraph cluster_A {
+    label="Block A  (dim 2, cheap)";
+    labelloc="t"; fontname="Helvetica-Bold"; fontsize=12;
+    color="#4477aa"; style="rounded"; bgcolor="#f3f7fb";
+    node [fillcolor="#dde7f3"];
+    ao2 [label="A out: chan 2"];
+    ao3 [label="A out: chan 3"];
+  }
+
+  subgraph cluster_B {
+    label="Block B  (dim 2, cheap)";
+    labelloc="t"; fontname="Helvetica-Bold"; fontsize=12;
+    color="#4477aa"; style="rounded"; bgcolor="#f3f7fb";
+    node [fillcolor="#dde7f3"];
+    bi2 [label="B in: chan 2"];
+    bi3 [label="B in: chan 3"];
+  }
+
+  // crossed wiring
+  ao2 -> bi3 [color="#cc2222", penwidth=2.2];
+  ao3 -> bi2 [color="#cc2222", penwidth=2.2];
+
+  cap [shape=note, fillcolor="#fdecea", color="#cc2222",
+       label="The two wires CROSS.\lThis embeds a 'crown' -- an S3 obstruction\lthat forces order dimension 3.\lThe cheap 2-number clock no longer works:\la THIRD coordinate appears.\l"];
+  bi3 -> cap [style=invis];
+}

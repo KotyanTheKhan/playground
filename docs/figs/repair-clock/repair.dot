@@ -1,0 +1,36 @@
+digraph repair {
+  rankdir=LR;
+  bgcolor="white";
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+
+  subgraph cluster_A {
+    label="Block A";
+    labelloc="t"; fontname="Helvetica-Bold"; fontsize=12;
+    color="#4477aa"; style="rounded"; bgcolor="#f3f7fb";
+    node [fillcolor="#dde7f3"];
+    ao2 [label="A out: chan 2"];
+    ao3 [label="A out: chan 3"];
+  }
+
+  // the connector
+  sync [shape=ellipse, fillcolor="#e8f5e9", color="#2e7d32", penwidth=2,
+        label="ONE sync\non the crossed\npair (2,3)"];
+
+  subgraph cluster_B {
+    label="Block B";
+    labelloc="t"; fontname="Helvetica-Bold"; fontsize=12;
+    color="#4477aa"; style="rounded"; bgcolor="#f3f7fb";
+    node [fillcolor="#dde7f3"];
+    bi2 [label="B in: chan 2"];
+    bi3 [label="B in: chan 3"];
+  }
+
+  ao2 -> sync [color="#2e7d32", penwidth=2];
+  ao3 -> sync [color="#2e7d32", penwidth=2];
+  sync -> bi2 [color="#2e7d32", penwidth=2];
+  sync -> bi3 [color="#2e7d32", penwidth=2];
+
+  cap [shape=note, fillcolor="#e8f5e9", color="#2e7d32",
+       label="The crossed channels now both route\lthrough one shared meeting.\lThe crossing collapses -> dimension drops 3 -> 2.\lThe 2-coordinate clock is bought back\lfor the price of one synchronization.\l"];
+  bi3 -> cap [style=invis];
+}

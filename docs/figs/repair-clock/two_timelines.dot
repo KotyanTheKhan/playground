@@ -1,0 +1,35 @@
+digraph two_timelines {
+  rankdir=LR;
+  bgcolor="white";
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+  edge [color="#888888"];
+
+  subgraph cluster_t1 {
+    label="Timeline 1 (one ranking)";
+    labelloc="t";
+    fontname="Helvetica-Bold"; fontsize=12; color="#4477aa"; style="rounded";
+    node [fillcolor="#dde7f3"];
+    a1 [label="start"];
+    a2 [label="A meets B"];
+    a3 [label="A meets C"];
+    a4 [label="end"];
+    a1 -> a2 -> a3 -> a4;
+  }
+
+  subgraph cluster_t2 {
+    label="Timeline 2 (the opposite ranking)";
+    labelloc="t";
+    fontname="Helvetica-Bold"; fontsize=12; color="#cc7722"; style="rounded";
+    node [fillcolor="#f6e3cf"];
+    b1 [label="start"];
+    b2 [label="A meets C"];
+    b3 [label="A meets B"];
+    b4 [label="end"];
+    b1 -> b2 -> b3 -> b4;
+  }
+
+  agree [shape=note, fillcolor="#e8f5e9", color="#2e7d32",
+         label="They AGREE only on what truly happened-before.\l'A meets B' and 'A meets C' are ranked\lopposite ways  ->  they stay concurrent.\lTwo numbers per event = a 2-coordinate clock.\l"];
+  a4 -> agree [style=invis];
+  b4 -> agree [style=invis];
+}
