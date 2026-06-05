@@ -130,6 +130,7 @@ execution/sync/SyncShape.v
 execution/sync/examples/FinFullySyncDimExamples.v
 execution/sync/examples/FinFullySyncExamples.v
 execution/sync/examples/SyncShapeExamples.v
+execution_clock/witnesses/FinPosetBool.v
 execution_clock/OnlineClock.v
 execution_clock/OnlineClockLocal.v
 execution_clock/RoundSem.v
