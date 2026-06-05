@@ -60,11 +60,14 @@ def main():
         blocks.append(f"(* {name}: N={n} syncs={syncs} nv={nv} *)")
         blocks.append(emit_bool_table(name, nv, le))
         if name != "crown":
-            rz = extract_realizer(*pg_of(n, syncs))
+            nvw, edgesw = pg_of(n, syncs)
+            rz = extract_realizer(nvw, edgesw)
             assert rz is not None, f"{name} not dim<=2!"
-            ok, bad = clock_is_exact(*pg_of(n, syncs), clock_of(*pg_of(n, syncs)))
+            L1, L2 = rz
+            clock = {v: (L1[v], L2[v]) for v in range(nvw)}
+            ok, bad = clock_is_exact(nvw, edgesw, clock)
             assert ok, f"{name} realizer not exact: {bad}"
-            blocks.append(emit_keys(name, list(rz)))
+            blocks.append(emit_keys(name, [L1, L2]))
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w") as f:
         f.write("\n\n".join(blocks) + "\n")
