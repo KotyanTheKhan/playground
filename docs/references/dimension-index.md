@@ -222,7 +222,32 @@ See also `hiraguchi-sources.md` for the Hiraguchi-bound source dossier.
 **Status.** Proven (Felsner–Mészáros–Micek 2020). Sources: [FMM20].
 **Depends on.** [boolean-dim], [planar-unbounded].
 
-## 7. Open problems
+## 7. Dimension and chromatic number
+
+#### [THM] dim-eq-chromatic — Dimension as a chromatic number
+**Statement.** dim(P) equals the chromatic number of the hypergraph whose vertices are the critical pairs (equivalently the incomparable pairs) of P and whose hyperedges are the strict alternating cycles: a proper coloring is exactly a partition of the critical pairs into reversible sets. Thus computing dimension is a hypergraph-coloring problem.
+**Status.** Proven (Felsner–Trotter 2000). Sources: [FT00]; [T92]; [Trotter149].
+**Depends on.** [dim-via-critical-pairs], [alternating-cycle]
+**Notes.** This identity is the bridge in Trotter's survey [Trotter149] between poset dimension and graph/hypergraph chromatic number; it underlies most upper-bound techniques below.
+
+#### [FACT] comparability-perfect — Comparability graphs are perfect
+**Statement.** The comparability graph of a poset is perfect; its chromatic number equals the size of a largest clique, which equals the height (longest chain) of P. Equivalently (Mirsky) the minimum number of antichains covering P equals its height.
+**Status.** Proven (Mirsky; Dilworth-dual). Sources: [T92].
+**Notes.** A proper coloring of the comparability graph = a partition of P into antichains; a clique = a chain.
+
+#### [THM] interval-shift-graph — Interval-order dimension via shift graphs
+**Statement.** The maximum dimension of an interval order on n points is (1 + o(1)) · lg lg n. The bound is obtained by reducing to the chromatic number of shift graphs (Füredi–Hajnal–Rödl–Trotter 1991).
+**Status.** Proven (Füredi–Hajnal–Rödl–Trotter 1991). Sources: [FHRT91]; [T92]; [Trotter149].
+**Depends on.** [interval-order-dim], [dim-eq-chromatic]
+**Notes.** Makes precise the asymptotic flagged in [interval-order-dim]; the lg lg n growth is a chromatic-number phenomenon.
+
+#### [THM] treewidth-height-dim — Sparse cover graphs bound dimension
+**Statement.** The dimension of a poset is bounded in terms of the tree-width of its cover (Hasse) graph and its height (Joret–Micek–Milans–Trotter–Walczak–Wang 2016). In particular, for each fixed height, posets with planar cover graphs have bounded dimension (Streib–Trotter 2014).
+**Status.** Proven (Joret et al. 2016; Streib–Trotter 2014). Sources: [JMMTWW16]; [Trotter149].
+**Depends on.** [planar-unbounded]
+**Notes.** Height is necessary: [planar-unbounded] shows planar cover graphs alone do not bound dimension. Part of the "sparsity ⟹ bounded dimension" program surveyed in [Trotter149].
+
+## 8. Open problems
 
 #### [CONJ] removable-pair — Removable Pair Conjecture
 **Statement.** (Trotter) Every poset P with |P| ≥ 3 contains a pair of elements {x,y} whose removal decreases the dimension by at most 1: dim(P) − dim(P − {x,y}) ≤ 1. The integer-dimension case is OPEN.
