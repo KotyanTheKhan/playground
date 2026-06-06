@@ -56,6 +56,32 @@ See also `hiraguchi-sources.md` for the Hiraguchi-bound source dossier.
 **Depends on.** [dim-def]
 **Sources.** [DM41]; [T92].
 
+## 2. Standard examples & lower bounds
+
+#### [DEF] standard-example — Standard example S_n
+**Statement.** The standard example S_n is the height-2 poset on 2n elements {a_1,…,a_n, b_1,…,b_n} with a_i < b_j iff i ≠ j (and no other relations); the a_i form an antichain of minimal elements, the b_j an antichain of maximal elements.
+**Status.** Definition.
+**Sources.** [DM41]; [T92].
+
+#### [THM] standard-example-dim — Dimension of the standard example
+**Statement.** dim(S_n) = n for all n ≥ 2. The pairs (a_i, b_i) are critical and no two can be reversed by the same linear extension, forcing n linear extensions.
+**Status.** Proven (Dushnik–Miller).
+**Depends on.** [standard-example], [dim-def]
+**Sources.** [DM41]; [T92].
+
+#### [FACT] dim-monotone-suborder — Monotonicity under subposets
+**Statement.** If Q is an induced subposet of P then dim(Q) ≤ dim(P). Dimension is monotone under taking induced subposets.
+**Status.** Proven.
+**Depends on.** [dim-def]
+**Sources.** [T92].
+
+#### [FACT] dim-lower-bound-standard — Standard examples as lower-bound witnesses
+**Statement.** A large induced standard example forces large dimension: if S_n embeds as an induced subposet of P then dim(P) ≥ n. This is the standard route to dimension lower bounds.
+**Status.** Proven (consequence of monotonicity + standard-example-dim).
+**Depends on.** [dim-monotone-suborder], [standard-example-dim]
+**Sources.** [T92].
+**Notes.** A heuristic principle — not every high-dimension poset contains a large standard example, but containment is a sufficient lower-bound certificate.
+
 ## Hand-fetch (paywalled)
 
 These sources are paywalled or book-only; please obtain them by hand. The index
