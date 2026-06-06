@@ -141,6 +141,16 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
   levels, `IsAntichainCover` + `cardinal = height`; plus a chain of size `height`
   (via `rank_pred`) to identify height with longest chain, then the final theorem.
 
+- **2026-06-06 (session 1, cont.):** **Mirsky upper bound assembled** (admit-free).
+  `posets/dilworth/Mirsky.v` MirskyUpper: `Level k`, `level_antichain`,
+  `mirsky_cover` (nonempty levels), `mirsky_cover_is_cover` (IsAntichainCover);
+  `cardinal_nat_interval`, `height_attained`, `levels_nonempty`, `cover_eq_image`,
+  `Level_inj`, `mirsky_cover_cardinal` (= height); capstone `mirsky_height_cover`
+  + `chain_card_le_height` (no chain exceeds height). Mirsky is now proven with
+  `height := max rank` as the height invariant (both bounds). Only the literal
+  identification height = longest-chain-length remains (a chain realizing height
+  via `rank_pred` — straightforward recursion).
+
 ## Next session
 
 Mirsky UB (now unblocked by `fin_strict_wf`): define `rank x` by well-founded

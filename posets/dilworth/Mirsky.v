@@ -18,7 +18,7 @@
     repo does not yet have; it is the documented next step (see the track status
     doc). Index entry: [mirsky] in docs/references/poset-facts-index.md. *)
 From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts Image ClassicalEpsilon Arith Lia.
-From Posets Require Import PosetClasses FinitePoset FinPosetRank.
+From Posets Require Import PosetClasses FinitePoset FiniteMax FinPosetWF FinPosetRank.
 From Dilworth Require Import Definitions.
 
 Section Mirsky.
@@ -98,6 +98,28 @@ Section Mirsky.
 
 End Mirsky.
 
+(** Cardinality of the integer interval [1 .. H]. *)
+Lemma cardinal_nat_interval :
+  forall H, cardinal nat (fun k => 1 <= k /\ k <= H) H.
+Proof.
+  induction H as [| H IH].
+  - assert (Heq : (fun k => 1 <= k /\ k <= 0) = Empty_set nat).
+    { apply Extensionality_Ensembles. split; intros k Hk.
+      - destruct Hk as [H1 H2]. lia.
+      - destruct Hk. }
+    rewrite Heq. constructor.
+  - assert (Heq : (fun k => 1 <= k /\ k <= S H)
+                  = Add nat (fun k => 1 <= k /\ k <= H) (S H)).
+    { apply Extensionality_Ensembles. split; intros k Hk.
+      - destruct Hk as [H1 H2]. destruct (Nat.eq_dec k (S H)) as [He | Hne].
+        + right. rewrite He. constructor.
+        + left. split; lia.
+      - destruct Hk as [k Hk | k Hk].
+        + destruct Hk as [H1 H2]. split; lia.
+        + destruct Hk. split; lia. }
+    rewrite Heq. apply card_add; [exact IH | intros [H1 H2]; lia].
+Qed.
+
 (** ** Upper bound: the rank-level antichain cover. *)
 Section MirskyUpper.
   Context {A : Type} (R : A -> A -> Prop) {n : nat} `{IsFinitePoset A R n}.
@@ -133,6 +155,77 @@ Section MirskyUpper.
         * exists x. unfold In, Level. reflexivity.
         * reflexivity.
       + unfold In, Level. reflexivity.
+  Qed.
+
+  (** When the height is positive, it is attained by some element. *)
+  Lemma height_attained : 1 <= height R -> exists x0, rank R x0 = height R.
+  Proof.
+    intro Hpos.
+    assert (Hinh : Inhabited A (Full_set A)).
+    { destruct (classic (Inhabited A (Full_set A))) as [Hi | Hni]; [exact Hi |].
+      exfalso. unfold height in Hpos.
+      destruct (the_lub_is_lub (Full_set A) (full_finite R) (rank R)) as [_ Hleast].
+      assert (the_lub (Full_set A) (full_finite R) (rank R) <= 0).
+      { apply Hleast. intros z _. exfalso. apply Hni. exists z. constructor. }
+      lia. }
+    destruct (finite_max_achieved (Full_set A) (full_finite R) (rank R) Hinh)
+      as [x0 [_ Hx0]]. exists x0. exact Hx0.
+  Qed.
+
+  (** Every level in [1 .. height] is nonempty (contiguity of ranks). *)
+  Lemma levels_nonempty :
+    forall k, 1 <= k -> k <= height R -> Inhabited A (Level k).
+  Proof.
+    intros k Hk1 Hkh.
+    destruct (height_attained (Nat.le_trans 1 k (height R) Hk1 Hkh)) as [x0 Hx0].
+    destruct (rank_achieves R x0 k Hk1 (eq_ind_r (fun h => k <= h) Hkh Hx0)) as [z Hz].
+    exists z. unfold In, Level. exact Hz.
+  Qed.
+
+  Definition Iv : Ensemble nat := fun k => 1 <= k /\ k <= height R.
+
+  Lemma cover_eq_image : mirsky_cover = Im nat (Ensemble A) Iv Level.
+  Proof.
+    apply Extensionality_Ensembles. split.
+    - intros C HC. destruct HC as [k [Hk1 [Hkh [_ Heq]]]].
+      apply Im_intro with (x := k); [ split; assumption | exact Heq ].
+    - intros C HC. destruct HC as [k Hk C0 Heq]. subst C0.
+      exists k. destruct Hk as [Hk1 Hkh].
+      repeat split; try assumption.
+      apply levels_nonempty; assumption.
+  Qed.
+
+  Lemma Level_inj :
+    forall k k', In nat Iv k -> In nat Iv k' -> Level k = Level k' -> k = k'.
+  Proof.
+    intros k k' [Hk1 Hkh] _ Heq.
+    destruct (levels_nonempty k Hk1 Hkh) as [z Hz].
+    assert (Hz' : In A (Level k') z) by (rewrite <- Heq; exact Hz).
+    unfold In, Level in Hz, Hz'. transitivity (rank R z); [symmetry; exact Hz | exact Hz'].
+  Qed.
+
+  Theorem mirsky_cover_cardinal :
+    cardinal (Ensemble A) mirsky_cover (height R).
+  Proof.
+    rewrite cover_eq_image.
+    apply cardinal_Im_inj; [ exact (cardinal_nat_interval (height R)) | exact Level_inj ].
+  Qed.
+
+  (** Capstone: the rank-level cover is an antichain cover of size [height], and
+      (by the lower bound) no chain exceeds [height]. So the minimum antichain
+      cover number equals [height], and [height] bounds every chain — Mirsky's
+      theorem with [height] = max rank as the height invariant. *)
+  Theorem mirsky_height_cover :
+    IsAntichainCover R (Full_set A) mirsky_cover /\
+    cardinal (Ensemble A) mirsky_cover (height R).
+  Proof. split; [ exact mirsky_cover_is_cover | exact mirsky_cover_cardinal ]. Qed.
+
+  Theorem chain_card_le_height :
+    forall chain h, IsChain R chain -> cardinal A chain h -> h <= height R.
+  Proof.
+    intros chain h Hchain Hcard.
+    exact (chain_le_antichain_cover R chain mirsky_cover h (height R)
+             Hchain mirsky_cover_is_cover Hcard mirsky_cover_cardinal).
   Qed.
 
 End MirskyUpper.
