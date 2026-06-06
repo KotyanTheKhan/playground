@@ -7,7 +7,54 @@ refer to `sources.bib`. `In this repo.` lines link to formalized Coq results.
 
 See also `hiraguchi-sources.md` for the Hiraguchi-bound source dossier.
 
-<!-- sections added in Tasks 3-9 -->
+## 1. Foundations
+
+#### [DEF] linear-extension — Linear extension
+**Statement.** A linear extension of a poset P is a total (linear) order on the same ground set that contains every relation of P (x ≤_P y implies x ≤_L y).
+**Status.** Definition.
+**Sources.** [DM41]; [T92].
+
+#### [DEF] realizer — Realizer
+**Statement.** A realizer of P is a family R of linear extensions of P whose intersection is exactly P, i.e. x ≤_P y iff x ≤_L y in every L ∈ R.
+**Status.** Definition.
+**Depends on.** [linear-extension]
+**Sources.** [DM41]; [T92].
+
+#### [DEF] dim-def — Order dimension (Dushnik–Miller)
+**Statement.** The dimension dim(P) is the least cardinality of a realizer of P.
+**Status.** Definition (Dushnik–Miller 1941).
+**Depends on.** [realizer]
+**Sources.** [DM41].
+
+#### [FACT] dim-intersection — Dimension as intersection of linear orders
+**Statement.** dim(P) equals the least t such that P is the intersection of t linear orders on its ground set. (Equivalent reformulation of the definition.)
+**Status.** Proven (folklore/Dushnik–Miller).
+**Depends on.** [dim-def]
+**Sources.** [DM41]; [T92].
+
+#### [DEF] critical-pair — Critical pair
+**Statement.** An ordered pair (x,y) of distinct incomparable elements of P is a critical pair if every element below x is below y, and every element above y is above x (equivalently D(x) ⊆ D(y) and U(y) ⊆ U(x)). Reversing all critical pairs suffices to determine dimension.
+**Status.** Definition.
+**Sources.** [T92].
+**Notes.** D(·)/U(·) denote strict down-set/up-set.
+
+#### [DEF] alternating-cycle — Alternating cycle / reversible set
+**Statement.** A set S of critical pairs contains an alternating cycle if there are pairs (x_1,y_1),…,(x_k,y_k) in S with y_i ≤ x_{i+1} (indices mod k). S is reversible iff it contains no alternating cycle; a reversible set can be reversed by a single linear extension.
+**Status.** Definition (Rabinovitch–Rival lineage).
+**Depends on.** [critical-pair]
+**Sources.** [T92].
+
+#### [THM] dim-via-critical-pairs — Dimension via critical pairs
+**Statement.** dim(P) equals the least number of reversible sets needed to cover all critical pairs of P.
+**Status.** Proven.
+**Depends on.** [alternating-cycle], [dim-def]
+**Sources.** [T92].
+
+#### [THM] dim2-comparability — Two-dimensional posets
+**Statement.** dim(P) ≤ 2 iff the incomparability graph of P is a comparability graph; equivalently, P is the intersection of two linear orders (a permutation poset).
+**Status.** Proven (Dushnik–Miller).
+**Depends on.** [dim-def]
+**Sources.** [DM41]; [T92].
 
 ## Hand-fetch (paywalled)
 
