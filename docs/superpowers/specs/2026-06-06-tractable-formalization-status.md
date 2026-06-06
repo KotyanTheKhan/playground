@@ -84,6 +84,13 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
   `chain_sup`+`inflation` packaging, NOT the bare chain-upper-bound form, so a
   clean re-export to our `IsPoset` vocab is a separate (deferred) task.
 
+- **2026-06-06 (session 1, cont.):** **Proved foundational extras**:
+  `posets/dimension/DimBasics.v` (admit-free, built) — `dimension_unique`
+  (dimension is well-defined) and `total_order_is_realizer` +
+  `total_order_dim_le_1` (a chain has dim ≤ 1; new index entry `dim-chain`).
+  Confirmed the repo has **no** rank/height/longest-chain or well-founded infra,
+  so Mirsky (#4) and any height-based result need that built first.
+
 ## Next session
 
 Phase B #3 (dim2-comparability): dim ≤ 2 ⟺ incomparability graph is a
