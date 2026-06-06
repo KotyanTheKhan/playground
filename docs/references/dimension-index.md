@@ -82,6 +82,41 @@ See also `hiraguchi-sources.md` for the Hiraguchi-bound source dossier.
 **Sources.** [T92].
 **Notes.** A heuristic principle — not every high-dimension poset contains a large standard example, but containment is a sufficient lower-bound certificate.
 
+## 3. Upper bounds & inequalities
+
+#### [THM] dim-le-width — Dimension at most width
+**Statement.** dim(P) ≤ width(P), where width(P) is the maximum size of an antichain. Every poset of width w is the intersection of w linear extensions.
+**Status.** Proven.
+**Depends on.** [dim-def]
+**Sources.** [T92]; [Trotter149].
+**In this repo.** `dimension_le_width` — `posets/dimension/WidthBound.v`.
+
+#### [THM] dim-max-2-removed-antichain — Trotter's antichain-complement bound
+**Statement.** For a maximal antichain A of P, dim(P) ≤ max{2, |P − A|}. (Trotter 1975, the key lemma behind Hiraguchi's bound.)
+**Status.** Proven (Trotter 1975).
+**Depends on.** [dim-le-width]
+**Sources.** [Trotter75]; [Trotter149]; [K73].
+**In this repo.** `antichain_complement_dim_bound` (Trotter 1975 Thm 2) — `posets/dimension/AntichainDimBound.v`.
+
+#### [THM] dim-hiraguchi — Hiraguchi's Theorem
+**Statement.** For a poset P with |P| ≥ 4, dim(P) ≤ ⌊|P|/2⌋. The bound is tight: dim(S_n) = n = |S_n|/2.
+**Status.** Proven (Hiraguchi 1951).
+**Depends on.** [dim-le-width], [dim-max-2-removed-antichain], [standard-example-dim]
+**Sources.** [H51]; [T92]; [K73]; [Trotter149].
+**In this repo.** `hiraguchi_bound_direct` — `posets/dimension/HiraguchiDirect.v` (sound; Print Assumptions = standard classical axioms + one base-case admit `small_complement_le_2`, Trotter Lemma 3; NOT dependent on the Removable Pair Conjecture).
+
+#### [THM] dim-removal-point — Point-removal inequality
+**Statement.** Removing a single point from P decreases the dimension by at most 1: dim(P) − 1 ≤ dim(P − {x}) ≤ dim(P).
+**Status.** Proven (Hiraguchi; Trotter 1975).
+**Depends on.** [dim-def]
+**Sources.** [T92]; [Trotter75].
+
+#### [THM] dim-product — Dimension of a product
+**Statement.** dim(P × Q) ≤ dim(P) + dim(Q) for the Cartesian product order.
+**Status.** Proven.
+**Depends on.** [dim-def]
+**Sources.** [T92].
+
 ## Hand-fetch (paywalled)
 
 These sources are paywalled or book-only; please obtain them by hand. The index
