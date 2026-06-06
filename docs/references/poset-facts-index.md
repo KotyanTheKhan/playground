@@ -138,6 +138,7 @@ Dilworth's and Mirsky's theorems live in the dimension index (`dimension-index.m
 **Statement.** Every monotone (order-preserving) map f on a complete lattice L has a fixed point; moreover the set of fixed points of f is itself a complete lattice (in particular f has a least and a greatest fixed point).
 **Status.** Proven (Knaster–Tarski; Tarski 1955). Sources: [Tarski55]; [DP02].
 **Depends on.** [complete-lattice]
+**In this repo.** `lfp_is_fixed` + `lfp_least` (least fixed point) and `gfp_is_fixed` + `gfp_greatest` (greatest), admit-free — `posets/KnasterTarski.v` (complete lattice presented as a poset with `inf`/`sup` operators).
 **Notes.** Underpins inductive/coinductive definitions and program semantics.
 
 #### [DEF] scott-continuous — Scott-continuous map
@@ -211,6 +212,7 @@ Dilworth's and Mirsky's theorems live in the dimension index (`dimension-index.m
 #### [THM] zorn — Zorn's lemma
 **Statement.** If every chain in a non-empty poset P has an upper bound in P, then P has a maximal element. Equivalent (over ZF) to the Axiom of Choice and to the Well-Ordering Theorem.
 **Status.** Proven (equivalent to AC). Sources: [DP02].
+**In this repo.** `ZornsLemma` (and `ZornsLemmaForPreorders`) — `vendor/ZornsLemma/ZornsLemma.v` (vendored; stated with a constructive `chain_sup` + `inflation` packaging rather than the bare chain-upper-bound form).
 **Notes.** The standard tool for non-constructive existence (maximal ideals, bases, ultrafilters, extending partial orders to linear ones — cf. Szpilrajn in the dimension index).
 
 #### [THM] hausdorff-maximal — Hausdorff maximal principle

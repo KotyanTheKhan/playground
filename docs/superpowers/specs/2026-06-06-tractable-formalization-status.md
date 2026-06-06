@@ -76,14 +76,23 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
   `dushnik_miller_exists` takes `R` as an explicit positional arg (implicits
   `A`, `H`).
 
+- **2026-06-06 (session 1, cont.):** **Proved Phase B #6 (Knaster–Tarski)** and
+  **linked #5 (Zorn)**. `posets/KnasterTarski.v` (admit-free, built): complete
+  lattice = poset + `inf`/`sup` operators; `lfp_is_fixed`/`lfp_least`,
+  `gfp_is_fixed`/`gfp_greatest`. Zorn is already in `vendor/ZornsLemma`
+  (`ZornsLemma`), linked in the poset-facts index — but in a constructive
+  `chain_sup`+`inflation` packaging, NOT the bare chain-upper-bound form, so a
+  clean re-export to our `IsPoset` vocab is a separate (deferred) task.
+
 ## Next session
 
 Phase B #3 (dim2-comparability): dim ≤ 2 ⟺ incomparability graph is a
 comparability graph. Harder — needs a transitive orientation of the
-incomparability graph ⇒ two linear extensions. Then #4 (Mirsky, reuse
-`posets/dilworth/`), #5 (Zorn re-export from `vendor/ZornsLemma`). Build each via
-`bash .claude/scripts/timed-build.sh 360 <file>.vo 2` and **verify the `.vo`**
-(wrapper exit code is unreliable).
+incomparability graph ⇒ two linear extensions. Then #4 (Mirsky — repo
+`posets/dilworth/` has chain-cover machinery but no longest-chain rank function
+yet, so Mirsky needs that built; moderate), #7 (Dickson), #8 (Möbius). Build
+each via `bash .claude/scripts/timed-build.sh 360 <file>.vo 2` and **verify the
+`.vo`** (wrapper exit code is unreliable).
 
 ## Risk register
 
