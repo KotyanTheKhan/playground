@@ -63,4 +63,29 @@ Section FinPosetRank.
     lia.
   Qed.
 
+  (** L3: comparable elements of equal rank are equal — so a rank level
+      [{x | rank x = k}] is an antichain. *)
+  Theorem rank_level_antichain :
+    forall x y, rank x = rank y -> (R x y \/ R y x) -> x = y.
+  Proof.
+    intros x y Hrk Hcmp.
+    destruct (classic (x = y)) as [He | Hne]; [exact He | exfalso].
+    destruct Hcmp as [Hxy | Hyx].
+    - pose proof (rank_strict_mono x y (conj Hxy Hne)). lia.
+    - assert (Hne' : y <> x) by (intro Hc; apply Hne; symmetry; exact Hc).
+      pose proof (rank_strict_mono y x (conj Hyx Hne')). lia.
+  Qed.
+
+  (** L4: height := max rank over the whole (finite) poset; every rank is below
+      it. (Identifying [height] with the longest-chain length is the remaining
+      step toward the full cover.) *)
+  Definition height : nat := the_lub (Full_set A) (full_finite R) rank.
+
+  Lemma rank_le_height : forall x, rank x <= height.
+  Proof.
+    intro x. unfold height.
+    destruct (the_lub_is_lub (Full_set A) (full_finite R) rank) as [Hub _].
+    apply Hub. constructor.
+  Qed.
+
 End FinPosetRank.
