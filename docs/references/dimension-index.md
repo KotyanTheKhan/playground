@@ -117,6 +117,27 @@ See also `hiraguchi-sources.md` for the Hiraguchi-bound source dossier.
 **Depends on.** [dim-def]
 **Sources.** [T92].
 
+## 4. Computational complexity
+
+#### [ALG] dim2-poly — Recognizing dimension ≤ 2 is polynomial
+**Statement.** Testing whether dim(P) ≤ 2 can be done in polynomial time, by checking whether the incomparability graph admits a transitive orientation (comparability-graph recognition).
+**Status.** Proven (polynomial).
+**Depends on.** [dim2-comparability]
+**Sources.** [T92]; [BFR72].
+
+#### [ALG] dim3-npc — Deciding dimension ≤ k is NP-complete for k ≥ 3
+**Statement.** For every fixed k ≥ 3, deciding whether dim(P) ≤ k is NP-complete (Yannakakis 1982). In particular recognizing dimension-3 posets is NP-complete.
+**Status.** Proven (Yannakakis 1982).
+**Depends on.** [dim-def]
+**Sources.** [Yannakakis82]; [T92].
+
+#### [FACT] dim-complexity-gap — Dichotomy at k = 3
+**Statement.** There is a sharp complexity jump: dim ≤ 2 is polynomial-time recognizable, while dim ≤ k for any fixed k ≥ 3 is NP-complete. No intermediate fixed k is known to be tractable.
+**Status.** Proven.
+**Depends on.** [dim2-poly], [dim3-npc]
+**Sources.** [Yannakakis82]; [T92].
+**Notes.** States only the known dichotomy; parameterized/approximation refinements are not asserted here.
+
 ## Hand-fetch (paywalled)
 
 These sources are paywalled or book-only; please obtain them by hand. The index
