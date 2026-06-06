@@ -160,6 +160,7 @@ _70 entries (16 DEF, 12 FACT, 36 THM, 5 ALG, 1 CONJ). Auto-generated — do not 
 **Statement.** dim(P) = dim(P^d), where P^d is the dual poset (order reversed). Reversing every linear extension of a realizer of P yields a realizer of P^d of the same size.
 **Status.** Proven. Sources: [T92].
 **Depends on.** [dim-def], [realizer]
+**In this repo.** `dual_dimension_iff` / `dual_dimension_forward` (admit-free) — `posets/dimension/DualDimension.v`.
 
 #### [THM] dim-comparability-invariant — Dimension is a comparability invariant
 **Statement.** Posets with isomorphic comparability graphs have the same dimension; equivalently, dim(P) depends only on the comparability graph of P, not on the orientation of its edges (Trotter–Moore–Sumner 1976).

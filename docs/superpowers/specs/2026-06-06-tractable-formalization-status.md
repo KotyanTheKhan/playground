@@ -56,15 +56,24 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
 
 ## Per-session log
 
-- **2026-06-06 (session 1):** Survey + Phase A. Added 11 `In this repo.` links;
-  wrote this status doc. No new Coq. Commit: _(this commit)_.
+- **2026-06-06 (session 1):** Survey + Phase A + Phase B #1. Added 11
+  `In this repo.` links; wrote this status doc. **Proved Phase B #1
+  (dim-self-dual)**: `posets/dimension/DualDimension.v`, admit-free, built
+  (`dual_dimension_iff`, `dual_dimension_forward`, + 7 helpers). Linked in index.
+  Notes learned: (a) the dimension classes take the *bare relation* (no IsPoset
+  instance param) — `@PosetDimension A R d`; (b) coercion fields
+  `linear_is_total`/`linear_extends`/`realizer_*` take the instance *explicitly*,
+  but `total_is_poset`/`total_comparable` accept inferred `(L:=L)`; (c)
+  `PosetDimension` is in `Type` (Ensemble realizer) so use a `*`-product, not
+  `<->`; (d) the timed-build wrapper's exit code is unreliable — verify the `.vo`.
 
 ## Next session
 
-Start Phase B #1 (dim-self-dual): new file `posets/dimension/DualDimension.v`,
-register in `_CoqProject`, prove `dual_dimension_eq : PosetDimension R d <->
-PosetDimension (flip R) d` (or the cardinal form), build via
-`bash .claude/scripts/timed-build.sh 300 posets/dimension/DualDimension.vo 2`.
+Phase B #2 (dim-geometric): new `posets/dimension/Geometric.v` — show
+`PosetDimension R d` is equivalent to an order-embedding into a product of d
+chains (largely a repackaging of `IsRealizer`). Then #3 (dim2-comparability),
+#4 (Mirsky, reuse `posets/dilworth/`). Build each via
+`bash .claude/scripts/timed-build.sh 360 <file>.vo 2` and verify the `.vo`.
 
 ## Risk register
 
