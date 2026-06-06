@@ -212,6 +212,22 @@ See also `hiraguchi-sources.md` for the Hiraguchi-bound source dossier.
 **Sources.** *pending source*
 **Notes.** Introduced by Ueckerdt (2016) and developed by Kim–Martin–Masařík–Shull–Smith–Uzzell–Wang; a precise citable source has not yet been secured — recheck on hand-fetch.
 
+## 7. Open problems
+
+#### [CONJ] removable-pair — Removable Pair Conjecture
+**Statement.** (Trotter) Every poset P with |P| ≥ 3 contains a pair of elements {x,y} whose removal decreases the dimension by at most 1: dim(P) − dim(P − {x,y}) ≤ 1. The integer-dimension case is OPEN.
+**Status.** Open.
+**Depends on.** [dim-removal-point]
+**Sources.** [T92].
+**In this repo.** A sound, audited *reduction* of the conjecture exists on branch `removable-pair-attempt` (18 Qed / 0 admits); the conjecture itself is left open. The "two maximals" approach was shown FALSE. See memory note `project_rpc_reduction_branch`.
+**Notes.** West's open-problems list tracks it: https://faculty.math.illinois.edu/~west/openp/rempair.html
+
+#### [THM] removable-pair-fractional — Removable Pair holds for fractional dimension
+**Statement.** The Removable Pair Conjecture is TRUE when dimension is replaced by fractional dimension: every poset with ≥ 3 points has a pair whose removal lowers the fractional dimension by at most 1 (Biró–Hamburger–Pór–Trotter 2014). The integer case remains open.
+**Status.** Proven (BHPT 2014, fractional version only).
+**Depends on.** [fractional-dim], [removable-pair]
+**Sources.** [BHPT14].
+
 ## Hand-fetch (paywalled)
 
 These sources are paywalled or book-only; please obtain them by hand. The index
