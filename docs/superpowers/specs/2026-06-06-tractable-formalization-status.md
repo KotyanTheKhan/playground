@@ -67,13 +67,23 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
   `PosetDimension` is in `Type` (Ensemble realizer) so use a `*`-product, not
   `<->`; (d) the timed-build wrapper's exit code is unreliable — verify the `.vo`.
 
+- **2026-06-06 (session 1, cont.):** **Proved Phase B #2 (dim-geometric)**:
+  `posets/dimension/Geometric.v`, admit-free, built. `ChainIntersection R fam`
+  (R = coordinatewise intersection of a family of total orders);
+  `dimension_to_chain_intersection` (dim d ⇒ d-chain embedding, no finiteness);
+  `chain_intersection_dimension_le` (d-chain embedding ⇒ dim ≤ d, finite P, via
+  `dushnik_miller_exists` + `dimension_is_minimum`). Linked in index. API note:
+  `dushnik_miller_exists` takes `R` as an explicit positional arg (implicits
+  `A`, `H`).
+
 ## Next session
 
-Phase B #2 (dim-geometric): new `posets/dimension/Geometric.v` — show
-`PosetDimension R d` is equivalent to an order-embedding into a product of d
-chains (largely a repackaging of `IsRealizer`). Then #3 (dim2-comparability),
-#4 (Mirsky, reuse `posets/dilworth/`). Build each via
-`bash .claude/scripts/timed-build.sh 360 <file>.vo 2` and verify the `.vo`.
+Phase B #3 (dim2-comparability): dim ≤ 2 ⟺ incomparability graph is a
+comparability graph. Harder — needs a transitive orientation of the
+incomparability graph ⇒ two linear extensions. Then #4 (Mirsky, reuse
+`posets/dilworth/`), #5 (Zorn re-export from `vendor/ZornsLemma`). Build each via
+`bash .claude/scripts/timed-build.sh 360 <file>.vo 2` and **verify the `.vo`**
+(wrapper exit code is unreliable).
 
 ## Risk register
 

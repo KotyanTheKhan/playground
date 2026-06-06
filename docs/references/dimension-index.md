@@ -154,6 +154,7 @@ _70 entries (16 DEF, 12 FACT, 36 THM, 5 ALG, 1 CONJ). Auto-generated — do not 
 **Statement.** dim(P) ≤ d iff P order-embeds into a product of d chains — equivalently into ℝ^d with the coordinatewise (product) order. So dim(P) is the least d for which P is realized by d real coordinates compared componentwise.
 **Status.** Proven (Dushnik–Miller; equivalent to the realizer definition). Sources: [DM41]; [T92].
 **Depends on.** [dim-def], [realizer]
+**In this repo.** `dimension_to_chain_intersection` (dim d ⇒ intersection of d chains) + `chain_intersection_dimension_le` (intersection of d chains ⇒ dim ≤ d, finite P), admit-free — `posets/dimension/Geometric.v`.
 **Notes.** This is the precise statement behind [dim-clock-memory]: a d-coordinate clock is a d-dimensional embedding of the causal poset.
 
 #### [FACT] dim-self-dual — Dimension is self-dual
