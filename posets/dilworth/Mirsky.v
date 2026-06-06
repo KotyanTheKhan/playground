@@ -228,4 +228,80 @@ Section MirskyUpper.
              Hchain mirsky_cover_is_cover Hcard mirsky_cover_cardinal).
   Qed.
 
+  (** A chain ending at [x] of size [rank x] (built by descending predecessors). *)
+  Lemma chain_to_x :
+    forall x, exists C, IsChain R C /\ cardinal A C (rank R x) /\ In A C x /\
+                        (forall z, In A C z -> R z x).
+  Proof.
+    intro x. induction x as [x IHx] using (well_founded_ind (fin_strict_wf R)).
+    destruct (Nat.eq_dec (rank R x) 1) as [H1 | Hne1].
+    - (* minimal-rank base case: the singleton chain {x} *)
+      exists (Singleton A x). split; [| split; [| split]].
+      + constructor.
+        * exists x. constructor.
+        * intros a b Ha Hb. destruct Ha. destruct Hb. left. apply (poset_refl (R := R)).
+      + assert (Heq : Singleton A x = Add A (Empty_set A) x).
+        { apply Extensionality_Ensembles; split; intros z Hz.
+          - destruct Hz. right. constructor.
+          - destruct Hz as [z Hz | z Hz]; [destruct Hz | destruct Hz; constructor]. }
+        rewrite Heq, H1. apply card_add; [constructor | intro Hi; destruct Hi].
+      + constructor.
+      + intros z Hz. destruct Hz. apply (poset_refl (R := R)).
+    - (* rank x >= 2: extend a chain ending at a rank-(rank x - 1) predecessor *)
+      assert (Hgt : 1 < rank R x) by (pose proof (rank_pos R x); lia).
+      destruct (rank_pred R x Hgt) as [y [Hyx Hyr]].
+      destruct (IHx y Hyx) as [Cy [HchY [HcardY [HinY HbelowY]]]].
+      assert (Hbx : forall z, In A Cy z -> R z x).
+      { intros z Hz. apply (poset_trans (R := R) z y x);
+          [ apply HbelowY; exact Hz | exact (proj1 Hyx) ]. }
+      assert (HxnotCy : ~ In A Cy x).
+      { intro Hx. destruct Hyx as [Ryx Hyne].
+        assert (x = y) by (apply (poset_antisym (R := R) x y); [apply HbelowY; exact Hx | exact Ryx]).
+        apply Hyne. symmetry. assumption. }
+      exists (Add A Cy x). split; [| split; [| split]].
+      + constructor.
+        * exists x. right. constructor.
+        * intros a b Ha Hb.
+          destruct Ha as [a Ha | a Ha]; destruct Hb as [b Hb | b Hb].
+          -- destruct HchY as [_ Hcmp]. apply Hcmp; assumption.
+          -- destruct Hb. left. apply Hbx; exact Ha.
+          -- destruct Ha. right. apply Hbx; exact Hb.
+          -- destruct Ha. destruct Hb. left. apply (poset_refl (R := R)).
+      + assert (Hc : cardinal A (Add A Cy x) (S (rank R y)))
+          by (apply card_add; [exact HcardY | exact HxnotCy]).
+        rewrite Hyr in Hc. replace (S (rank R x - 1)) with (rank R x) in Hc by lia.
+        exact Hc.
+      + right. constructor.
+      + intros z Hz. destruct Hz as [z Hz | z Hz].
+        * apply Hbx; exact Hz.
+        * destruct Hz. apply (poset_refl (R := R)).
+  Qed.
+
+  (** A chain realizing the height exists (height positive). *)
+  Theorem exists_chain_height :
+    1 <= height R -> exists C, IsChain R C /\ cardinal A C (height R).
+  Proof.
+    intro Hpos. destruct (height_attained Hpos) as [x0 Hx0].
+    destruct (chain_to_x x0) as [C [Hch [Hcard _]]].
+    exists C. split; [exact Hch | rewrite <- Hx0; exact Hcard].
+  Qed.
+
+  (** Mirsky's theorem (nondegenerate case): the maximum chain size and the
+      minimum antichain-cover size both equal [height] (= max rank). *)
+  Theorem mirsky :
+    1 <= height R ->
+    (exists C, IsChain R C /\ cardinal A C (height R)) /\
+    (exists cov, IsAntichainCover R (Full_set A) cov /\
+                 cardinal (Ensemble A) cov (height R)) /\
+    (forall C h, IsChain R C -> cardinal A C h -> h <= height R) /\
+    (forall C cov h k, IsChain R C -> IsAntichainCover R (Full_set A) cov ->
+                       cardinal A C h -> cardinal (Ensemble A) cov k -> h <= k).
+  Proof.
+    intro Hpos. split; [| split; [| split]].
+    - exact (exists_chain_height Hpos).
+    - exists mirsky_cover. exact mirsky_height_cover.
+    - exact chain_card_le_height.
+    - exact (chain_le_antichain_cover R).
+  Qed.
+
 End MirskyUpper.

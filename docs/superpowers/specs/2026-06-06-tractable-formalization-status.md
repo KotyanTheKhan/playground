@@ -151,6 +151,13 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
   identification height = longest-chain-length remains (a chain realizing height
   via `rank_pred` — straightforward recursion).
 
+- **2026-06-06 (session 1, cont.):** **MIRSKY FULLY PROVEN (admit-free).**
+  `posets/dilworth/Mirsky.v`: `chain_to_x` (chain of size rank x ending at x, via
+  rank_pred recursion + IsChain Add case), `exists_chain_height`, and headline
+  `mirsky` (height≥1): max chain size = min antichain cover size = height (max
+  rank). Closes the Mirsky track (LB + full UB + matching chain). 6 supporting
+  files all admit-free: FiniteMax, FinPosetWF, FinPosetRank, dilworth/Mirsky.
+
 ## Next session
 
 Mirsky UB (now unblocked by `fin_strict_wf`): define `rank x` by well-founded
