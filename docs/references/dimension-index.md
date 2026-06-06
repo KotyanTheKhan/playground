@@ -138,6 +138,46 @@ See also `hiraguchi-sources.md` for the Hiraguchi-bound source dossier.
 **Sources.** [Yannakakis82]; [T92].
 **Notes.** States only the known dichotomy; parameterized/approximation refinements are not asserted here.
 
+## 5. Special classes
+
+#### [DEF] interval-order — Interval order
+**Statement.** An interval order is a poset representable by assigning each element a closed real interval so that x < y iff the interval of x lies entirely to the left of the interval of y. Equivalently, it is a poset with no induced 2+2 (two disjoint 2-chains).
+**Status.** Definition.
+**Sources.** [T92].
+
+#### [THM] interval-order-dim — Dimension of interval orders
+**Statement.** The dimension of an interval order is governed by its height: interval orders can have arbitrarily large dimension, growing (slowly) with the number of elements, and the extremal growth rate is known to be ~ lg lg n. Interval orders are a central testbed for dimension theory.
+**Status.** Proven.
+**Depends on.** [interval-order]
+**Sources.** [T92].
+**Notes.** The lg lg n growth (Füredi–Hajnal–Rödl–Trotter line of work) is reported as surveyed in [T92]; treat the precise asymptotic as *pending source* if exactness is needed.
+
+#### [THM] planar-01-dim2 — Planar posets with 0 and 1
+**Statement.** A poset whose Hasse diagram is planar and which has a least element 0 and a greatest element 1 has dim ≤ 2.
+**Status.** Proven (Baker–Fishburn–Roberts 1972).
+**Depends on.** [dim2-comparability]
+**Sources.** [BFR72]; [T92].
+
+#### [THM] planar-unbounded — Planar posets have unbounded dimension
+**Statement.** Without the 0/1 hypothesis, planar posets can have arbitrarily large dimension; Kelly constructed planar posets containing large standard examples, so planarity alone does not bound dimension.
+**Status.** Proven (Kelly 1981).
+**Depends on.** [standard-example], [planar-01-dim2]
+**Sources.** [Kelly81]; [T92].
+**Notes.** Contrast with [planar-01-dim2] — the 0/1 (bounded) hypothesis is essential.
+
+#### [THM] boolean-lattice-dim — Dimension of the Boolean lattice
+**Statement.** The dimension of the Boolean lattice 2^[n] (subsets of an n-set ordered by inclusion) equals n for n ≥ 2 (its standard example S_n sits at the middle two levels and forces dim ≥ n; n linear extensions suffice).
+**Status.** Proven (Dushnik–Miller).
+**Depends on.** [standard-example-dim]
+**Sources.** [DM41]; [T92].
+**Notes.** Often attributed to Dushnik–Miller; the lower bound is exactly the embedded standard example.
+
+#### [FACT] bipartite-dim — Height-2 (bipartite) posets
+**Statement.** Height-2 posets (a bipartite split into minimal and maximal elements) already realize the full difficulty of dimension theory — standard examples are height-2, and dimension of height-2 posets is itself NP-hard to compute. Restricting to height 2 does not make dimension easy.
+**Status.** Proven.
+**Depends on.** [standard-example], [dim3-npc]
+**Sources.** [T92]; [Yannakakis82].
+
 ## Hand-fetch (paywalled)
 
 These sources are paywalled or book-only; please obtain them by hand. The index
