@@ -86,4 +86,47 @@ Section FiniteMax.
     exact (lub_unique S g _ _ Hf' Hg).
   Qed.
 
+  (** A finite nonempty set has an argmax for [f]. *)
+  Lemma finite_argmax :
+    forall (k : nat) (S : Ensemble A),
+      cardinal A S k ->
+      forall (f : A -> nat),
+        Inhabited A S ->
+        exists x, In A S x /\ (forall y, In A S y -> f y <= f x).
+  Proof.
+    intros k S Hc. induction Hc as [| S' k' Hc' IH x Hxnin]; intros f Hinh.
+    - destruct Hinh as [z Hz]. destruct Hz.
+    - destruct (classic (Inhabited A S')) as [HinhS' | HnS'].
+      + destruct (IH f HinhS') as [z [Hz Hzmax]].
+        destruct (Nat.le_ge_cases (f x) (f z)) as [Hle | Hge].
+        * exists z. split; [left; exact Hz |].
+          intros y Hy. destruct Hy as [y Hy | y Hy].
+          -- apply Hzmax; exact Hy.
+          -- destruct Hy. exact Hle.
+        * exists x. split; [right; constructor |].
+          intros y Hy. destruct Hy as [y Hy | y Hy].
+          -- apply Nat.le_trans with (f z); [apply Hzmax; exact Hy | exact Hge].
+          -- destruct Hy. apply Nat.le_refl.
+      + exists x. split; [right; constructor |].
+        intros y Hy. destruct Hy as [y Hy | y Hy].
+        * exfalso. apply HnS'. exists y. exact Hy.
+        * destruct Hy. apply Nat.le_refl.
+  Qed.
+
+  (** The maximum of [f] over a finite nonempty set is attained. *)
+  Lemma finite_max_achieved :
+    forall (S : Ensemble A) (HS : Finite A S) (f : A -> nat),
+      Inhabited A S ->
+      exists x, In A S x /\ f x = the_lub S HS f.
+  Proof.
+    intros S HS f Hinh.
+    destruct (finite_cardinal A S HS) as [k Hk].
+    destruct (finite_argmax k S Hk f Hinh) as [x [Hx Hmax]].
+    exists x. split; [exact Hx |].
+    destruct (the_lub_is_lub S HS f) as [Hub Hleast].
+    apply Nat.le_antisymm.
+    - apply Hub; exact Hx.
+    - apply Hleast. intros y Hy. apply Hmax; exact Hy.
+  Qed.
+
 End FiniteMax.

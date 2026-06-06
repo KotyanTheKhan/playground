@@ -88,4 +88,37 @@ Section FinPosetRank.
     apply Hub. constructor.
   Qed.
 
+  (** If [rank x > 1] then [x] has a strict predecessor of rank [rank x - 1]
+      (the achiever of the max over predecessors). *)
+  Lemma rank_pred :
+    forall x, 1 < rank x -> exists y, StrictR R y x /\ rank y = rank x - 1.
+  Proof.
+    intros x Hgt.
+    assert (Hinh : Inhabited A (DownStrict R x)).
+    { destruct (classic (Inhabited A (DownStrict R x))) as [H' | H']; [exact H' |].
+      exfalso.
+      assert (Hz : the_lub (DownStrict R x) (downstrict_finite R x) rank = 0).
+      { destruct (the_lub_is_lub (DownStrict R x) (downstrict_finite R x) rank) as [_ Hleast].
+        apply Nat.le_antisymm; [| apply Nat.le_0_l].
+        apply Hleast. intros z Hz. exfalso. apply H'. exists z. exact Hz. }
+      rewrite rank_eq, Hz in Hgt. simpl in Hgt. lia. }
+    destruct (finite_max_achieved (DownStrict R x) (downstrict_finite R x) rank Hinh)
+      as [y [Hy Hyval]].
+    exists y. split; [exact Hy |].
+    rewrite (rank_eq x), Hyval. lia.
+  Qed.
+
+  (** Contiguity: every rank in [1 .. rank x] is attained. *)
+  Lemma rank_achieves :
+    forall x k, 1 <= k -> k <= rank x -> exists z, rank z = k.
+  Proof.
+    intro x. induction x as [x IHx] using (well_founded_ind (fin_strict_wf R)).
+    intros k Hk1 Hkle.
+    destruct (Nat.eq_dec k (rank x)) as [He | Hne].
+    - exists x. symmetry. exact He.
+    - assert (Hgt : 1 < rank x) by lia.
+      destruct (rank_pred x Hgt) as [y [Hyx Hyr]].
+      apply (IHx y Hyx k Hk1). lia.
+  Qed.
+
 End FinPosetRank.

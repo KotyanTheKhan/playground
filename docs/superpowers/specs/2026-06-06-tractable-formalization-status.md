@@ -131,6 +131,16 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
   Remaining for Mirsky-UB: L3 (levels = antichains; easy from L2), L4 (height =
   max rank), D1 (the cover), D2 (final).
 
+- **2026-06-06 (session 1, cont.):** **Mirsky-UB L3/L4 + achiever/contiguity.**
+  `posets/FiniteMax.v`: `finite_argmax` + `finite_max_achieved` (finite max is
+  attained). `posets/FinPosetRank.v`: `rank_level_antichain` (L3), `height`
+  +`rank_le_height` (L4), `rank_pred` (rank>1 ⇒ a predecessor of rank-1),
+  `rank_achieves` (every k∈[1,rank x] is attained — contiguity). All admit-free.
+  Rank-side machinery for Mirsky-UB is now COMPLETE. Remaining: cover assembly in
+  the Dilworth layer (`Mirsky.v`): define `Level k`, build the cover = nonempty
+  levels, `IsAntichainCover` + `cardinal = height`; plus a chain of size `height`
+  (via `rank_pred`) to identify height with longest chain, then the final theorem.
+
 ## Next session
 
 Mirsky UB (now unblocked by `fin_strict_wf`): define `rank x` by well-founded
