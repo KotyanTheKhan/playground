@@ -244,4 +244,3 @@ entries depending on them are marked *pending source* until then.
 - **Brightwell–Scheinerman 1992** [BS92] — https://doi.org/10.1007/BF00814405
 - **Trotter, Handbook of Combinatorics 1995** [TrotterHandbook95] — survey chapter.
 - **Kimble 1973** [K73] — MIT DSpace (429 rate-limit at fetch time): https://dspace.mit.edu/bitstream/handle/1721.1/82903/30083917-MIT.pdf
-- **Biró–Hamburger–Pór–Trotter 2014** [BHPT14] — EJC (404 at fetch time): https://doi.org/10.37236/3859
