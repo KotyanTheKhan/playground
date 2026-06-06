@@ -200,17 +200,27 @@ See also `hiraguchi-sources.md` for the Hiraguchi-bound source dossier.
 
 #### [DEF] boolean-dim — Boolean dimension
 **Statement.** The Boolean dimension bdim(P) is the least d such that the order relation of P can be recovered by a fixed Boolean formula from d linear orders on the ground set (the comparison x < y is decided by a Boolean function of the d pairwise comparisons). Always bdim(P) ≤ dim(P).
-**Status.** Definition.
+**Status.** Definition (concept due to Nešetřil–Pudlák).
 **Depends on.** [dim-def]
-**Sources.** *pending source*
-**Notes.** Introduced by Nešetřil–Pudlák; a precise citable source has not yet been secured for this index — recheck on hand-fetch.
+**Sources.** [FMM20]; [BPSTT19].
+**Notes.** Concept introduced by Nešetřil–Pudlák (1989). The formal definition and bdim(P) ≤ dim(P) are as stated in [FMM20] (Boolean dimension and tree-width) and surveyed in [BPSTT19]. Felsner–Mészáros–Micek prove posets whose cover graphs have bounded tree-width have bounded Boolean dimension.
 
 #### [DEF] local-dim — Local dimension
 **Statement.** The local dimension ldim(P) is defined via partial linear extensions: the minimum, over coverings of the critical pairs by partial realizers, of the maximum number of partial linear extensions covering any single element. It refines dimension with ldim(P) ≤ dim(P).
-**Status.** Definition.
+**Status.** Definition (concept due to Ueckerdt 2016).
 **Depends on.** [dim-def], [critical-pair]
-**Sources.** *pending source*
-**Notes.** Introduced by Ueckerdt (2016) and developed by Kim–Martin–Masařík–Shull–Smith–Uzzell–Wang; a precise citable source has not yet been secured — recheck on hand-fetch.
+**Sources.** [KMMSSUW20]; [BPSTT19].
+**Notes.** Concept introduced by Ueckerdt (2016); formalized and developed by Kim–Martin–Masařík–Shull–Smith–Uzzell–Wang [KMMSSUW20], who prove the maximum local dimension of an n-element poset is Θ(n/log n) and that ldim(2^[n]) = Ω(n/log n). Also surveyed in [BPSTT19].
+
+#### [THM] local-dim-max — Maximum local dimension is Θ(n/log n)
+**Statement.** The maximum local dimension over all posets on n elements is Θ(n/log n). In particular local dimension and (Dushnik–Miller) dimension can be arbitrarily far apart, since dimension can reach ⌊n/2⌋.
+**Status.** Proven (Kim et al. 2020). Sources: [KMMSSUW20].
+**Depends on.** [local-dim], [dim-hiraguchi].
+
+#### [THM] boolean-dim-treewidth — Bounded tree-width gives bounded Boolean dimension
+**Statement.** Posets whose cover (Hasse) graphs have bounded tree-width have bounded Boolean dimension. This contrasts with Dushnik–Miller dimension, which is unbounded even for posets with planar cover graphs.
+**Status.** Proven (Felsner–Mészáros–Micek 2020). Sources: [FMM20].
+**Depends on.** [boolean-dim], [planar-unbounded].
 
 ## 7. Open problems
 
