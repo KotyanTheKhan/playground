@@ -12,18 +12,18 @@
 
 set -e
 
-idx="docs/references/dimension-index.md"
 gen="docs/references/gen-toc.py"
 root="$(git rev-parse --show-toplevel)"
+staged="$(git diff --cached --name-only)"
 
-# Only act if the index is staged for this commit.
-if git diff --cached --name-only | grep -qx "$idx"; then
+# Regenerate the TOC of any *-index.md file that is part of this commit.
+for idx in $(echo "$staged" | grep -E '^docs/references/[a-z0-9-]+-index\.md$' || true); do
     if command -v python3 >/dev/null 2>&1; then
-        python3 "$root/$gen" >/dev/null
+        python3 "$root/$gen" "$root/$idx" >/dev/null
         git add "$root/$idx"
     else
         echo "pre-commit: python3 not found; skipping TOC regeneration" >&2
     fi
-fi
+done
 
 exit 0
