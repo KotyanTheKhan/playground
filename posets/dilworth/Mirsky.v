@@ -17,8 +17,8 @@
     longest-chain rank function) needs a rank/well-founded-recursion layer the
     repo does not yet have; it is the documented next step (see the track status
     doc). Index entry: [mirsky] in docs/references/poset-facts-index.md. *)
-From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts Image ClassicalEpsilon.
-From Posets Require Import PosetClasses.
+From Stdlib Require Import Ensembles Finite_sets Finite_sets_facts Image ClassicalEpsilon Arith Lia.
+From Posets Require Import PosetClasses FinitePoset FinPosetRank.
 From Dilworth Require Import Definitions.
 
 Section Mirsky.
@@ -97,3 +97,42 @@ Section Mirsky.
   Qed.
 
 End Mirsky.
+
+(** ** Upper bound: the rank-level antichain cover. *)
+Section MirskyUpper.
+  Context {A : Type} (R : A -> A -> Prop) {n : nat} `{IsFinitePoset A R n}.
+  #[local] Existing Instance fp_is_poset.
+
+  (** Rank level [k]: the elements of rank exactly [k]. *)
+  Definition Level (k : nat) : Ensemble A := fun x => rank R x = k.
+
+  (** A nonempty level is an antichain (equal rank + comparable ⇒ equal). *)
+  Lemma level_antichain : forall k, Inhabited A (Level k) -> IsAntichain R (Level k).
+  Proof.
+    intros k Hinh. constructor.
+    - exact Hinh.
+    - intros x y Hx Hy Hcmp. unfold In, Level in Hx, Hy.
+      apply (rank_level_antichain R x y); [ rewrite Hx, Hy; reflexivity | exact Hcmp ].
+  Qed.
+
+  (** The cover: the nonempty rank levels [1 .. height]. *)
+  Definition mirsky_cover : Ensemble (Ensemble A) :=
+    fun C => exists k, 1 <= k /\ k <= height R /\ Inhabited A (Level k) /\ C = Level k.
+
+  Theorem mirsky_cover_is_cover : IsAntichainCover R (Full_set A) mirsky_cover.
+  Proof.
+    constructor.
+    - (* each member is an antichain *)
+      intros C HC. destruct HC as [k [_ [_ [Hinh Heq]]]]. subst C.
+      apply level_antichain. exact Hinh.
+    - (* each member is included in the ground set *)
+      intros C _ x _. constructor.
+    - (* every element is covered, by its own level *)
+      intros x _. exists (Level (rank R x)). split.
+      + exists (rank R x). split; [apply rank_pos | split; [apply rank_le_height | split]].
+        * exists x. unfold In, Level. reflexivity.
+        * reflexivity.
+      + unfold In, Level. reflexivity.
+  Qed.
+
+End MirskyUpper.
