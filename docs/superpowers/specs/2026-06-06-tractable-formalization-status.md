@@ -97,6 +97,13 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
   `DimBasics.v` (Dimension lib), `KnasterTarski.v` (Posets lib) — all admit-free
   and integrated.
 
+- **2026-06-06 (session 1, cont.):** **Proved Kleene fixed-point**
+  (`posets/KleeneFixpoint.v`, admit-free, built): complete lattice as poset +
+  inf/sup, ⊥ = inf(Full), Kleene chain `iter n = fⁿ⊥`, ω-continuity hypothesized;
+  `kleene_lfp_fixed` (sup of iterates is a fixed point) + `kleene_lfp_least`.
+  Linked in poset-facts index. The fixed-point cluster (Knaster–Tarski, Kleene,
+  Zorn-linked) is now well covered.
+
 ## Next session
 
 Phase B #3 (dim2-comparability): dim ≤ 2 ⟺ incomparability graph is a

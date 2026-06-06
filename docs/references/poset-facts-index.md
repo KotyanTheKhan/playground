@@ -150,6 +150,7 @@ Dilworth's and Mirsky's theorems live in the dimension index (`dimension-index.m
 **Statement.** On a pointed dcpo, a Scott-continuous map f has least fixed point ⊔_{n≥0} f^n(⊥) — the supremum of the ascending Kleene chain.
 **Status.** Proven (Kleene). Sources: [DP02].
 **Depends on.** [dcpo], [scott-continuous], [knaster-tarski]
+**In this repo.** `kleene_lfp_fixed` (sup of iterates is a fixed point) + `kleene_lfp_least` (it is least), admit-free — `posets/KleeneFixpoint.v` (complete lattice as poset + inf/sup; ⊥ = inf(Full); ω-continuity hypothesized on ascending sequences).
 
 #### [THM] davis-fpp — Fixed-point property characterizes complete lattices
 **Statement.** A lattice has the fixed-point property — every order-preserving self-map has a fixed point — if and only if it is a complete lattice (Davis 1955).
