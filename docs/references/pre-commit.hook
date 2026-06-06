@@ -1,9 +1,10 @@
 #!/bin/sh
-# Pre-commit hook: keep the order-dimension index TOC in sync.
+# Pre-commit hook: keep the reference indexes' derived files in sync.
 #
-# When docs/references/dimension-index.md is part of a commit, regenerate its
-# table of contents (gen-toc.py is idempotent) and re-stage the file so the
-# committed TOC matches the committed entries.
+#  * regenerate the TOC of any *-index.md in the commit (gen-toc.py)
+#  * regenerate proprietary-papers.md when sources.bib or an index changes
+#    (gen-proprietary.py)
+# Both generators are idempotent; regenerated files are re-staged.
 #
 # Install into this clone (git hooks are not version-controlled):
 #     ln -sf ../../docs/references/pre-commit.hook .git/hooks/pre-commit
@@ -12,18 +13,26 @@
 
 set -e
 
-gen="docs/references/gen-toc.py"
 root="$(git rev-parse --show-toplevel)"
 staged="$(git diff --cached --name-only)"
 
-# Regenerate the TOC of any *-index.md file that is part of this commit.
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "pre-commit: python3 not found; skipping reference regeneration" >&2
+    exit 0
+fi
+
+# 1. Regenerate the TOC of any *-index.md file that is part of this commit.
+touched_refs=""
 for idx in $(echo "$staged" | grep -E '^docs/references/[a-z0-9-]+-index\.md$' || true); do
-    if command -v python3 >/dev/null 2>&1; then
-        python3 "$root/$gen" "$root/$idx" >/dev/null
-        git add "$root/$idx"
-    else
-        echo "pre-commit: python3 not found; skipping TOC regeneration" >&2
-    fi
+    python3 "$root/docs/references/gen-toc.py" "$root/$idx" >/dev/null
+    git add "$root/$idx"
+    touched_refs=1
 done
+
+# 2. If sources.bib or any index changed, refresh the proprietary-papers index.
+if [ -n "$touched_refs" ] || echo "$staged" | grep -qx 'docs/references/sources.bib'; then
+    python3 "$root/docs/references/gen-proprietary.py" >/dev/null
+    git add "$root/docs/references/proprietary-papers.md"
+fi
 
 exit 0
