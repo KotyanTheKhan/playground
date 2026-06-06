@@ -121,6 +121,16 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
   recursion/induction on any finite poset (reusable beyond Mirsky). Used
   `#[local] Existing Instance fp_is_poset` so `poset_trans/antisym` resolve.
 
+- **2026-06-06 (session 1, cont.):** **Mirsky-UB P2 done** — the rank function.
+  `posets/FiniteMax.v` gained `the_lub` (deterministic finite max) +
+  `the_lub_is_lub` + `the_lub_ext` (extensionality, from LUB uniqueness).
+  `posets/FinPosetRank.v` (admit-free, built first try): `rank := Fix
+  fin_strict_wf rank_step`; **L1** `rank_eq` (recurrence `rank x = 1 + lub{rank y
+  | y<x}`, with `Fix_eq` discharged via `the_lub_ext` — the flagged risk is
+  resolved), `rank_pos`, **L2** `rank_strict_mono` (y<x ⇒ rank y < rank x).
+  Remaining for Mirsky-UB: L3 (levels = antichains; easy from L2), L4 (height =
+  max rank), D1 (the cover), D2 (final).
+
 ## Next session
 
 Mirsky UB (now unblocked by `fin_strict_wf`): define `rank x` by well-founded
