@@ -197,6 +197,7 @@ Structural poset facts the dimension theory above rests on.
 #### [THM] mirsky — Mirsky's theorem (dual of Dilworth)
 **Statement.** In any finite poset the minimum number of antichains needed to cover P equals the height of P (the length of a longest chain).
 **Status.** Proven (Mirsky 1971). Sources: [Mirsky71]; [T92].
+**In this repo.** *Partial.* Lower-bound direction `chain_le_antichain_cover` (any chain ≤ any antichain cover, hence height ≤ cover number), admit-free — `posets/dilworth/Mirsky.v`. The upper bound (a height-sized antichain cover via a longest-chain rank function) is the documented next step — needs a rank/well-founded layer the repo lacks.
 **Notes.** The height/antichain dual of [dilworth]; underlies [comparability-perfect] (χ of the comparability graph = height).
 
 #### [ALG] count-linear-extensions — Counting linear extensions is #P-complete

@@ -104,10 +104,22 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
   Linked in poset-facts index. The fixed-point cluster (Knaster–Tarski, Kleene,
   Zorn-linked) is now well covered.
 
+- **2026-06-06 (session 1, cont.):** **Started Mirsky track**
+  (`posets/dilworth/Mirsky.v`, admit-free, built). Proved the **lower-bound
+  direction** `chain_le_antichain_cover` (any chain ≤ any antichain cover, via a
+  choice-selected injection chain→cover + a local `cardinal_Im_inj` +
+  `incl_card_le`). Reuses the Dilworth `IsChain`/`IsAntichainCover` layer. Index
+  `mirsky` entry marked *Partial*. **Remaining (UB):** a height-sized antichain
+  cover from a longest-chain **rank function** — the repo has no rank/height/
+  well-founded layer, so that must be built first (the real Mirsky sub-project).
+
 ## Next session
 
-Phase B #3 (dim2-comparability): dim ≤ 2 ⟺ incomparability graph is a
-comparability graph. Harder — needs a transitive orientation of the
+Mirsky UB: build a finite-poset **rank function** (longest chain ending at x)
+via well-founded recursion on the strict order, prove x<y ⇒ rank x < rank y
+(levels are antichains) and #levels = height, giving the height-sized cover.
+Alternatively Phase B #3 (dim2-comparability): dim ≤ 2 ⟺ incomparability graph
+is a comparability graph (needs a transitive orientation of the
 incomparability graph ⇒ two linear extensions. Then #4 (Mirsky — repo
 `posets/dilworth/` has chain-cover machinery but no longest-chain rank function
 yet, so Mirsky needs that built; moderate), #7 (Dickson), #8 (Möbius). Build
