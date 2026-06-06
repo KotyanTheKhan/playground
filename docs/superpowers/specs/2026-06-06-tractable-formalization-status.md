@@ -158,6 +158,8 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
   rank). Closes the Mirsky track (LB + full UB + matching chain). 6 supporting
   files all admit-free: FiniteMax, FinPosetWF, FinPosetRank, dilworth/Mirsky.
 
+- **2026-06-06 (session 1, close):** full `@all` build green (0 errors) after Mirsky completion; all 9 new files' `.vo` present.
+
 ## Next session
 
 Mirsky UB (now unblocked by `fin_strict_wf`): define `rank x` by well-founded
