@@ -1,0 +1,29 @@
+#!/bin/sh
+# Pre-commit hook: keep the order-dimension index TOC in sync.
+#
+# When docs/references/dimension-index.md is part of a commit, regenerate its
+# table of contents (gen-toc.py is idempotent) and re-stage the file so the
+# committed TOC matches the committed entries.
+#
+# Install into this clone (git hooks are not version-controlled):
+#     ln -sf ../../docs/references/pre-commit.hook .git/hooks/pre-commit
+#   or copy:
+#     cp docs/references/pre-commit.hook .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+set -e
+
+idx="docs/references/dimension-index.md"
+gen="docs/references/gen-toc.py"
+root="$(git rev-parse --show-toplevel)"
+
+# Only act if the index is staged for this commit.
+if git diff --cached --name-only | grep -qx "$idx"; then
+    if command -v python3 >/dev/null 2>&1; then
+        python3 "$root/$gen" >/dev/null
+        git add "$root/$idx"
+    else
+        echo "pre-commit: python3 not found; skipping TOC regeneration" >&2
+    fi
+fi
+
+exit 0
