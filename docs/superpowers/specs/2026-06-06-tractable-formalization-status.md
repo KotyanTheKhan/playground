@@ -113,10 +113,19 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
   cover from a longest-chain **rank function** — the repo has no rank/height/
   well-founded layer, so that must be built first (the real Mirsky sub-project).
 
+- **2026-06-06 (session 1, cont.):** **Landed the Mirsky-UB keystone**
+  `posets/FinPosetWF.v` (admit-free, built): `fin_strict_wf : well_founded
+  (StrictR R)` for a finite poset — strong induction on `|DownStrict x|` using
+  `incl_st_card_lt` (note: NO `Finite` arg) + `Finite_downward_closed` +
+  `finite_cardinal` + `cardinal_finite`. This enables well-founded
+  recursion/induction on any finite poset (reusable beyond Mirsky). Used
+  `#[local] Existing Instance fp_is_poset` so `poset_trans/antisym` resolve.
+
 ## Next session
 
-Mirsky UB: build a finite-poset **rank function** (longest chain ending at x)
-via well-founded recursion on the strict order, prove x<y ⇒ rank x < rank y
+Mirsky UB (now unblocked by `fin_strict_wf`): define `rank x` by well-founded
+recursion (`Fix fin_strict_wf`) as `1 + max {rank y | y < x}` (0 if minimal),
+prove x<y ⇒ rank x < rank y
 (levels are antichains) and #levels = height, giving the height-sized cover.
 Alternatively Phase B #3 (dim2-comparability): dim ≤ 2 ⟺ incomparability graph
 is a comparability graph (needs a transitive orientation of the
