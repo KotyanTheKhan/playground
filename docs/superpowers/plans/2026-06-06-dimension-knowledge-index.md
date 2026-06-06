@@ -212,7 +212,7 @@ Run:
 grep -c '^@' docs/references/sources.bib
 awk '/^@/{c++} END{print c" entries"}' docs/references/sources.bib
 ```
-Expected: `17` (4 books + 7 foundational + 2 surveys + 2 special + 2 variants).
+Expected: `16` (4 books + 6 foundational + 2 surveys + 2 special + 2 variants).
 If `bibtool` is available, also run `mise exec -- bibtool docs/references/sources.bib >/dev/null && echo OK` (optional; skip if not installed).
 
 - [ ] **Step 3: Verify keys are unique**
