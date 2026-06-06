@@ -91,6 +91,12 @@ dcpo + directed sups), davis-fpp (needs Knaster–Tarski + converse), sperner/ly
   Confirmed the repo has **no** rank/height/longest-chain or well-founded infra,
   so Mirsky (#4) and any height-based result need that built first.
 
+- **2026-06-06 (session 1, close):** Session-closing **full `@all` build is
+  green** (`bash .claude/scripts/timed-build.sh 1800 @all 4`; 0 error lines, all
+  new `.vo` present). New files this session: `DualDimension.v`, `Geometric.v`,
+  `DimBasics.v` (Dimension lib), `KnasterTarski.v` (Posets lib) — all admit-free
+  and integrated.
+
 ## Next session
 
 Phase B #3 (dim2-comparability): dim ≤ 2 ⟺ incomparability graph is a
