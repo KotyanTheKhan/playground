@@ -247,7 +247,33 @@ See also `hiraguchi-sources.md` for the Hiraguchi-bound source dossier.
 **Depends on.** [planar-unbounded]
 **Notes.** Height is necessary: [planar-unbounded] shows planar cover graphs alone do not bound dimension. Part of the "sparsity ⟹ bounded dimension" program surveyed in [Trotter149].
 
-## 8. Open problems
+## 8. Application: logical clocks (project goal)
+
+This section ties the theory above to this repository's north star: **logical
+clocks with memory below the Θ(N) cost of vector clocks** (see `CLAUDE.md`).
+
+#### [FACT] dim-clock-memory — Order dimension is the clock-coordinate count
+**Statement.** A logical clock that exactly characterizes the happened-before order of an execution must assign each event a vector of coordinates whose product order reproduces the causal poset; the least number of coordinates achievable is exactly the order dimension of that execution poset. Vector clocks use N coordinates (one per process); if the execution poset has dimension d < N then a d-coordinate clock characterizes causality, i.e. sub-vector-clock memory.
+**Status.** Proven (folklore embedding: dim(P) = least d with an order-embedding P ↪ ℝ^d). Sources: [DM41]; [T92]; [Trotter149].
+**Depends on.** [dim-def], [dim-eq-chromatic]
+**In this repo.** The project's north star; the execution-poset framework models causal posets so their dimension can be analysed. See `CLAUDE.md` and `docs/INDEX.md`.
+**Notes.** Via [dim-eq-chromatic], a d-coordinate clock corresponds to a d-colouring of the execution's critical pairs into reversible sets — so "cheaper clock" = "fewer colours". This is the lens the whole project uses.
+
+#### [FACT] exec-poset-low-dim — Synchronizing executions have dimension ≤ 2
+**Statement.** Execution posets built from full barriers between layers with disjoint chains inside each layer have order dimension ≤ 2, for an arbitrary number of processes N — hence admit a 2-coordinate logical clock regardless of N. The same ≤ 2 bound holds for a frontier block that is a disjoint union of chains.
+**Status.** Proven (this repository; admit-free). Sources: [T92]; [Trotter149].
+**Depends on.** [dim-clock-memory], [dim-le-width], [disjoint-chains-route]
+**In this repo.** `layered_chains_dim_le2`, `barrier_execution_dim_le2` — `execution/barriers/BarrierExecDim.v`; `disjoint_chains_dim_le2` — `execution/families/DisjointChainsDimAux.v`; `frontier_block_dim_le2` — `execution/families/DisjointChainsDim.v`. The repair-clock track builds explicit 2-coordinate clocks for such executions (memory notes `project_repair_clock_track`, `project_dim2_clock_analysis`).
+**Notes.** These are exactly the d = 2 ≪ N cases that establish sub-vector-clock memory for the synchronizing executions studied here.
+
+#### [FACT] disjoint-chains-route — Disjoint-chain blocks have dimension ≤ 2 unconditionally
+**Statement.** A poset that is a disjoint union of chains (a component labelling with same-component elements comparable and cross-component elements incomparable) has dimension ≤ 2, via an explicit 2-realizer (lexicographic on (component, order), component order forward in one extension and reversed in the other). No width or finiteness hypothesis is needed.
+**Status.** Proven (this repository; admit-free). Sources: [T92].
+**Depends on.** [dim-def]
+**In this repo.** `disjoint_chains_dim_le2` — `execution/families/DisjointChainsDimAux.v`. Closes critical-review finding 2 (memory note `project_disjoint_chains_finding2`).
+**Notes.** Applies where the width ≤ 2 route cannot (e.g. a wide antichain block); the 2-realizer is the explicit 2-coordinate clock.
+
+## 9. Open problems
 
 #### [CONJ] removable-pair — Removable Pair Conjecture
 **Statement.** (Trotter) Every poset P with |P| ≥ 3 contains a pair of elements {x,y} whose removal decreases the dimension by at most 1: dim(P) − dim(P − {x,y}) ≤ 1. The integer-dimension case is OPEN.
