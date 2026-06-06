@@ -100,29 +100,34 @@ _70 entries (16 DEF, 12 FACT, 36 THM, 5 ALG, 1 CONJ). Auto-generated — do not 
 **Statement.** A linear extension of a poset P is a total (linear) order on the same ground set that contains every relation of P (x ≤_P y implies x ≤_L y).
 **Status.** Definition.
 **Sources.** [DM41]; [T92].
+**In this repo.** `IsLinearExtension` — `posets/dimension/DimDefs.v`.
 
 #### [DEF] realizer — Realizer
 **Statement.** A realizer of P is a family R of linear extensions of P whose intersection is exactly P, i.e. x ≤_P y iff x ≤_L y in every L ∈ R.
 **Status.** Definition.
 **Depends on.** [linear-extension]
 **Sources.** [DM41]; [T92].
+**In this repo.** `IsRealizer` — `posets/dimension/DimDefs.v`.
 
 #### [DEF] dim-def — Order dimension (Dushnik–Miller)
 **Statement.** The dimension dim(P) is the least cardinality of a realizer of P.
 **Status.** Definition (Dushnik–Miller 1941).
 **Depends on.** [realizer]
 **Sources.** [DM41].
+**In this repo.** `PosetDimension` — `posets/dimension/DimDefs.v`.
 
 #### [FACT] dim-intersection — Dimension as intersection of linear orders
 **Statement.** dim(P) equals the least t such that P is the intersection of t linear orders on its ground set. (Equivalent reformulation of the definition.)
 **Status.** Proven (folklore/Dushnik–Miller).
 **Depends on.** [dim-def]
 **Sources.** [DM41]; [T92].
+**In this repo.** `all_linear_extensions_is_realizer` / `dushnik_miller_exists` — `posets/dimension/Theorems.v`.
 
 #### [DEF] critical-pair — Critical pair
 **Statement.** An ordered pair (x,y) of distinct incomparable elements of P is a critical pair if every element below x is below y, and every element above y is above x (equivalently D(x) ⊆ D(y) and U(y) ⊆ U(x)). Reversing all critical pairs suffices to determine dimension.
 **Status.** Definition.
 **Sources.** [T92].
+**In this repo.** `IsCriticalPair` — `posets/dimension/CriticalPairs.v`.
 **Notes.** D(·)/U(·) denote strict down-set/up-set.
 
 #### [DEF] alternating-cycle — Alternating cycle / reversible set
@@ -130,12 +135,14 @@ _70 entries (16 DEF, 12 FACT, 36 THM, 5 ALG, 1 CONJ). Auto-generated — do not 
 **Status.** Definition (Rabinovitch–Rival lineage).
 **Depends on.** [critical-pair]
 **Sources.** [T92].
+**In this repo.** `IsAlternatingCycle`, `critical_pairs_reversible_iff_no_alternating_cycle` — `posets/dimension/CriticalPairs.v`.
 
 #### [THM] dim-via-critical-pairs — Dimension via critical pairs
 **Statement.** dim(P) equals the least number of reversible sets needed to cover all critical pairs of P.
 **Status.** Proven.
 **Depends on.** [alternating-cycle], [dim-def]
 **Sources.** [T92].
+**In this repo.** `critical_pair_realizer_iff` — `posets/dimension/CriticalPairs.v`.
 
 #### [THM] dim2-comparability — Two-dimensional posets
 **Statement.** dim(P) ≤ 2 iff the incomparability graph of P is a comparability graph; equivalently, P is the intersection of two linear orders (a permutation poset).
@@ -168,6 +175,7 @@ Structural poset facts the dimension theory above rests on.
 **Statement.** Every partial order can be extended to a linear order on the same ground set. Consequently every poset is the intersection of its linear extensions, so realizers always exist and dim(P) is well-defined.
 **Status.** Proven (Szpilrajn 1930). Sources: [Szpilrajn30]; [T92].
 **Depends on.** [linear-extension], [realizer]
+**In this repo.** `szpilrajn_theorem` — `posets/dimension/Szpilrajn.v`.
 **Notes.** The choice-theoretic foundation underneath the whole theory; for finite P it is constructive (repeatedly linearize an incomparable pair).
 
 #### [THM] dilworth — Dilworth's theorem
@@ -211,6 +219,7 @@ Structural poset facts the dimension theory above rests on.
 **Status.** Proven.
 **Depends on.** [dim-def]
 **Sources.** [T92].
+**In this repo.** `subposet_dimension_le` — `posets/dimension/Theorems.v`.
 
 #### [FACT] dim-lower-bound-standard — Standard examples as lower-bound witnesses
 **Statement.** A large induced standard example forces large dimension: if S_n embeds as an induced subposet of P then dim(P) ≥ n. This is the standard route to dimension lower bounds.
@@ -259,6 +268,7 @@ Structural poset facts the dimension theory above rests on.
 **Status.** Proven (Hiraguchi; Trotter 1975).
 **Depends on.** [dim-def]
 **Sources.** [T92]; [Trotter75].
+**In this repo.** `one_point_removal` — `posets/dimension/OnePointRemoval.v`.
 
 #### [THM] dim-removal-chain — Chain-removal inequality
 **Statement.** Removing a chain C from P decreases the dimension by at most 2: dim(P) − 2 ≤ dim(P − C) ≤ dim(P) (one of Hiraguchi's inequalities).
@@ -271,6 +281,7 @@ Structural poset facts the dimension theory above rests on.
 **Status.** Proven.
 **Depends on.** [dim-def]
 **Sources.** [T92].
+**In this repo.** `product_dimension_le` — `posets/dimension/ProductDimension.v`.
 
 #### [THM] degree-bound — Bounded comparability degree bounds dimension
 **Statement.** If every element of P is comparable to at most k others (k = maximum degree of the comparability graph), then dim(P) < 50·k·(log k)² (Füredi–Kahn 1986, via the Lovász Local Lemma). Recently improved to dim(P) = O(k · log^{1+o(1)} k) (Scott–Wood 2019).
