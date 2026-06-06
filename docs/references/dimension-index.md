@@ -178,6 +178,40 @@ See also `hiraguchi-sources.md` for the Hiraguchi-bound source dossier.
 **Depends on.** [standard-example], [dim3-npc]
 **Sources.** [T92]; [Yannakakis82].
 
+## 6. Variants
+
+#### [DEF] interval-dim — Interval dimension
+**Statement.** The interval dimension idim(P) is the least number of interval-order extensions of P whose intersection is P. Always idim(P) ≤ dim(P).
+**Status.** Definition.
+**Depends on.** [interval-order], [dim-def]
+**Sources.** [T92].
+
+#### [DEF] fractional-dim — Fractional dimension
+**Statement.** The fractional dimension fdim(P) is the linear-programming relaxation of dimension: the minimum total weight on linear extensions such that each critical pair is reversed by extensions of total weight ≥ 1 (equivalently a fractional realizer).
+**Status.** Definition (Brightwell–Scheinerman 1992).
+**Depends on.** [realizer], [critical-pair]
+**Sources.** [BS92].
+
+#### [THM] fractional-le-dim — Fractional vs integer dimension
+**Statement.** fdim(P) ≤ dim(P) for every poset, and fractional dimension is bounded below by 2 for any poset that is not a chain; it can be strictly smaller than the integer dimension.
+**Status.** Proven (Brightwell–Scheinerman 1992).
+**Depends on.** [fractional-dim], [dim-def]
+**Sources.** [BS92].
+
+#### [DEF] boolean-dim — Boolean dimension
+**Statement.** The Boolean dimension bdim(P) is the least d such that the order relation of P can be recovered by a fixed Boolean formula from d linear orders on the ground set (the comparison x < y is decided by a Boolean function of the d pairwise comparisons). Always bdim(P) ≤ dim(P).
+**Status.** Definition.
+**Depends on.** [dim-def]
+**Sources.** *pending source*
+**Notes.** Introduced by Nešetřil–Pudlák; a precise citable source has not yet been secured for this index — recheck on hand-fetch.
+
+#### [DEF] local-dim — Local dimension
+**Statement.** The local dimension ldim(P) is defined via partial linear extensions: the minimum, over coverings of the critical pairs by partial realizers, of the maximum number of partial linear extensions covering any single element. It refines dimension with ldim(P) ≤ dim(P).
+**Status.** Definition.
+**Depends on.** [dim-def], [critical-pair]
+**Sources.** *pending source*
+**Notes.** Introduced by Ueckerdt (2016) and developed by Kim–Martin–Masařík–Shull–Smith–Uzzell–Wang; a precise citable source has not yet been secured — recheck on hand-fetch.
+
 ## Hand-fetch (paywalled)
 
 These sources are paywalled or book-only; please obtain them by hand. The index
